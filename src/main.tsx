@@ -55,4 +55,14 @@ Devvit.addCustomPostType({
   },
 });
 
+Devvit.addSettings([
+  {
+    name: 'every-public-api-key',
+    label: 'Every.org public api key',
+    type: 'string',
+    isSecret: true,
+    scope: 'app',
+  },
+]);
+
 export default Devvit;
