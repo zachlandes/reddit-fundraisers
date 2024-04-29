@@ -1,5 +1,4 @@
 import { Devvit, ZMember } from '@devvit/public-api';
-import { key, KeyType } from '../PollHelpers.js';
 
 export const addPoll = Devvit.createForm(
   {
@@ -12,40 +11,6 @@ export const addPoll = Devvit.createForm(
         type: 'string',
         required: true,
         helpText: `E.g. What is your favorite color?`,
-      },
-      // Description will be used as post selftext, once that is supported for custom posts
-      // {
-      //   name: `description`,
-      //   label: `Description (Optional)`,
-      //   type: `string`,
-      // },
-      {
-        name: 'answers',
-        label: 'Answers (up to 12 total, use a comma to separate)',
-        type: 'paragraph',
-        required: true,
-        helpText: `E.g. "Red, Orange, Blue, Mother of Pearl"`,
-      },
-      {
-        name: 'days',
-        label: 'Days to allow voting',
-        type: 'string',
-        defaultValue: `2`,
-        required: true,
-      },
-      {
-        name: 'randomizeOrder',
-        label: 'Shuffle order of poll options',
-        type: 'boolean',
-        defaultValue: true,
-        helpText: `To reduce bias, options will be presented to the user in a shuffled order.`,
-      },
-      {
-        name: 'allowShowResults',
-        label: 'Include "Show Results" option',
-        type: 'boolean',
-        defaultValue: true,
-        helpText: `This allow users to see poll results without voting. Users cannot vote after viewing the results.`,
       },
     ],
   },

@@ -31,70 +31,123 @@ Devvit.addMenuItem({
 // const App: Devvit.CustomPostComponent = async (context) => {
 
 // };
-async function fetchNonProfitResults(query: string, settings: SettingsClient): Promise<string[]> {
-  const everyPublicKey = await settings.get('every-public-api-key');
-  let response = await fetch(`https://partners.every.org/v0.2/search/${query}?apiKey=${everyPublicKey}`);
-  if (!response.ok) {
-    throw new Error('Every.org search request failed');
-  }
-  const data = await response.json();
-  return data.nonprofits.map(item: object => item.name);
+type Nonprofit = {
+  name: string;
+  profileUrl: string;
+  ein: string;
+  description: string;
 }
 
-Devvit.addCustomPostType({
-  name: 'Multi-step form',
-  description: 'Create and post a fundraiser',
-  render: ({ useForm, useState, ui, settings}) => {
-    const [name, setName] = useState('Mysterious person');
-    let nonProfitResults: string[] = []; 
-	// Form must be defined within the render method
-    const searchForm = useForm(
-      () => ({
-        title: `${name[0]}, which nonprofit do you want to fundraise for?`,
-        fields: [
-          {
-            type: 'string',
-            label: 'Search for a nonprofit',
-            name: 'search',
-          },
-        ],
-      }),
-      ({values}) => {
-        const search = values['search'][0]
-        if (search.length > 0) {
-          nonProfitResults = await fetchNonProfitResults(search, settings)
-          ui.showForm(searchResultsForm);
-        }
-      }
-    );
+// async function fetchNonProfitResults(query: string, settings: SettingsClient): Promise<string[]> {
+//   const everyPublicKey = await settings.get('every-public-api-key');
+//   let response = await fetch(`https://partners.every.org/v0.2/search/${query}?apiKey=${everyPublicKey}`);
+//   if (!response.ok) {
+//     throw new Error('Every.org search request failed');
+//   }
+//   const data = await response.json();
+//   return data.nonprofits.map(item: object => item.name);
+// }
 
-    const searchResultsForm = useForm(
-      () => ({
-        title: "results",
-        fields: [
-          {
+// Devvit.addCustomPostType({
+//   name: 'Multi-step form',
+//   description: 'Create and post a fundraiser',
+//   render: ({ useForm, useState, ui, settings}) => {
+//     const [name, setName] = useState('Planned Parenthood');
+//     let nonProfitResults: string[] = []; 
+// 	// Form must be defined within the render method
+//     const searchForm = useForm(
+//       () => ({
+//         title: `${name[0]}, which nonprofit do you want to fundraise for?`,
+//         fields: [
+//           {
+//             type: 'string',
+//             label: 'Search for a nonprofit',
+//             name: 'search',
+//           },
+//         ],
+//       }),
+//       ({values}) => {
+//         const search = values['search'][0]
+//         if (search.length > 0) {
+//           nonProfitResults = await fetchNonProfitResults(search, settings)
+//           ui.showForm(searchResultsForm);
+//         }
+//       }
+//     );
+
+//     const searchResultsForm = createForm(
+//       (data) => {
+//         return {
+//           title: 'which nonprofit would you like to support?'
+//           fields: [
+//             {
+//               name: 'nonprofits',
+//               label: 'nonprofit search term results',
+//               type: 'select',
+
+//             }
+//           ]
+//         }
+//       }
+//     )
+
+//     return (
+//       <vstack>
+//         <text>Hello {name}</text>
+
+// 	// Add a button which calls ui.showForm();
+//         <button onPress={() => { ui.showForm(searchForm) }}>Change name</button>
+//       </vstack>
+//     )
+//   }
+// });
+
+const dynamicForm = Devvit.createForm(
+  (data) => {
+    const term1 = data.searchTerm//data.searchTerm[0];
+    const term2 = data.searchTerm//data.searchTerm[1];
+    return {
+      fields: [
+        {
+          name: 'who',
+          label: 'which search result would you like to select?',
           type: 'select',
-          label: 'Nonprofit search results'
-          name: 'nonprofit',
-          options: nonProfitResults
-        }
-      ]
-    }),
-      ({values}) => {
-        
-      }
-    )
+          options: [
+            { label: `${data.searchTerm}`, value: term1 },
+            { label: `${data.searchTerm}`, value: term2 },
+          ],
+        },
+      ],
+      title: 'selection of terms from search results',
+      acceptLabel: 'Select this term',
+    };
+  },
+  ({ values }, ctx) => {
+    return ctx.ui.showToast("you made a selection!");
+  }
+);
+
+Devvit.addCustomPostType({
+  name: 'Search term',
+  render: ({ useForm, useState, ui }) => {
+    const [searchTerm, setTerm] = useState('default search term');
+
+    const searchTermForm = useForm({fields: [{ label: 'term', type: 'string', name: 'searchTerm'}]}, (values) => {
+      setTerm(values.searchTerm);
+      ui.showForm(dynamicForm, values.searchTerm)
+    });
 
     return (
       <vstack>
-        <text>Hello {name}</text>
-
-	// Add a button which calls ui.showForm();
-        <button onPress={() => { ui.showForm(searchForm) }}>Change name</button>
+        <text>Search here:</text>
+        <button onPress={() => { ui.showForm(searchTermForm) }}>search</button>
       </vstack>
     )
   }
-});
+})
+
+
+
 
 // // Add a custom post type definition
 // Devvit.addCustomPostType({
