@@ -30,7 +30,7 @@ export function LoadingState(): JSX.Element {
     <zstack width={'100%'} height={'100%'} alignment="center middle">
       <vstack width={'100%'} height={'100%'} alignment="center middle">
         <text size="large" weight="bold">
-          Scoreboard loading...
+          Fundraiser loading...
         </text>
       </vstack>
     </zstack>
@@ -89,9 +89,9 @@ const searchTermForm = Devvit.createForm(
     };
   },
   async ({ values }, ctx) => {
-    const term = values.term
+    const term = values.searchTerm
     const { reddit } = ctx;
-    return ctx.ui.showForm(dynamicForm, { term });
+    return ctx.ui.showForm(dynamicForm, { term } );
     }
   );
 
