@@ -29,15 +29,6 @@ export function LoadingState(): JSX.Element {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
       <vstack width={'100%'} height={'100%'} alignment="center middle">
-        <image
-          url="loading.gif"
-          description="Loading ..."
-          height={'140px'}
-          width={'140px'}
-          imageHeight={'240px'}
-          imageWidth={'240px'}
-        />
-        <spacer size="small" />
         <text size="large" weight="bold">
           Scoreboard loading...
         </text>
@@ -104,40 +95,31 @@ const searchTermForm = Devvit.createForm(
     }
   );
 
-  //TODO: determine framework for linking customposttype to the form submissions and get the menu button working
+  Devvit.addMenuItem({
+    label: 'Add a fundraiser custom post',
+    location: 'subreddit',
+    forUserType: 'moderator',
+    onPress: async (_event, { ui }) => {
+      return ui.showForm(searchTermForm);
+    },
+  });
+
   Devvit.addCustomPostType({
     name: "Fundraiser",
     render: (context) => {
-      
+      //const { useState, postId } = context;
+      return (
+        <blocks height="regular">
+          <vstack>
+            <text style="heading" size="xxlarge">
+              Fundraiser created!
+            </text>
+            <button icon="heart" appearance="primary" />
+          </vstack>
+        </blocks>
+      );
     }
-  })
-// Devvit.addCustomPostType({
-//   name: 'Search term',
-//   render: ({ useForm, useState, ui }) => {
-//     const [searchTerm, setTerm] = useState('default search term');
-
-//     const searchTermForm = useForm({fields: [{ label: 'term', type: 'string', name: 'searchTerm'}]}, (values) => {
-//       setTerm(values.searchTerm);
-//       ui.showForm(dynamicForm, values.searchTerm)
-//     });
-
-//     return (
-//       <vstack>
-//         <text>Search here:</text>
-//         <button onPress={() => { ui.showForm(searchTermForm) }}>search</button>
-//       </vstack>
-//     )
-//   }
-// })
-
-Devvit.addMenuItem({
-  label: 'Add a fundraiser custom post',
-  location: 'subreddit',
-  forUserType: 'member',
-  onPress: async (_event, { ui }) => {
-    return ui.showForm(searchTermForm);
-  },
-});
+  });
 
 Devvit.addSettings([
   {
@@ -148,31 +130,5 @@ Devvit.addSettings([
     scope: 'app',
   },
 ]);
-// // Add a custom post type definition
-// Devvit.addCustomPostType({
-//   name: 'Custom Post',
-//   height: 'regular',
-//   render: (context) => {
-//     const { useState } = context;
-//     const [counter, startDonation] = useState(0);
-
-//     return (
-//       <vstack height="100%" width="100%" gap="medium" alignment="center middle">
-//         <image
-//           url="donate.png"
-//           description="logo"
-//           imageHeight={51}
-//           imageWidth={138}
-//           height="48px"
-//           width="48px"
-//         />
-//         <text size="large">{`Click counter: ${counter}`}</text>
-//         <button appearance="primary" onPress={() => context.ui.navigateTo('https://www.every.org/unrsf/f/help-halve-road-deaths')}>
-//           Click me!
-//         </button>
-//       </vstack>
-//     );
-//   },
-// });
 
 export default Devvit;
