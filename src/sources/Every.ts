@@ -12,6 +12,13 @@ export type GeneralNonprofitInfo = {
     websiteUrl: string
 };
 
+export type EveryNonprofitInfo = GeneralNonprofitInfo &
+{
+    primarySlug: string
+    logoUrl: string,
+    coverImageUrl: string,
+}
+
 export async function fetchNonprofits<T extends GeneralNonprofitInfo>(
     query: string,
     publicKey: string
@@ -34,7 +41,7 @@ export async function fetchNonprofits<T extends GeneralNonprofitInfo>(
     data['nonprofits'].forEach((nonprofit: unknown) => {
         nonprofits.push(parseNonprofitResult(nonprofit) as T)
     });
-    return nonprofits
+    return nonprofits;
 }
 
 export function parseNonprofitResult(
@@ -48,5 +55,12 @@ export function parseNonprofitResult(
         websiteUrl: nonprofit.websiteUrl
     };
 
-    return nonprofitInfo
+    return nonprofitInfo;
+}
+
+export function generateEveryDonationLink(
+    webhookToken: string, 
+    nonprofit: EveryNonprofitInfo
+    ): string {
+        return nonprofit.profileUrl + '#donate?' + webhookToken;
 }

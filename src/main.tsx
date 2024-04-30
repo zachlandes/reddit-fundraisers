@@ -1,14 +1,13 @@
 // Learn more at developers.reddit.com/docs
 import { Context, Devvit, SettingsClient } from '@devvit/public-api';
 import type { Post } from '@devvit/public-api';
+import type { GeneralNonprofitInfo } from './sources/Every.js';
+import { fetchNonprofits } from './sources/Every.js';
 
 Devvit.configure({
   redditAPI: true,
 });
 
-// const App: Devvit.CustomPostComponent = async (context) => {
-
-// };
 type Nonprofit = {
   name: string;
   profileUrl: string;
@@ -16,15 +15,6 @@ type Nonprofit = {
   description: string;
 }
 
-// async function fetchNonProfitResults(query: string, settings: SettingsClient): Promise<string[]> {
-//   const everyPublicKey = await settings.get('every-public-api-key');
-//   let response = await fetch(`https://partners.every.org/v0.2/search/${query}?apiKey=${everyPublicKey}`);
-//   if (!response.ok) {
-//     throw new Error('Every.org search request failed');
-//   }
-//   const data = await response.json();
-//   return data.nonprofits.map(item: object => item.name);
-// }
 export function LoadingState(): JSX.Element {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
