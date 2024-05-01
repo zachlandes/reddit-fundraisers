@@ -6,6 +6,7 @@ import { fetchNonprofits } from './sources/Every.js';
 
 Devvit.configure({
   redditAPI: true,
+  http: true
 });
 
 type Nonprofit = {
@@ -27,19 +28,28 @@ export function LoadingState(): JSX.Element {
   );
 }
 
+//TODO: I think this is overkill and there is a cleaner way to do this. I needed this so that the data passed to showForm (in the dynamicForm) has type Data
+function convertToFormData(
+  nonprofits: GeneralNonprofitInfo[] | null
+): { nonprofits: GeneralNonprofitInfo[] } {
+  return {
+    nonprofits: nonprofits ?? [],
+  };
+}
+
+
 const dynamicForm = Devvit.createForm(
   (data) => {
-    const term1 = data.term
     return {
       fields: [
         {
           name: 'who',
           label: 'which search result would you like to select?',
           type: 'select',
-          options: [
-            { label: `${term1}`, value: term1 },
-            { label: `${term1}`, value: term1 },
-          ],
+          options: data.nonprofits.map((nonprofit: GeneralNonprofitInfo) => ({
+            label: `${nonprofit.name}`,
+            value: nonprofit.name,
+          })),
         },
         {
           name: 'postTitle',
@@ -80,10 +90,24 @@ const searchTermForm = Devvit.createForm(
   },
   async ({ values }, ctx) => {
     const term = values.searchTerm
-    const { reddit } = ctx;
-    return ctx.ui.showForm(dynamicForm, { term } );
+    try {
+      const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');  
+    } catch (e) {
+      console.error(e)
+      ctx.ui.showToast('There was an error searching for your term. Please try again later!')
     }
-  );
+    const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');
+    if (typeof everyPublicKey === 'string') {
+      const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
+      if (typeof searchResults != null) {return ctx.ui.showForm(dynamicForm, convertToFormData(searchResults));}
+      
+    }
+    else {
+      console.error('The "every-public-api-key" setting is undefined. Unable to fetch nonprofits.');
+      ctx.ui.showToast('There was an error searching for your term. Please try again later!')
+    }    
+  }
+);
 
   Devvit.addMenuItem({
     label: 'Add a fundraiser custom post',

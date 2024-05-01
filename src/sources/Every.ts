@@ -1,7 +1,7 @@
 import { Context, Devvit, SettingsClient } from '@devvit/public-api';
 
 export enum APIService {
-    EVERY = `every.org`
+    EVERY = `partners.every.org`
 }
 
 export type GeneralNonprofitInfo = {
@@ -59,8 +59,11 @@ export function parseNonprofitResult(
 }
 
 export function generateEveryDonationLink(
-    webhookToken: string, 
-    nonprofit: EveryNonprofitInfo
+    //webhookToken: string, 
+    nonprofit: EveryNonprofitInfo,
+    numberOfResults: number = 5,
+    ...optionalParams: [string, string][]
     ): string {
-        return nonprofit.profileUrl + '#donate?' + webhookToken;
+        const queryParams = new URLSearchParams(optionalParams)
+        return `${nonprofit.profileUrl}#donate?take=${numberOfResults.toString()}${queryParams.toString()}`; //webhookToken=
 }
