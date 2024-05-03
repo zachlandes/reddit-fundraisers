@@ -1,13 +1,12 @@
 // Learn more at developers.reddit.com/docs
-import { Context, Devvit, SettingsClient, RichTextBuilder } from '@devvit/public-api';
+import { Context, Devvit, SettingsClient } from '@devvit/public-api';
 import type { JSONObject, Post } from '@devvit/public-api';
 import type { GeneralNonprofitInfo } from './sources/Every.js';
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
 
 Devvit.configure({
   redditAPI: true,
-  http: true,
-  redis: true
+  http: true
 });
 
 export function LoadingState(): JSX.Element {
@@ -35,6 +34,15 @@ function convertToFormData(
 }
 
 
+// export async function getApiKey(keyName: string, context: Context) {
+//   const key = await context.settings.get(keyName);
+//   if (typeof key === 'string') {
+//     return key;
+//   } else {
+//     return "";
+//   }
+// }
+
 const dynamicForm = Devvit.createForm(
   (data) => {
     return {
@@ -45,7 +53,7 @@ const dynamicForm = Devvit.createForm(
           type: 'select',
           options: populateNonprofitSelect(JSON.stringify(data)).map((nonprofit: GeneralNonprofitInfo) => ({
             label: `${nonprofit.name}`,
-            value: nonprofit.description,
+            value: JSON.stringify(nonprofit),
           })),
         },
         {
@@ -64,8 +72,8 @@ const dynamicForm = Devvit.createForm(
     const {reddit} = ctx;
     const currentSubreddit = await reddit.getCurrentSubreddit();
     const postTitle = values.postTitle;
-    const nonprofitDescription = values.nonprofit;
-    console.log(postTitle + " " + nonprofitDescription)
+    const nonprofitInfo: GeneralNonprofitInfo = JSON.parse(values.nonprofit) as GeneralNonprofitInfo;
+    console.log(postTitle + " " + nonprofitInfo.description);
     const post: Post = await reddit.submitPost({
       preview: LoadingState(),
       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
@@ -100,7 +108,6 @@ const searchTermForm = Devvit.createForm(
     if (typeof everyPublicKey === 'string') {
       const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
       if (typeof searchResults != null) {return ctx.ui.showForm(dynamicForm, convertToFormData(searchResults));}
-
     }
     else {
       console.error('The "every-public-api-key" setting is undefined. Unable to fetch nonprofits.');

@@ -1,4 +1,4 @@
-import { Context, Devvit, SettingsClient } from '@devvit/public-api';
+import { Context, Data, Devvit, SettingsClient } from '@devvit/public-api';
 
 export enum APIService {
     EVERY = `partners.every.org`
@@ -69,28 +69,22 @@ export function generateEveryDonationLink(
 }
 
 export function populateNonprofitSelect(
-    searchTerm: string
+    searchResults: string,
 ): GeneralNonprofitInfo[] {
-    console.log(searchTerm);
     // take search term and validate
-
-    // call every.org for fetch
-    // await for results (blocking)
-
-    // convert results to list of objects
-
-    // Return a list of objects
-    // return [{}]  // This is our options
-    const nonprofitInfo: GeneralNonprofitInfo = {
-        name: "test",
-        profileUrl: "test",
-        description: "test",
-        ein: "test",
-        websiteUrl: "test"
-    };
-    return [
-        nonprofitInfo,
-        nonprofitInfo,
-        nonprofitInfo,
-    ];
+    if (searchResults.length > 0) {
+        let searchResultsData: Data;
+        try {
+            searchResultsData = JSON.parse(searchResults);
+            console.log(searchResultsData);
+        }
+        catch {
+            return []; //FIXME:
+        }
+        // Return a list of objects
+        // return [{}]  // This is our options
+        const nonprofitInfos = searchResultsData.nonprofits as GeneralNonprofitInfo[];
+        return nonprofitInfos;
+    }
+    return [];
 }
