@@ -48,7 +48,7 @@ const dynamicForm = Devvit.createForm(
           type: 'select',
           options: data.nonprofits.map((nonprofit: GeneralNonprofitInfo) => ({
             label: `${nonprofit.name}`,
-            value: nonprofit,
+            value: nonprofit.description, //TODO: since value has to be a string, how can we pass the entire selected nonprofit object to the onsubmit handler?
           })),
         },
         {
@@ -67,11 +67,11 @@ const dynamicForm = Devvit.createForm(
     const {reddit} = ctx;
     const currentSubreddit = await reddit.getCurrentSubreddit();
     const postTitle = values.postTitle;
-    const selectedNonprofit = values.nonprofit; // doesn't work! == undefined
-    console.log(postTitle + " " + selectedNonprofit)
+    const nonprofitDescription = values.nonprofit; 
+    console.log(postTitle + " " + nonprofitDescription)
     const post: Post = await reddit.submitPost({
       preview: LoadingState(),
-      title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser: ${selectedNonprofit.name}`,
+      title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
       subredditName: currentSubreddit.name, 
     }); 
   }
