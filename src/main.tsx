@@ -10,13 +10,6 @@ Devvit.configure({
   redis: true
 });
 
-type Nonprofit = {
-  name: string;
-  profileUrl: string;
-  ein: string;
-  description: string;
-}
-
 export function LoadingState(): JSX.Element {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
@@ -103,28 +96,9 @@ const searchTermForm = Devvit.createForm(
       ctx.ui.showToast('There was an error searching for your term. Please try again later!')
     }
     const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');
+
     if (typeof everyPublicKey === 'string') {
       const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
-
-      const searchResultsCache = ctx.cache(
-        //FIXME: Refactor to simplify?
-        async () => {
-            let searchResults = await fetchNonprofits(term, everyPublicKey);
-            if (typeof searchResults != null){
-              let searchDataObject: JSONObject = convertToFormData(searchResults) as JSONObject;
-              return searchDataObject;
-            }
-            else {
-              let emptySearchResult:JSONObject = {};
-              return emptySearchResult;
-            }
-          },
-          {
-            key: 'some-fetch', //FIXME: these keys may need to be unique as redis is shared to a subreddit
-            ttl: 100_000, // millis
-          }
-        );
-
       if (typeof searchResults != null) {return ctx.ui.showForm(dynamicForm, convertToFormData(searchResults));}
 
     }
