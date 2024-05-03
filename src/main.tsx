@@ -2,7 +2,7 @@
 import { Context, Devvit, SettingsClient, RichTextBuilder } from '@devvit/public-api';
 import type { JSONObject, Post } from '@devvit/public-api';
 import type { GeneralNonprofitInfo } from './sources/Every.js';
-import { fetchNonprofits } from './sources/Every.js';
+import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -29,7 +29,10 @@ export function LoadingState(): JSX.Element {
   );
 }
 
-//TODO: I think this is overkill and there is a cleaner way to do this. I needed this so that the data passed to showForm (in the dynamicForm) has type Data
+/*
+TODO: I think this is overkill and there is a cleaner way to do this.
+I needed this so that the data passed to showForm (in the dynamicForm) has type Data
+*/
 function convertToFormData(
   nonprofits: GeneralNonprofitInfo[] | null
 ): { nonprofits: GeneralNonprofitInfo[] } {
@@ -47,9 +50,9 @@ const dynamicForm = Devvit.createForm(
           name: 'nonprofit',
           label: 'Select your nonprofit',
           type: 'select',
-          options: data.nonprofits.map((nonprofit: GeneralNonprofitInfo) => ({
+          options: populateNonprofitSelect(JSON.stringify(data)).map((nonprofit: GeneralNonprofitInfo) => ({
             label: `${nonprofit.name}`,
-            value: nonprofit.description, 
+            value: nonprofit.description,
           })),
         },
         {
@@ -68,13 +71,13 @@ const dynamicForm = Devvit.createForm(
     const {reddit} = ctx;
     const currentSubreddit = await reddit.getCurrentSubreddit();
     const postTitle = values.postTitle;
-    const nonprofitDescription = values.nonprofit; 
+    const nonprofitDescription = values.nonprofit;
     console.log(postTitle + " " + nonprofitDescription)
     const post: Post = await reddit.submitPost({
       preview: LoadingState(),
       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
-      subredditName: currentSubreddit.name, 
-    }); 
+      subredditName: currentSubreddit.name,
+    });
   }
 );
 
@@ -82,8 +85,8 @@ const searchTermForm = Devvit.createForm(
   () => {
     return {
       fields: [
-        { label: 'Search for a nonprofit by name', 
-        type: 'string', 
+        { label: 'Search for a nonprofit by name',
+        type: 'string',
         name: 'searchTerm'}
       ],
       title: 'Create a fundraiser',
@@ -94,7 +97,7 @@ const searchTermForm = Devvit.createForm(
   async ({ values }, ctx) => {
     const term = values.searchTerm
     try {
-      const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');  
+      const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');
     } catch (e) {
       console.error(e)
       ctx.ui.showToast('There was an error searching for your term. Please try again later!')
@@ -102,7 +105,7 @@ const searchTermForm = Devvit.createForm(
     const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');
     if (typeof everyPublicKey === 'string') {
       const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
-      
+
       const searchResultsCache = ctx.cache(
         //FIXME: Refactor to simplify?
         async () => {
@@ -123,12 +126,12 @@ const searchTermForm = Devvit.createForm(
         );
 
       if (typeof searchResults != null) {return ctx.ui.showForm(dynamicForm, convertToFormData(searchResults));}
-      
+
     }
     else {
       console.error('The "every-public-api-key" setting is undefined. Unable to fetch nonprofits.');
       ctx.ui.showToast('There was an error searching for your term. Please try again later!')
-    }    
+    }
   }
 );
 
@@ -149,7 +152,7 @@ const searchTermForm = Devvit.createForm(
         <blocks height="regular">
           <vstack>
             <text style="heading" size="xxlarge">
-              Fundraiser created!
+              Fundraiser created! 2
             </text>
             <button icon="heart" appearance="primary" />
           </vstack>

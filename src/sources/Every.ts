@@ -59,11 +59,38 @@ export function parseNonprofitResult(
 }
 
 export function generateEveryDonationLink(
-    //webhookToken: string, 
+    //webhookToken: string,
     nonprofit: EveryNonprofitInfo,
     numberOfResults: number = 5,
     ...optionalParams: [string, string][]
     ): string {
         const queryParams = new URLSearchParams(optionalParams)
         return `${nonprofit.profileUrl}#donate?take=${numberOfResults.toString()}${queryParams.toString()}`; //webhookToken=
+}
+
+export function populateNonprofitSelect(
+    searchTerm: string
+): GeneralNonprofitInfo[] {
+    console.log(searchTerm);
+    // take search term and validate
+
+    // call every.org for fetch
+    // await for results (blocking)
+
+    // convert results to list of objects
+
+    // Return a list of objects
+    // return [{}]  // This is our options
+    const nonprofitInfo: GeneralNonprofitInfo = {
+        name: "test",
+        profileUrl: "test",
+        description: "test",
+        ein: "test",
+        websiteUrl: "test"
+    };
+    return [
+        nonprofitInfo,
+        nonprofitInfo,
+        nonprofitInfo,
+    ];
 }
