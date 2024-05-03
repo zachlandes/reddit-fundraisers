@@ -1,5 +1,5 @@
 // Learn more at developers.reddit.com/docs
-import { Context, Devvit, SettingsClient } from '@devvit/public-api';
+import { Context, Devvit, SettingsClient, RichTextBuilder } from '@devvit/public-api';
 import type { Post } from '@devvit/public-api';
 import type { GeneralNonprofitInfo } from './sources/Every.js';
 import { fetchNonprofits } from './sources/Every.js';
@@ -43,12 +43,12 @@ const dynamicForm = Devvit.createForm(
     return {
       fields: [
         {
-          name: 'who',
-          label: 'which search result would you like to select?',
+          name: 'nonprofit',
+          label: 'Select your nonprofit',
           type: 'select',
           options: data.nonprofits.map((nonprofit: GeneralNonprofitInfo) => ({
             label: `${nonprofit.name}`,
-            value: nonprofit.name,
+            value: nonprofit,
           })),
         },
         {
@@ -67,11 +67,13 @@ const dynamicForm = Devvit.createForm(
     const {reddit} = ctx;
     const currentSubreddit = await reddit.getCurrentSubreddit();
     const postTitle = values.postTitle;
+    const selectedNonprofit = values.nonprofit; // doesn't work! == undefined
+    console.log(postTitle + " " + selectedNonprofit)
     const post: Post = await reddit.submitPost({
       preview: LoadingState(),
-      title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser: ${values.who}`,
-      subredditName: currentSubreddit.name,
-    });
+      title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser: ${selectedNonprofit.name}`,
+      subredditName: currentSubreddit.name, 
+    }); 
   }
 );
 
@@ -79,11 +81,11 @@ const searchTermForm = Devvit.createForm(
   () => {
     return {
       fields: [
-        { label: 'term', 
+        { label: 'Search for a nonprofit by name', 
         type: 'string', 
         name: 'searchTerm'}
       ],
-      title: 'Create Fundraiser Post',
+      title: 'Create a fundraiser',
       acceptLabel: 'Next',
       cancelLabel: 'Back',
     };
@@ -110,7 +112,7 @@ const searchTermForm = Devvit.createForm(
 );
 
   Devvit.addMenuItem({
-    label: 'Add a fundraiser custom post',
+    label: 'Create a fundraiser',
     location: 'subreddit',
     forUserType: 'moderator',
     onPress: async (_event, { ui }) => {
