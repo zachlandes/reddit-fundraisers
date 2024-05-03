@@ -1,12 +1,13 @@
 // Learn more at developers.reddit.com/docs
 import { Context, Devvit, SettingsClient, RichTextBuilder } from '@devvit/public-api';
-import type { Post } from '@devvit/public-api';
+import type { JSONObject, Post } from '@devvit/public-api';
 import type { GeneralNonprofitInfo } from './sources/Every.js';
 import { fetchNonprofits } from './sources/Every.js';
 
 Devvit.configure({
   redditAPI: true,
-  http: true
+  http: true,
+  redis: true
 });
 
 type Nonprofit = {
@@ -48,7 +49,7 @@ const dynamicForm = Devvit.createForm(
           type: 'select',
           options: data.nonprofits.map((nonprofit: GeneralNonprofitInfo) => ({
             label: `${nonprofit.name}`,
-            value: nonprofit.description, //TODO: since value has to be a string, how can we pass the entire selected nonprofit object to the onsubmit handler?
+            value: nonprofit.description, 
           })),
         },
         {
@@ -101,6 +102,26 @@ const searchTermForm = Devvit.createForm(
     const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');
     if (typeof everyPublicKey === 'string') {
       const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
+      
+      const searchResultsCache = ctx.cache(
+        //FIXME: Refactor to simplify?
+        async () => {
+            let searchResults = await fetchNonprofits(term, everyPublicKey);
+            if (typeof searchResults != null){
+              let searchDataObject: JSONObject = convertToFormData(searchResults) as JSONObject;
+              return searchDataObject;
+            }
+            else {
+              let emptySearchResult:JSONObject = {};
+              return emptySearchResult;
+            }
+          },
+          {
+            key: 'some-fetch', //FIXME: these keys may need to be unique as redis is shared to a subreddit
+            ttl: 100_000, // millis
+          }
+        );
+
       if (typeof searchResults != null) {return ctx.ui.showForm(dynamicForm, convertToFormData(searchResults));}
       
     }
