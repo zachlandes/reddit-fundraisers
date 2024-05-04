@@ -1,5 +1,5 @@
 // Learn more at developers.reddit.com/docs
-import { Context, Devvit, SettingsClient } from '@devvit/public-api';
+import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public-api';
 import type { JSONObject, Post } from '@devvit/public-api';
 import type { GeneralNonprofitInfo } from './sources/Every.js';
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
@@ -33,16 +33,6 @@ function convertToFormData(
   };
 }
 
-
-// export async function getApiKey(keyName: string, context: Context) {
-//   const key = await context.settings.get(keyName);
-//   if (typeof key === 'string') {
-//     return key;
-//   } else {
-//     return "";
-//   }
-// }
-
 const dynamicForm = Devvit.createForm(
   (data) => {
     return {
@@ -69,17 +59,27 @@ const dynamicForm = Devvit.createForm(
     };
   },
   async ({ values }, ctx) => {
+    console.log(values);
     const {reddit} = ctx;
     const currentSubreddit = await reddit.getCurrentSubreddit();
     const postTitle = values.postTitle;
     const nonprofitInfo: GeneralNonprofitInfo = JSON.parse(values.nonprofit) as GeneralNonprofitInfo;
     console.log(postTitle + " " + nonprofitInfo.description);
+    const myrichtext = new RichTextBuilder()
+      .paragraph((p) => {
+        p.text({
+          text: nonprofitInfo.description
+        }).text({text: "secondChild"});
+      })
+      .build();
+    console.log(myrichtext)
     const post: Post = await reddit.submitPost({
-      preview: LoadingState(),
+      //preview: LoadingState(),
       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
       subredditName: currentSubreddit.name,
-    });
-  }
+      text: myrichtext
+  });
+}
 );
 
 const searchTermForm = Devvit.createForm(
@@ -129,6 +129,7 @@ const searchTermForm = Devvit.createForm(
     name: "Fundraiser",
     render: (context) => {
       //const { useState, postId } = context;
+      console.log(JSON.stringify({'addCustomPostTypeContext': context}));
       return (
         <blocks height="regular">
           <vstack>
@@ -136,6 +137,8 @@ const searchTermForm = Devvit.createForm(
               Fundraiser created! 2
             </text>
             <button icon="heart" appearance="primary" />
+            <text style="paragraph" size="small">
+            </text>
           </vstack>
         </blocks>
       );
