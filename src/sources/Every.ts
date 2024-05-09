@@ -15,11 +15,11 @@ export type GeneralNonprofitInfo = {
 export type EveryNonprofitInfo = GeneralNonprofitInfo &
 {
     primarySlug: string
-    logoUrl: string,
-    coverImageUrl: string,
+    logoUrl: string | null,
+    coverImageUrl: string | null,
 }
 
-export async function fetchNonprofits<T extends GeneralNonprofitInfo>(
+export async function fetchNonprofits<T extends EveryNonprofitInfo>(
     query: string,
     publicKey: string
 ): Promise<T[] | null> {
@@ -46,13 +46,18 @@ export async function fetchNonprofits<T extends GeneralNonprofitInfo>(
 
 export function parseNonprofitResult(
     nonprofit: unknown
-): GeneralNonprofitInfo {
-    const nonprofitInfo: GeneralNonprofitInfo = {
+): EveryNonprofitInfo {
+    const coverImageUrlSafe = nonprofit.coverImageUrl ?? null;
+    const logoUrlSafe = nonprofit.logoUrl ?? null;
+
+    const nonprofitInfo: EveryNonprofitInfo = {
         name: nonprofit.name,
         profileUrl: nonprofit.profileUrl,
         description: nonprofit.description,
         ein: nonprofit.ein,
-        websiteUrl: nonprofit.websiteUrl
+        websiteUrl: nonprofit.websiteUrl,
+        coverImageUrl: coverImageUrlSafe,
+        logoUrl: logoUrlSafe
     };
 
     return nonprofitInfo;
@@ -70,7 +75,7 @@ export function generateEveryDonationLink(
 
 export function populateNonprofitSelect(
     searchResults: string,
-): GeneralNonprofitInfo[] {
+): EveryNonprofitInfo[] {
     // take search term and validate
     if (searchResults.length > 0) {
         let searchResultsData: Data;
@@ -83,7 +88,7 @@ export function populateNonprofitSelect(
         }
         // Return a list of objects
         // return [{}]  // This is our options
-        const nonprofitInfos = searchResultsData.nonprofits as GeneralNonprofitInfo[];
+        const nonprofitInfos = searchResultsData.nonprofits as EveryNonprofitInfo[];
         return nonprofitInfos;
     }
     return [];

@@ -1,12 +1,15 @@
 // Learn more at developers.reddit.com/docs
 import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public-api';
-import type { JSONObject, Post } from '@devvit/public-api';
-import type { GeneralNonprofitInfo } from './sources/Every.js';
+import type { JSONObject, MediaAsset, Post } from '@devvit/public-api';
+import type { EveryNonprofitInfo, GeneralNonprofitInfo } from './sources/Every.js';
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
+import { ApprovedDomainsFormatted, TEST_IMG_URL, getRedditImageUrl} from './components/ImageHandlers.js'
+import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 
 Devvit.configure({
   redditAPI: true,
-  http: true
+  http: true,
+  media: true
 });
 
 export function LoadingState(): JSX.Element {
@@ -26,8 +29,9 @@ TODO: I think this is overkill and there is a cleaner way to do this.
 I needed this so that the data passed to showForm (in the dynamicForm) has type Data
 */
 function convertToFormData(
-  nonprofits: GeneralNonprofitInfo[] | null
-): { nonprofits: GeneralNonprofitInfo[] } {
+  nonprofits: EveryNonprofitInfo[] | null
+): { nonprofits: EveryNonprofitInfo[] } {
+  // console.log(":::convertToFormData: \n" + JSON.stringify(nonprofits));
   return {
     nonprofits: nonprofits ?? [],
   };
@@ -41,7 +45,7 @@ const dynamicForm = Devvit.createForm(
           name: 'nonprofit',
           label: 'Select your nonprofit',
           type: 'select',
-          options: populateNonprofitSelect(JSON.stringify(data)).map((nonprofit: GeneralNonprofitInfo) => ({
+          options: populateNonprofitSelect(JSON.stringify(data)).map((nonprofit: EveryNonprofitInfo) => ({
             label: `${nonprofit.name}`,
             value: JSON.stringify(nonprofit),
           })),
@@ -59,26 +63,46 @@ const dynamicForm = Devvit.createForm(
     };
   },
   async ({ values }, ctx) => {
-    console.log(values);
     const {reddit} = ctx;
     const currentSubreddit = await reddit.getCurrentSubreddit();
     const postTitle = values.postTitle;
-    const nonprofitInfo: GeneralNonprofitInfo = JSON.parse(values.nonprofit) as GeneralNonprofitInfo;
-    console.log(postTitle + " " + nonprofitInfo.description);
+    const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+    console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+    const imageUrl: string | null = nonprofitInfo.logoUrl;
+    let response: MediaAsset;
+
+    try {
+      response = await ctx.media.upload({
+        url: imageUrl,
+        type: 'image',
+      });
+    } catch (e) {
+      console.log(StringUtil.caughtToString(e));
+      console.log('Image upload failed.');
+      console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+      return;
+    }
+
     const myrichtext = new RichTextBuilder()
       .paragraph((p) => {
         p.text({
           text: nonprofitInfo.description
-        }).text({text: "secondChild"});
+        }).text({
+          text: "secondChild"
+        });
+      }).image({
+        mediaId: response.mediaId
       })
       .build();
-    console.log(myrichtext)
+    // console.log(myrichtext)
+
     const post: Post = await reddit.submitPost({
       //preview: LoadingState(),
       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
       subredditName: currentSubreddit.name,
-      text: myrichtext
-  });
+      richtext: myrichtext,
+    });
 }
 );
 
@@ -107,6 +131,7 @@ const searchTermForm = Devvit.createForm(
 
     if (typeof everyPublicKey === 'string') {
       const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
+      console.log(":::searchResults: \n" + JSON.stringify(searchResults));
       if (typeof searchResults != null) {return ctx.ui.showForm(dynamicForm, convertToFormData(searchResults));}
     }
     else {
@@ -129,7 +154,7 @@ const searchTermForm = Devvit.createForm(
     name: "Fundraiser",
     render: (context) => {
       //const { useState, postId } = context;
-      console.log(JSON.stringify({'addCustomPostTypeContext': context}));
+      // console.log(JSON.stringify({'addCustomPostTypeContext': context}));
       return (
         <blocks height="regular">
           <vstack>
