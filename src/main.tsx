@@ -26,7 +26,7 @@ export function LoadingState(): JSX.Element {
 
 /*
 TODO: I think this is overkill and there is a cleaner way to do this.
-I needed this so that the data passed to showForm (in the dynamicForm) has type Data
+I needed this so that the data passed to showForm (in the searchSelectForm) has type Data
 */
 function convertToFormData(
   nonprofits: EveryNonprofitInfo[] | null
@@ -37,7 +37,7 @@ function convertToFormData(
   };
 }
 
-const dynamicForm = Devvit.createForm(
+const searchSelectForm = Devvit.createForm(
   (data) => {
     return {
       fields: [
@@ -50,61 +50,85 @@ const dynamicForm = Devvit.createForm(
             value: JSON.stringify(nonprofit),
           })),
         },
-        {
-          name: 'postTitle',
-          label: 'Post title',
-          type: 'string',
-          required: false,
-        }
+        // {
+        //   name: 'postTitle',
+        //   label: 'Post title',
+        //   type: 'string',
+        //   required: false,
+        // }
       ],
-      title: 'Selection of terms from search results',
-      acceptLabel: 'Select this term and create a post!',
+      title: 'Select your nonprofit from the search results',
+      acceptLabel: 'Next (description)',
       cancelLabel: 'Cancel'
     };
   },
-  async ({ values }, ctx) => {
-    const {reddit} = ctx;
-    const currentSubreddit = await reddit.getCurrentSubreddit();
-    const postTitle = values.postTitle;
-    const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
-    console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
-
-    const imageUrl: string | null = nonprofitInfo.logoUrl;
-    let response: MediaAsset;
-
-    try {
-      response = await ctx.media.upload({
-        url: imageUrl,
-        type: 'image',
-      });
-    } catch (e) {
-      console.log(StringUtil.caughtToString(e));
-      console.log('Image upload failed.');
-      console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
-      return;
+  async ({values}, ctx) => {
+    const {ui} = ctx;
+    if (typeof values.nonprofit != null) {return ctx.ui.showForm(descriptionForm, values.nonprofit);}
     }
+  );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
 
-    const myrichtext = new RichTextBuilder()
-      .paragraph((p) => {
-        p.text({
-          text: nonprofitInfo.description
-        }).text({
-          text: "secondChild"
-        });
-      }).image({
-        mediaId: response.mediaId
-      })
-      .build();
-    // console.log(myrichtext)
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
 
-    const post: Post = await reddit.submitPost({
-      //preview: LoadingState(),
-      title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
-      subredditName: currentSubreddit.name,
-      richtext: myrichtext,
-    });
-}
-);
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  const descriptionForm = Devvit.createForm(
+    (data) => {
+      return {
+        fields: [
+          { label: '',
+          type: '',
+          name: ''}
+        ],
+        title: 'Describing your fundraiser',
+        acceptLabel: 'Next (image upload)',
+        cancelLabel: 'Cancel'
+      }
+    },
+    async ({values}, ctx) => {
+
+    }
+  );
+
 
 const searchTermForm = Devvit.createForm(
   () => {
@@ -115,8 +139,8 @@ const searchTermForm = Devvit.createForm(
         name: 'searchTerm'}
       ],
       title: 'Create a fundraiser',
-      acceptLabel: 'Next',
-      cancelLabel: 'Back',
+      acceptLabel: 'Search',
+      cancelLabel: 'Cancel',
     };
   },
   async ({ values }, ctx) => {
@@ -132,7 +156,7 @@ const searchTermForm = Devvit.createForm(
     if (typeof everyPublicKey === 'string') {
       const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
       console.log(":::searchResults: \n" + JSON.stringify(searchResults));
-      if (typeof searchResults != null) {return ctx.ui.showForm(dynamicForm, convertToFormData(searchResults));}
+      if (typeof searchResults != null) {return ctx.ui.showForm(searchSelectForm, convertToFormData(searchResults));}
     }
     else {
       console.error('The "every-public-api-key" setting is undefined. Unable to fetch nonprofits.');
