@@ -3,7 +3,7 @@ import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public
 import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
 import type { EveryNonprofitInfo, GeneralNonprofitInfo } from './sources/Every.js';
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
-import { ApprovedDomainsFormatted, TEST_IMG_URL, getRedditImageUrl} from './components/ImageHandlers.js'
+import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './components/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm, FundraiserFormKeys, NonprofitPropsKeys } from './utils/CachedForm.js';
 import { createUserSubredditHashKey, setCachedForm, setPartialCachedForm, returnCachedFormAsJSON } from './utils/Redis.js';
@@ -29,21 +29,11 @@ export function LoadingState(): JSX.Element {
 
 // this could be simplified if we only convert cachedForms, and cachedForms can encode EveryNonprofitInfo.
 function convertToFormData(
-  input: EveryNonprofitInfo[] | CachedForm<string, string> | null
-): Data {
-  if (Array.isArray(input)) {
-    return {
-      nonprofits: input ?? [],
-    };
-  } else if (input !== null && typeof input === 'object' && 'formFields' in input && 'nonprofitProps' in input) {
-    return {
-      formFields: input.formFields,
-      nonprofitProps: input.nonprofitProps,
-      lastUpdated: input.lastUpdated ?? '',
-    };
-  } else {
-    return {};
-  }
+  nonprofits: EveryNonprofitInfo[] | null
+): { nonprofits: EveryNonprofitInfo[] } {
+  return {
+    nonprofits: nonprofits ?? [],
+  };
 }
 
 // Form 2: submitForm -> *searchSelectForm* -> descriptionForm
@@ -72,7 +62,7 @@ const searchSelectForm = Devvit.createForm(
       console.log(values.nonprofit)
       const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit)
       console.log(nonprofitInfo)
-      // handle case where we see a missing field--specifically the ones that should have been set in prior form(s). 
+      // handle case where we see a missing field--specifically the ones that should have been set in prior form(s).
       // maybe empty fields shouldnt be caught at all in the hget wrapper since thats not unexpected behavior?
       // const nonprofitInfoForm: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
       //   nonprofitProps: {
@@ -202,7 +192,7 @@ const searchSelectForm = Devvit.createForm(
   )
 
   // Form 5 imageForm -> *submitForm*
-  const submitForm = Devvit.createForm( 
+  const submitForm = Devvit.createForm(
     (data) => {
       console.log(data.nonprofits);
       return {
@@ -235,7 +225,7 @@ const searchSelectForm = Devvit.createForm(
       const postTitle = values.postTitle;
       console.log(values);
       console.log(values.description);
-      
+
       const myrichtext = new RichTextBuilder()
         .paragraph((p) => {
           p.text({
