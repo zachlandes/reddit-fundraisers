@@ -111,7 +111,43 @@ const searchSelectForm = Devvit.createForm(
 //  }
 //);
 
-  const descriptionForm = Devvit.createForm(
+  const descriptionForm = Devvit.createForm( //TODO: unfinished
+    (data) => {
+      return {
+        fields: [
+          { label: 'Enter your fundraiser description here',
+          type: 'paragraph',
+          name: 'description'}
+        ],
+        title: 'Describing Your Fundraiser',
+        acceptLabel: 'Next (image upload)',
+        cancelLabel: 'Cancel'
+      }
+    },
+    async ({values}, ctx) => {
+      return ctx.ui.showForm(imageForm, values);
+    }
+  );
+
+  const imageForm = Devvit.createForm( //TODO: can we even have users submit images in a form?
+    (data) => {
+      return {
+        fields: [
+          { label: 'Select a different image',
+          type: 'string',
+          name: 'image'}
+        ],
+        title: 'Selecting an Image For Your Post',
+        acceptLabel: 'Next (post preview)',
+        cancelLabel: 'Cancel'
+      }
+    },
+    async ({values}, ctx) => {
+      return ctx.ui.showForm(submitForm, values);
+    }
+  )
+
+  const submitForm = Devvit.createForm( //TODO: can we even create a form with no fields?
     (data) => {
       return {
         fields: [
@@ -127,7 +163,8 @@ const searchSelectForm = Devvit.createForm(
     async ({values}, ctx) => {
 
     }
-  );
+  )
+
 
 
 const searchTermForm = Devvit.createForm(
