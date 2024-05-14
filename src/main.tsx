@@ -113,9 +113,10 @@ const searchSelectForm = Devvit.createForm(
 
   const descriptionForm = Devvit.createForm( //TODO: unfinished
     (data) => {
+      console.log(data);
       return {
         fields: [
-          { label: 'Enter your fundraiser description here',
+          { label: `${data.description.substring(0,10)}`,
           type: 'paragraph',
           name: 'description'}
         ],
