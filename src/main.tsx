@@ -116,7 +116,7 @@ const searchSelectForm = Devvit.createForm(
       console.log(data);
       return {
         fields: [
-          { label: `${data.description.substring(0,10)}`,
+          { label: `${data.description}`,
           type: 'paragraph',
           name: 'description'}
         ],
