@@ -14,12 +14,12 @@ export async function createUserSubredditHashKey(context: Context): Promise<stri
 
         return `user:${username}:${currentSubreddit}`;
     } catch (error) {
-        console.error('Error fetching subreddit name or current user:', error);
+        console.error('Error fetching subreddit name or current user: ', error);
         throw error;
     }
 }
 
-function processForm<T extends string>(form: CachedForm<T>){
+function processFormForRedis<T extends string>(form: CachedForm<T>){
     const { formFields} = form;
     const fieldValues: { [field: string]: string } = {
         ...formFields,
@@ -28,21 +28,44 @@ function processForm<T extends string>(form: CachedForm<T>){
     return fieldValues;
 }
 
-async function setFormFields<T extends string>(context: Context, createKey: (context: Context) => Promise<string | null>, form: CachedForm<T>) {
+export async function setFormFields<T extends string>(context: Context, key: string, form: CachedForm<T>) {
     const { redis } = context;
     try {
-        const key = await createKey(context); 
-        if (!key) {
-            throw new Error('Key is null.');
-        }
         if (form.formFields) {
-               form.lastUpdated = Date.now().toString()
-                }
-                await redis.hset(key, processForm(form));
+            form.lastUpdated = Date.now().toString();
+        }
+        await redis.hset(key, processFormForRedis(form));
         console.log('Form fields set successfully.');
     } catch (error) {
-        console.error('Error setting form fields:', error);
-        throw error
+        console.error('Error setting form fields: ', error);
+        throw error;
+    }
+}
+
+export async function getFormField(context: Context, key: string, fieldName: string): Promise<string | null> {
+    const { redis } = context;
+    try {
+        const fieldValue = await redis.hget(key, fieldName);
+        if (fieldValue === undefined || fieldValue === '') {
+            return null; //should we return undefined instead since this is a "missing" property and not a key error?
+        }
+        return fieldValue;
+    } catch (error) {
+        console.error(`Failed to get value for field ${fieldName} at key ${key}: `, error);
+        throw error; // be sure to handle errors in the calling code (and maybe a toast for user)
+    }
+}
+
+export async function getAllFormFields(context: Context, key:string) {
+    const { redis } = context;
+    try {
+        const allFormFields = await redis.hgetall(key);
+        if ((allFormFields) === undefined) {
+            return null;
+        }
+        return allFormFields;
+    } catch (error) {
+        console.error(`Failed to get form fields for key ${key}: `, error)
     }
 }
 
@@ -53,6 +76,13 @@ async function setFormFields<T extends string>(context: Context, createKey: (con
 //         description: "some string"
 //     }
 // }
-// await setFormFields(context, createUserSubredditHashKey, descriptionForm);
+// let key: string;
+// try {
+//     const key = await createUserSubredditHashKey(context);
+//     await setFormFields(context, key, form);
+// } catch (error) {
+//     console.error('Error in example usage:', error);
+//     //toast error message for user etc.
+// }
 
 

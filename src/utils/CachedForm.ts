@@ -1,5 +1,5 @@
 // abstract type
-export type CachedForm<T = void | string> = { // strings only?
+export type CachedForm<T extends string> = { // strings only?
     formFields: {
         [key in T]: string | null;
     },
@@ -10,7 +10,7 @@ export type CachedForm<T = void | string> = { // strings only?
 export type FundraiserFormKeys = 'description' | 'nonprofitName' | 'imageUrl'
 export type PropsKeys = 'exampleContextKey'
 
-const formResults: CachedForm<FundraiserFormKeys, PropsKeys> = {
+const formResults: CachedForm<FundraiserFormKeys> = {
     formFields: {
         description: 'description here',
         nonprofitName: 'nonprofit name here',
