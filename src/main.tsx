@@ -5,11 +5,14 @@ import type { EveryNonprofitInfo, GeneralNonprofitInfo } from './sources/Every.j
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
 import { ApprovedDomainsFormatted, TEST_IMG_URL, getRedditImageUrl} from './components/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
+import { CachedForm, FundraiserFormKeys } from './utils/CachedForm.js';
+import { createUserSubredditHashKey, getCachedForm, getFormFields, setCachedForm } from './utils/Redis.js';
 
 Devvit.configure({
   redditAPI: true,
   http: true,
-  media: true
+  media: true,
+  redis: true
 });
 
 export function LoadingState(): JSX.Element {
@@ -37,6 +40,7 @@ function convertToFormData(
   };
 }
 
+//Form 2: submitForm -> *searchSelectForm* -> descriptionForm
 const searchSelectForm = Devvit.createForm(
   (data) => {
     return {
@@ -50,12 +54,6 @@ const searchSelectForm = Devvit.createForm(
             value: JSON.stringify(nonprofit),
           })),
         },
-        // {
-        //   name: 'postTitle',
-        //   label: 'Post title',
-        //   type: 'string',
-        //   required: false,
-        // }
       ],
       title: 'Select your nonprofit from the search results',
       acceptLabel: 'Next (description)',
@@ -64,7 +62,24 @@ const searchSelectForm = Devvit.createForm(
   },
   async ({values}, ctx) => {
     const {ui} = ctx;
-    if (typeof values.nonprofit != null) {return ctx.ui.showForm(descriptionForm, values.nonprofit);}
+    if (typeof values.nonprofit != null) {
+      // handle case where we see a missing field--specifically the ones that should have been set in prior form(s). 
+      // maybe empty fields shouldnt be caught at all in the hget wrapper since thats not unexpected behavior?
+      const nonProfitDescriptionForm: CachedForm<FundraiserFormKeys> = {
+        formFields: {
+          description: (JSON.parse(values.nonprofit) as EveryNonprofitInfo).description,
+          imageUrl: null
+        }
+      }
+      try {
+        // two async calls in one try: bad?
+        // we'll be doing this pair of calls quite a bit--wrap in function?
+        const key = await createUserSubredditHashKey(ctx);
+        await setCachedForm(ctx, key, nonProfitDescriptionForm);
+      } catch (error){
+        console.error('Failed to get userSubreddit Key or set form in redis:', error)
+      }
+      return ctx.ui.showForm(descriptionForm, values.nonprofit);}
     }
   );
 //   async ({ values }, ctx) => {
@@ -111,6 +126,7 @@ const searchSelectForm = Devvit.createForm(
 //  }
 //);
 
+  // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
   const descriptionForm = Devvit.createForm( //TODO: unfinished
     (data) => {
       console.log(data);
@@ -130,6 +146,7 @@ const searchSelectForm = Devvit.createForm(
     }
   );
 
+  // Form 4 descriptionForm -> *imageForm* -> submitForm
   const imageForm = Devvit.createForm( //TODO: can we even have users submit images in a form?
     (data) => {
       return {
@@ -167,7 +184,7 @@ const searchSelectForm = Devvit.createForm(
   )
 
 
-
+//Form 1
 const searchTermForm = Devvit.createForm(
   () => {
     return {

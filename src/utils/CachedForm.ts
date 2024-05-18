@@ -3,19 +3,17 @@ export type CachedForm<T extends string> = { // strings only?
     formFields: {
         [key in T]: string | null;
     },
-    lastUpdated?: string;
+    lastUpdated?: string; // this should never be set explicitly by the client
 }
 
-// implementations TODO: where should these go?
-export type FundraiserFormKeys = 'description' | 'nonprofitName' | 'imageUrl'
-export type PropsKeys = 'exampleContextKey'
+//TODO: where should these go?
+export type FundraiserFormKeys = 'description' | 'imageUrl'
 
-const formResults: CachedForm<FundraiserFormKeys> = {
-    formFields: {
-        description: 'description here',
-        nonprofitName: 'nonprofit name here',
-        imageUrl: null
-        //notice this design doesn't require all the possible keys...bad?
-    },
-    lastUpdated: Date.now().toString(),
-}
+// example
+// const formResults: CachedForm<FundraiserFormKeys> = {
+//     formFields: {
+//         description: 'description here',
+//         imageUrl: null
+//         //notice this design doesn't require all the possible keys...bad?
+//     },
+// }

@@ -28,13 +28,15 @@ function processFormForRedis<T extends string>(form: CachedForm<T>){
     return fieldValues;
 }
 
-export async function setFormFields<T extends string>(context: Context, key: string, form: CachedForm<T>) {
+export async function setCachedForm<T extends string>(context: Context, key: string, form: CachedForm<T>) {
     const { redis } = context;
+    const expireTimeInSeconds = 600;
     try {
         if (form.formFields) {
             form.lastUpdated = Date.now().toString();
         }
         await redis.hset(key, processFormForRedis(form));
+        await redis.expire(key, expireTimeInSeconds);
         console.log('Form fields set successfully.');
     } catch (error) {
         console.error('Error setting form fields: ', error);
@@ -42,7 +44,8 @@ export async function setFormFields<T extends string>(context: Context, key: str
     }
 }
 
-export async function getFormField(context: Context, key: string, fieldName: string): Promise<string | null> {
+// maybe unnecessary, we can just pull the entire form with getCachedForm everytime
+export async function getFormFields(context: Context, key: string, fieldName: string): Promise<string | null> {
     const { redis } = context;
     try {
         const fieldValue = await redis.hget(key, fieldName);
@@ -56,18 +59,64 @@ export async function getFormField(context: Context, key: string, fieldName: str
     }
 }
 
-export async function getAllFormFields(context: Context, key:string) {
+async function getCachedForm(
+    context: Context,
+    key: string
+): Promise<Record<string, string> | null> {
     const { redis } = context;
     try {
         const allFormFields = await redis.hgetall(key);
-        if ((allFormFields) === undefined) {
+        if (!allFormFields || Object.keys(allFormFields).length === 0) {
             return null;
         }
         return allFormFields;
     } catch (error) {
-        console.error(`Failed to get form fields for key ${key}: `, error)
+        console.error(`Failed to get form fields for key ${key}: `, error);
+        return null;
     }
 }
+
+function parseForm<T extends string>(
+    cachedForm: Record<string, string> | null
+): CachedForm<T> | null {
+    if (cachedForm === null) {
+        return null;
+    }
+
+    // Assuming the cached form is stored as a flat object in Redis
+    const formFields: { [key in T]: string | null } = {} as { [key in T]: string | null };
+    let lastUpdated: string | undefined = undefined;
+
+    for (const [field, value] of Object.entries(cachedForm)) {
+        if (field === 'lastUpdated') {
+            lastUpdated = value;
+        } else {
+            formFields[field as T] = value;
+        }
+    }
+
+    return {
+        formFields,
+        lastUpdated,
+    };
+}
+
+export async function returnCachedFormAsJSON<T extends string>(
+    context: Context,
+    key: string
+): Promise<CachedForm<T> | null> {
+    try {
+        const cachedForm = await getCachedForm(context, key);
+        const parsedForm = parseForm<T>(cachedForm);
+        return parsedForm;
+    } catch (error) {
+        console.error(`Failed to return cached form as JSON for key ${key}:`, error);
+        // is this the right level to show the toast message or one up? return null or undefined or rethrow?
+        throw error;
+    }
+}
+
+
 
 
 // usage
