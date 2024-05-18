@@ -5,8 +5,8 @@ import type { EveryNonprofitInfo, GeneralNonprofitInfo } from './sources/Every.j
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
 import { ApprovedDomainsFormatted, TEST_IMG_URL, getRedditImageUrl} from './components/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
-import { CachedForm, FundraiserFormKeys } from './utils/CachedForm.js';
-import { createUserSubredditHashKey, getCachedForm, getFormFields, setCachedForm } from './utils/Redis.js';
+import { CachedForm, FundraiserFormKeys, NonprofitPropsKeys } from './utils/CachedForm.js';
+import { createUserSubredditHashKey, setCachedForm, setPartialCachedForm, returnCachedFormAsJSON } from './utils/Redis.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -40,7 +40,7 @@ function convertToFormData(
   };
 }
 
-//Form 2: submitForm -> *searchSelectForm* -> descriptionForm
+// Form 2: submitForm -> *searchSelectForm* -> descriptionForm
 const searchSelectForm = Devvit.createForm(
   (data) => {
     return {
@@ -63,23 +63,28 @@ const searchSelectForm = Devvit.createForm(
   async ({values}, ctx) => {
     const {ui} = ctx;
     if (typeof values.nonprofit != null) {
+      console.log(values.nonprofit)
+      const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit)
       // handle case where we see a missing field--specifically the ones that should have been set in prior form(s). 
       // maybe empty fields shouldnt be caught at all in the hget wrapper since thats not unexpected behavior?
-      const nonProfitDescriptionForm: CachedForm<FundraiserFormKeys> = {
-        formFields: {
-          description: (JSON.parse(values.nonprofit) as EveryNonprofitInfo).description,
-          imageUrl: null
-        }
-      }
+      const nonprofitPropsForm: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
+        nonprofitProps: {
+            description: nonprofitInfo.description,
+            ein: nonprofitInfo.ein,
+            profileUrl: nonprofitInfo.profileUrl
+        },
+        lastUpdated: undefined
+      };
       try {
         // two async calls in one try: bad?
         // we'll be doing this pair of calls quite a bit--wrap in function?
         const key = await createUserSubredditHashKey(ctx);
-        await setCachedForm(ctx, key, nonProfitDescriptionForm);
+        await setPartialCachedForm(ctx, key, nonprofitPropsForm);
+        console.log(JSON.stringify(returnCachedFormAsJSON(ctx, key)));
       } catch (error){
         console.error('Failed to get userSubreddit Key or set form in redis:', error)
       }
-      return ctx.ui.showForm(descriptionForm, values.nonprofit);}
+      return ctx.ui.showForm(descriptionForm);}
     }
   );
 //   async ({ values }, ctx) => {
@@ -128,25 +133,46 @@ const searchSelectForm = Devvit.createForm(
 
   // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
   const descriptionForm = Devvit.createForm( //TODO: unfinished
-    (data) => {
-      console.log(data);
+    () => {
       return {
         fields: [
-          { label: `${data.description}`,
+          { label: `Fill in the body text of your post here`,
           type: 'paragraph',
           name: 'description'}
         ],
         title: 'Describing Your Fundraiser',
-        acceptLabel: 'Next (image upload)',
+        acceptLabel: 'Next (post preview)',//'Next (image upload)',
         cancelLabel: 'Cancel'
       }
     },
     async ({values}, ctx) => {
-      return ctx.ui.showForm(imageForm, values);
+      if (typeof values.description != null) {
+        const nonProfitDescriptionForm: CachedForm<FundraiserFormKeys, NonprofitPropsKeys> = {
+          formFields: {
+            formDescription: (JSON.parse(values.description) as EveryNonprofitInfo).description,
+            imageUrl: null
+          },
+          nonprofitProps: {
+            description: null,
+            ein: null,
+            profileUrl: null
+          }
+        }
+        try {
+          // two async calls in one try: bad?
+          // we'll be doing this pair of calls quite a bit--wrap in function?
+          const key = await createUserSubredditHashKey(ctx);
+          await setCachedForm(ctx, key, nonProfitDescriptionForm);
+        } catch (error){
+          console.error('Failed to get userSubreddit Key or set form in redis:', error)
+        }
+      }
+      return ctx.ui.showForm(submitForm, values); //return ctx.ui.showForm(imageForm, values);
     }
   );
 
   // Form 4 descriptionForm -> *imageForm* -> submitForm
+  //FIXME: Skipping for now
   const imageForm = Devvit.createForm( //TODO: can we even have users submit images in a form?
     (data) => {
       return {
@@ -165,7 +191,7 @@ const searchSelectForm = Devvit.createForm(
     }
   )
 
-  const submitForm = Devvit.createForm( //TODO: can we even create a form with no fields?
+  const submitForm = Devvit.createForm( 
     (data) => {
       return {
         fields: [

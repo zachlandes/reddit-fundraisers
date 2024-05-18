@@ -1,5 +1,5 @@
 import { Context, RedisClient } from '@devvit/public-api';
-import { CachedForm, FundraiserFormKeys, PropsKeys } from './CachedForm.js';
+import { CachedForm, FundraiserFormKeys, NonprofitPropsKeys } from './CachedForm.js';
 
 
 export async function createUserSubredditHashKey(context: Context): Promise<string> {
@@ -18,18 +18,85 @@ export async function createUserSubredditHashKey(context: Context): Promise<stri
         throw error;
     }
 }
+function processUpdatedFieldsForRedis<T extends string, U extends string>(
+    form: Partial<CachedForm<T, U>>
+): Record<string, string> {
+    const result: Record<string, string> = {};
 
-function processFormForRedis<T extends string>(form: CachedForm<T>){
-    const { formFields} = form;
-    const fieldValues: { [field: string]: string } = {
-        ...formFields,
-        lastUpdated: '',
-    };
-    return fieldValues;
+    if (form.formFields) {
+        for (const key in form.formFields) {
+            const value = form.formFields[key];
+            if (value !== undefined) {
+                result[key] = value ?? '';
+            }
+        }
+    }
+
+    if (form.nonprofitProps) {
+        for (const key in form.nonprofitProps) {
+            const value = form.nonprofitProps[key];
+            if (value !== undefined) {
+                result[key] = value ?? '';
+            }
+        }
+    }
+
+    if (form.lastUpdated) {
+        result['lastUpdated'] = form.lastUpdated;
+    }
+
+    return result;
 }
 
-export async function setCachedForm<T extends string>(context: Context, key: string, form: CachedForm<T>) {
+export async function setPartialCachedForm<T extends string, U extends string>(
+    context: Context,
+    key: string,
+    form: Partial<CachedForm<T, U>> // Note the use of Partial here
+): Promise<void> {
     const { redis } = context;
+    const expireTimeInSeconds = 600; // should keep this in a config file somewhere
+    try {
+        if (!form.lastUpdated) {
+            form.lastUpdated = Date.now().toString();
+        }
+        await redis.hset(key, processUpdatedFieldsForRedis(form));
+        await redis.expire(key, expireTimeInSeconds);
+        console.log('Form fields set successfully.');
+    } catch (error) {
+        console.error('Error setting form fields: ', error);
+        throw error;
+    }
+}
+
+function processFormForRedis<T extends string, U extends string>(form: CachedForm<T, U>): Record<string, string> {
+    const result: Record<string, string> = {};
+
+    for (const key in form.formFields) {
+        const value = form.formFields[key];
+        result[key] = value ?? '';
+    }
+
+    for (const key in form.nonprofitProps) {
+        const value = form.nonprofitProps[key];
+        result[key] = value ?? '';
+    }
+
+    if (form.lastUpdated) {
+        result['lastUpdated'] = form.lastUpdated;
+    }
+
+    return result;
+}
+
+
+
+export async function setCachedForm<T extends string, U extends string>(
+    context: Context,
+    key: string,
+    form: CachedForm<T, U>
+): Promise<void> {
+    const { redis } = context;
+    // should keep this in a config file somewhere
     const expireTimeInSeconds = 600;
     try {
         if (form.formFields) {
@@ -76,45 +143,59 @@ async function getCachedForm(
     }
 }
 
-function parseForm<T extends string>(
+export function parseForm<T extends string, U extends string>(
     cachedForm: Record<string, string> | null
-): CachedForm<T> | null {
+): CachedForm<T, U> | null {
     if (cachedForm === null) {
         return null;
     }
 
     // Assuming the cached form is stored as a flat object in Redis
     const formFields: { [key in T]: string | null } = {} as { [key in T]: string | null };
+    const nonprofitProps: { [key in U]: string | null } = {} as { [key in U]: string | null };
     let lastUpdated: string | undefined = undefined;
 
     for (const [field, value] of Object.entries(cachedForm)) {
         if (field === 'lastUpdated') {
             lastUpdated = value;
-        } else {
+        } else if (isFormField<T>(field)) {
             formFields[field as T] = value;
+        } else if (isNonprofitProp<U>(field)) {
+            nonprofitProps[field as U] = value;
         }
     }
 
     return {
         formFields,
+        nonprofitProps,
         lastUpdated,
     };
 }
 
-export async function returnCachedFormAsJSON<T extends string>(
+// Type guards to check if a field belongs to formFields or nonprofitProps
+function isFormField<T extends string>(field: string): field is T {
+    return ['description', 'imageUrl'].includes(field);
+}
+
+function isNonprofitProp<U extends string>(field: string): field is U {
+    return ['ein', 'profileUrl'].includes(field);
+}
+
+export async function returnCachedFormAsJSON<T extends string, U extends string>(
     context: Context,
     key: string
-): Promise<CachedForm<T> | null> {
+): Promise<CachedForm<T, U> | null> {
     try {
         const cachedForm = await getCachedForm(context, key);
-        const parsedForm = parseForm<T>(cachedForm);
+        const parsedForm = parseForm<T, U>(cachedForm);
         return parsedForm;
     } catch (error) {
         console.error(`Failed to return cached form as JSON for key ${key}:`, error);
-        // is this the right level to show the toast message or one up? return null or undefined or rethrow?
-        throw error;
+         // return null or undefined or rethrow?
+         throw error;
     }
 }
+
 
 
 
