@@ -203,9 +203,10 @@ const searchSelectForm = Devvit.createForm(
   // Form 5 imageForm -> *submitForm*
   const submitForm = Devvit.createForm( 
     (data) => {
+      console.log(data.formFields);
+      console.log(data.nonprofitProps);
       return {
         //TODO: fill in all the previews (as select form fields)
-        //TODO: add a post title field
         fields: [
           {
           name: 'description',
@@ -213,36 +214,53 @@ const searchSelectForm = Devvit.createForm(
           type: 'select',
           options: [
             {
-            label: `${data.formFields['formDescription']}`,
+            label: `${data.formFields['formDescription']}`, // FIXME: should we make the data typesafe by converting to form?
             value: `${data.formFields['formDescription']}`,
             },
           ],
           //defaultValue: `${data.formFields['formDescription']}`,
-        },
-        {
+          },
+          {
+            name: 'link',
+            label: 'link to donate',
+            type: 'select',
+            options: [
+              {
+              label: `${data.nonprofitProps['profileUrl']}`,
+              value: `${data.nonprofitProps['profileUrl']}`,
+              },
+            ],
+          },
+          {
           name: 'postTitle',
           label: 'Post Title',
           type: 'string'
-        }
-      ],
-        title: 'Confirm your selections and create your post',
-        acceptLabel: 'Submit',
-        cancelLabel: 'Cancel'
+          }
+        ],
+          title: 'Confirm your selections and create your post',
+          acceptLabel: 'Submit',
+          cancelLabel: 'Cancel'
       }
     },
     async ({values}, ctx) => {
       const {reddit} = ctx;
       const currentSubreddit = await reddit.getCurrentSubreddit();
       const postTitle = values.postTitle;
+      console.log(values);
+      console.log(values.description);
+      
       const myrichtext = new RichTextBuilder()
-      .paragraph((p) => {
-        p.text({
-          text: values.description
-        }).text({
-          text: "secondChild"
-        });
-      })
-      .build();
+        .paragraph((p) => {
+          p.text({
+            text: String(values.description)
+          }).link({
+            text: "Donate",
+            url: String(values.link),
+            tooltip: "Go to the every.org donate page"
+          });
+        })
+        .build();
+
 
       const post: Post = await reddit.submitPost({
         title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
