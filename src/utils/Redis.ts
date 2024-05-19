@@ -1,5 +1,5 @@
 import { Context, RedisClient } from '@devvit/public-api';
-import { CachedForm, FundraiserFormKeys, NonprofitPropsKeys } from './CachedForm.js';
+import { CachedForm, FundraiserFormKeys, NonprofitPropsKeys, isFormField, isNonprofitProp } from './CachedForm.js';
 
 
 export async function createUserSubredditHashKey(context: Context): Promise<string> {
@@ -158,9 +158,9 @@ export function parseForm<T extends string, U extends string>(
     for (const [field, value] of Object.entries(cachedForm)) {
         if (field === 'lastUpdated') {
             lastUpdated = value;
-        } else if (isFormField<T>(field)) {
+        } else if (isFormField(field)) {
             formFields[field as T] = value;
-        } else if (isNonprofitProp<U>(field)) {
+        } else if (isNonprofitProp(field)) {
             nonprofitProps[field as U] = value;
         }
     }
@@ -172,15 +172,6 @@ export function parseForm<T extends string, U extends string>(
     };
 }
 
-// Type guards to check if a field belongs to formFields or nonprofitProps
-function isFormField<T extends string>(field: string): field is T {
-    return ['description', 'imageUrl'].includes(field);
-}
-
-function isNonprofitProp<U extends string>(field: string): field is U {
-    return ['ein', 'profileUrl'].includes(field);
-}
-
 export async function returnCachedFormAsJSON<T extends string, U extends string>(
     context: Context,
     key: string
@@ -188,6 +179,11 @@ export async function returnCachedFormAsJSON<T extends string, U extends string>
     try {
         const cachedForm = await getCachedForm(context, key);
         const parsedForm = parseForm<T, U>(cachedForm);
+        console.log('parsed form is: ', parsedForm);
+        if (parsedForm === null) {
+            console.error(`Parsed form was null for ${key}`);
+            throw Error;
+        }
         return parsedForm;
     } catch (error) {
         console.error(`Failed to return cached form as JSON for key ${key}:`, error);

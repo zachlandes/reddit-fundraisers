@@ -1,6 +1,6 @@
 // Learn more at developers.reddit.com/docs
 import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public-api';
-import type { JSONObject, MediaAsset, Post } from '@devvit/public-api';
+import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
 import type { EveryNonprofitInfo, GeneralNonprofitInfo } from './sources/Every.js';
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
 import { ApprovedDomainsFormatted, TEST_IMG_URL, getRedditImageUrl} from './components/ImageHandlers.js'
@@ -27,17 +27,23 @@ export function LoadingState(): JSX.Element {
   );
 }
 
-/*
-TODO: I think this is overkill and there is a cleaner way to do this.
-I needed this so that the data passed to showForm (in the searchSelectForm) has type Data
-*/
+// this could be simplified if we only convert cachedForms, and cachedForms can encode EveryNonprofitInfo.
 function convertToFormData(
-  nonprofits: EveryNonprofitInfo[] | null
-): { nonprofits: EveryNonprofitInfo[] } {
-  // console.log(":::convertToFormData: \n" + JSON.stringify(nonprofits));
-  return {
-    nonprofits: nonprofits ?? [],
-  };
+  input: EveryNonprofitInfo[] | CachedForm<string, string> | null
+): Data {
+  if (Array.isArray(input)) {
+    return {
+      nonprofits: input ?? [],
+    };
+  } else if (input !== null && typeof input === 'object' && 'formFields' in input && 'nonprofitProps' in input) {
+    return {
+      formFields: input.formFields,
+      nonprofitProps: input.nonprofitProps,
+      lastUpdated: input.lastUpdated ?? '',
+    };
+  } else {
+    return {};
+  }
 }
 
 // Form 2: submitForm -> *searchSelectForm* -> descriptionForm
@@ -65,22 +71,22 @@ const searchSelectForm = Devvit.createForm(
     if (typeof values.nonprofit != null) {
       console.log(values.nonprofit)
       const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit)
+      console.log(nonprofitInfo)
       // handle case where we see a missing field--specifically the ones that should have been set in prior form(s). 
       // maybe empty fields shouldnt be caught at all in the hget wrapper since thats not unexpected behavior?
-      const nonprofitPropsForm: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
+      const nonprofitInfoForm: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
         nonprofitProps: {
             description: nonprofitInfo.description,
             ein: nonprofitInfo.ein,
             profileUrl: nonprofitInfo.profileUrl
         },
-        lastUpdated: undefined
       };
       try {
         // two async calls in one try: bad?
         // we'll be doing this pair of calls quite a bit--wrap in function?
         const key = await createUserSubredditHashKey(ctx);
-        await setPartialCachedForm(ctx, key, nonprofitPropsForm);
-        console.log(JSON.stringify(returnCachedFormAsJSON(ctx, key)));
+        await setPartialCachedForm(ctx, key, nonprofitInfoForm);
+        console.log(returnCachedFormAsJSON(ctx, key));
       } catch (error){
         console.error('Failed to get userSubreddit Key or set form in redis:', error)
       }
@@ -136,7 +142,7 @@ const searchSelectForm = Devvit.createForm(
     () => {
       return {
         fields: [
-          { label: `Fill in the body text of your post here`,
+          { label: `Fill in the text of your post here`,
           type: 'paragraph',
           name: 'description'}
         ],
@@ -146,28 +152,31 @@ const searchSelectForm = Devvit.createForm(
       }
     },
     async ({values}, ctx) => {
+      let cachedDescriptionForm: CachedForm<string, string> | null = null; //TODO: handle null so return showForm never receives null form
       if (typeof values.description != null) {
-        const nonProfitDescriptionForm: CachedForm<FundraiserFormKeys, NonprofitPropsKeys> = {
-          formFields: {
-            formDescription: (JSON.parse(values.description) as EveryNonprofitInfo).description,
-            imageUrl: null
-          },
-          nonprofitProps: {
-            description: null,
-            ein: null,
-            profileUrl: null
-          }
-        }
+        // const descriptionForm: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
+        //   formFields: {
+        //       formDescription: values.description,
+        //       formImageUrl: null, //FIXME: How can we make it so we don't have to include this?
+        //   },
+        // };
         try {
-          // two async calls in one try: bad?
-          // we'll be doing this pair of calls quite a bit--wrap in function?
+          //Assuming this is the second to last form, we'd need to pull down the cachedForm, add the description to it
+          //and pass everything as Data to the next form
           const key = await createUserSubredditHashKey(ctx);
-          await setCachedForm(ctx, key, nonProfitDescriptionForm);
+          cachedDescriptionForm = await returnCachedFormAsJSON(ctx, key)
+          if (cachedDescriptionForm != null) {
+            cachedDescriptionForm.formFields.formDescription = values.description;
+            console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+          } else {
+            throw Error;
+          }
         } catch (error){
           console.error('Failed to get userSubreddit Key or set form in redis:', error)
+          ctx.ui.showToast("There was an error, please try again later!") // Or try again right away?
         }
       }
-      return ctx.ui.showForm(submitForm, values); //return ctx.ui.showForm(imageForm, values);
+      return ctx.ui.showForm(submitForm, convertToFormData(cachedDescriptionForm)); //return ctx.ui.showForm(imageForm, values);
     }
   );
 
@@ -191,21 +200,55 @@ const searchSelectForm = Devvit.createForm(
     }
   )
 
+  // Form 5 imageForm -> *submitForm*
   const submitForm = Devvit.createForm( 
     (data) => {
       return {
+        //TODO: fill in all the previews (as select form fields)
+        //TODO: add a post title field
         fields: [
-          { label: '',
-          type: '',
-          name: ''}
-        ],
-        title: 'Describing your fundraiser',
-        acceptLabel: 'Next (image upload)',
+          {
+          name: 'description',
+          label: 'Your post text',
+          type: 'select',
+          options: [
+            {
+            label: `${data.formFields['formDescription']}`,
+            value: `${data.formFields['formDescription']}`,
+            },
+          ],
+          //defaultValue: `${data.formFields['formDescription']}`,
+        },
+        {
+          name: 'postTitle',
+          label: 'Post Title',
+          type: 'string'
+        }
+      ],
+        title: 'Confirm your selections and create your post',
+        acceptLabel: 'Submit',
         cancelLabel: 'Cancel'
       }
     },
     async ({values}, ctx) => {
+      const {reddit} = ctx;
+      const currentSubreddit = await reddit.getCurrentSubreddit();
+      const postTitle = values.postTitle;
+      const myrichtext = new RichTextBuilder()
+      .paragraph((p) => {
+        p.text({
+          text: values.description
+        }).text({
+          text: "secondChild"
+        });
+      })
+      .build();
 
+      const post: Post = await reddit.submitPost({
+        title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+        subredditName: currentSubreddit.name,
+        richtext: myrichtext,
+      });
     }
   )
 
