@@ -74,23 +74,22 @@ const searchSelectForm = Devvit.createForm(
       console.log(nonprofitInfo)
       // handle case where we see a missing field--specifically the ones that should have been set in prior form(s). 
       // maybe empty fields shouldnt be caught at all in the hget wrapper since thats not unexpected behavior?
-      const nonprofitInfoForm: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
-        nonprofitProps: {
-            description: nonprofitInfo.description,
-            ein: nonprofitInfo.ein,
-            profileUrl: nonprofitInfo.profileUrl
-        },
-      };
-      try {
-        // two async calls in one try: bad?
-        // we'll be doing this pair of calls quite a bit--wrap in function?
-        const key = await createUserSubredditHashKey(ctx);
-        await setPartialCachedForm(ctx, key, nonprofitInfoForm);
-        console.log(returnCachedFormAsJSON(ctx, key));
-      } catch (error){
-        console.error('Failed to get userSubreddit Key or set form in redis:', error)
-      }
-      return ctx.ui.showForm(descriptionForm);}
+      // const nonprofitInfoForm: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
+      //   nonprofitProps: {
+      //       description: nonprofitInfo.description,
+      //       ein: nonprofitInfo.ein,
+      //       profileUrl: nonprofitInfo.profileUrl
+      //   },
+      // };
+      // try {
+      //   // two async calls in one try: bad?
+      //   // we'll be doing this pair of calls quite a bit--wrap in function?
+      //   const key = await createUserSubredditHashKey(ctx);
+      //   await setPartialCachedForm(ctx, key, nonprofitInfoForm);
+      // } catch (error){
+      //   console.error('Failed to get userSubreddit Key or set form in redis:', error)
+      // }
+      return ctx.ui.showForm(submitForm, convertToFormData([nonprofitInfo]));}
     }
   );
 //   async ({ values }, ctx) => {
@@ -138,6 +137,7 @@ const searchSelectForm = Devvit.createForm(
 //);
 
   // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+  //FIXME: Skipping for now
   const descriptionForm = Devvit.createForm( //TODO: unfinished
     () => {
       return {
@@ -186,9 +186,10 @@ const searchSelectForm = Devvit.createForm(
     (data) => {
       return {
         fields: [
-          { label: 'Select a different image',
+          { name: 'image',
+          label: 'Select a different image',
           type: 'string',
-          name: 'image'}
+          }
         ],
         title: 'Selecting an Image For Your Post',
         acceptLabel: 'Next (post preview)',
@@ -203,39 +204,25 @@ const searchSelectForm = Devvit.createForm(
   // Form 5 imageForm -> *submitForm*
   const submitForm = Devvit.createForm( 
     (data) => {
-      console.log(data.formFields);
-      console.log(data.nonprofitProps);
+      console.log(data.nonprofits);
       return {
-        //TODO: fill in all the previews (as select form fields)
         fields: [
-          {
-          name: 'description',
-          label: 'Your post text',
+          { name: 'description',
+          label: `Fill in the text of your post here`,
+          type: 'paragraph'},
+          { name: 'postTitle',
+          label: 'Post Title',
+          type: 'string'
+          },
+          { name: 'link',
+          label: 'link to donate',
           type: 'select',
           options: [
-            {
-            label: `${data.formFields['formDescription']}`, // FIXME: should we make the data typesafe by converting to form?
-            value: `${data.formFields['formDescription']}`,
-            },
-          ],
-          //defaultValue: `${data.formFields['formDescription']}`,
-          },
-          {
-            name: 'link',
-            label: 'link to donate',
-            type: 'select',
-            options: [
-              {
-              label: `${data.nonprofitProps['profileUrl']}`,
-              value: `${data.nonprofitProps['profileUrl']}`,
+              { label: `${data.nonprofits[0].profileUrl}`, // FIXME: should we make the data typesafe by converting to form?
+              value: `${data.nonprofits[0].profileUrl}`, //FIXME: `${data['profileUrl']}` if we are reading data that was cached instead, we should align these
               },
             ],
           },
-          {
-          name: 'postTitle',
-          label: 'Post Title',
-          type: 'string'
-          }
         ],
           title: 'Confirm your selections and create your post',
           acceptLabel: 'Submit',
