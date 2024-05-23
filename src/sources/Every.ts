@@ -19,6 +19,68 @@ export type EveryNonprofitInfo = GeneralNonprofitInfo &
     coverImageUrl: string | null,
 }
 
+export type EveryFundraiserInfo = {
+    nonprofitID: string;
+    title: string;
+    description: string | null;
+    startDate: Date | null;
+    endDate: Date | null;
+    goal: number | null;
+    raisedOffline: number | null;
+    imageBase64: string | null;
+    currency?: Currency; 
+};
+
+export enum Currency {
+    USD = "USD",
+}
+
+export async function createFundraiser(
+    fundraiserInfo: EveryFundraiserInfo,
+    publicKey: string,
+    privateKey: string 
+): Promise<void> {
+    const apiUrl = 'https://partners.every.org/v0.2/fundraiser';
+
+    try {
+        const authHeader = `Basic ${btoa(`${publicKey}:${privateKey}`)}`;
+
+        const body: Record<string, any> = {
+            nonprofitId: fundraiserInfo.nonprofitID,
+            title: fundraiserInfo.title,
+            description: fundraiserInfo.description ?? null,
+            startDate: fundraiserInfo.startDate ? fundraiserInfo.startDate.toISOString() : null,
+            endDate: fundraiserInfo.endDate ? fundraiserInfo.endDate.toISOString() : null,
+            goal: fundraiserInfo.goal ?? null,
+            raisedOffline: fundraiserInfo.raisedOffline ?? null,
+            imageBase64: fundraiserInfo.imageBase64 ?? null,
+            currency: fundraiserInfo.currency || Currency.USD
+        };
+
+        const request = new Request(apiUrl, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': authHeader
+            },
+            body: JSON.stringify(body),
+        });
+
+        const res = await fetch(request);
+
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        console.log('Fundraiser created successfully');
+    } catch (e) {
+        console.error('Error creating fundraiser:', e); // FIXME: move logging to the calling function try-catch block
+        throw e;
+    }
+}
+
+
+
 export async function fetchNonprofits<T extends EveryNonprofitInfo>(
     query: string,
     publicKey: string
