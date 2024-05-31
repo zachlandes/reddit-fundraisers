@@ -7,6 +7,7 @@ import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './components/Im
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm, FundraiserFormKeys, NonprofitPropsKeys } from './utils/CachedForm.js';
 import { createUserSubredditHashKey, setCachedForm, setPartialCachedForm, returnCachedFormAsJSON } from './utils/Redis.js';
+import { FundraiserPost } from './components/Fundraiser.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -244,6 +245,7 @@ const searchSelectForm = Devvit.createForm(
         subredditName: currentSubreddit.name,
         richtext: myrichtext,
       });
+      ctx.ui.navigateTo(post)
     }
   )
 
@@ -293,25 +295,25 @@ const searchTermForm = Devvit.createForm(
     },
   });
 
-  Devvit.addCustomPostType({
-    name: "Fundraiser",
-    render: (context) => {
-      //const { useState, postId } = context;
-      // console.log(JSON.stringify({'addCustomPostTypeContext': context}));
-      return (
-        <blocks height="regular">
-          <vstack>
-            <text style="heading" size="xxlarge">
-              Fundraiser created! 2
-            </text>
-            <button icon="heart" appearance="primary" />
-            <text style="paragraph" size="small">
-            </text>
-          </vstack>
-        </blocks>
-      );
-    }
-  });
+  Devvit.addCustomPostType(FundraiserPost);
+  //   name: "Fundraiser",
+  //   render: (context) => {
+  //     //const { useState, postId } = context;
+  //     // console.log(JSON.stringify({'addCustomPostTypeContext': context}));
+  //     return (
+  //       <blocks height="regular">
+  //         <vstack>
+  //           <text style="heading" size="xxlarge">
+  //             Fundraiser created! 2
+  //           </text>
+  //           <button icon="heart" appearance="primary" />
+  //           <text style="paragraph" size="small">
+  //           </text>
+  //         </vstack>
+  //       </blocks>
+  //     );
+  //   }
+  // });
 
 Devvit.addSettings([
   {
