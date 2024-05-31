@@ -245,6 +245,7 @@ const searchSelectForm = Devvit.createForm(
         subredditName: currentSubreddit.name,
         richtext: myrichtext,
       });
+      // TODO cache form info with the post id
       ctx.ui.navigateTo(post)
     }
   )

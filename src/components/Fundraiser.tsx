@@ -51,6 +51,7 @@ export const FundraiserPost: CustomPostType = {
     description: "Post fundraiser",
     height: "tall",
     render: context => {
+      // TODO: do cache hit to get post info
       // get data for post and add to FundraiserView
       let fInfo = {
           nonprofitID: "2",
