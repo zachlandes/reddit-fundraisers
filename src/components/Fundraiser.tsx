@@ -1,9 +1,11 @@
-import { CustomPostType, Devvit } from '@devvit/public-api';
+import { Context, CustomPostType, Devvit } from '@devvit/public-api';
 import { EveryFundraiserInfo } from '../sources/Every.js';
+import { returnCachedFormAsJSON } from '../utils/Redis.js';
+import { CachedForm } from '../utils/CachedForm.js';
 
 
 
-export function FundraiserView(fundraiserInfo: EveryFundraiserInfo): JSX.Element {
+export function FundraiserView(fundraiserInfo: EveryFundraiserInfo, link: string, context: Context): JSX.Element {
     return (
         <vstack alignment='center middle' gap='large' grow={true}>
             <vstack>
@@ -17,7 +19,7 @@ export function FundraiserView(fundraiserInfo: EveryFundraiserInfo): JSX.Element
                 Love
               </text>
               <text size='xsmall' weight='bold'>
-                Love + Ethos’ mission is  ... 👋
+                Love + Ethos' mission is  ... 👋
                 {fundraiserInfo.title}
               </text>
               <vstack backgroundColor='#FFD5C6' cornerRadius='full' width='100%'>
@@ -28,15 +30,15 @@ export function FundraiserView(fundraiserInfo: EveryFundraiserInfo): JSX.Element
               <hstack>
                 <vstack>
                   <text>RAISED</text>
-                  <text color='#018669'>$100000</text>
+                  <text color='#018669'>$69</text>
                 </vstack>
                 <vstack>
                   <text>NEXT MILESTONE</text>
-                  <text color='#018669'>$200000</text>
+                  <text color='#018669'>${fundraiserInfo.goal}</text>
                 </vstack>
               </hstack>
               <vstack alignment='center middle'>
-                <button appearance='primary' width={50}>Donate</button>
+                <button appearance='primary' width={50}onPress={() => context.ui.navigateTo(link)}>Donate</button>
               </vstack>
             </vstack>
             {/* <vstack>
@@ -50,20 +52,27 @@ export const FundraiserPost: CustomPostType = {
     name: "FundraiserPost",
     description: "Post fundraiser",
     height: "tall",
-    render: context => {
-      // TODO: do cache hit to get post info
-      // get data for post and add to FundraiserView
-      let fInfo = {
-          nonprofitID: "2",
-          title: "FUNDRAISER INFO TITLE",
-          description: "Desc",
-          startDate: null,
-          endDate: null,
-          goal: 420,
-          raisedOffline: 69,
-          imageBase64: null
-      };
-      console.log(context)
-      return FundraiserView(fInfo)
+    render: async context => { 
+      const { postId } = context;
+      if (typeof postId === 'string') {
+        console.log("postId in custompostypeform: ", postId)
+        const cachedForm = await returnCachedFormAsJSON(context, postId);  
+        console.log("cachedForm in custompostType form: ", cachedForm)
+        let fInfo = {
+            nonprofitID: "2",
+            title: "FUNDRAISER INFO TITLE",
+            description: cachedForm?.formFields.formDescription ?? "No description",  
+            startDate: null,
+            endDate: null,
+            goal: 420,
+            raisedOffline: 69,
+            imageBase64: null
+        };
+        const link = cachedForm?.formFields.link ?? "No link"
+        return FundraiserView(fInfo, link, context); //FIXME: we need to refactor how we are storing all the relevant data for a post
+      } else {
+        throw new Error("postId was undefined"); //FIXME: If we have a failure here, will we end up creating a broken post?
+      }
     }
 }
+

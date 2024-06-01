@@ -29,6 +29,7 @@ export function LoadingState(): JSX.Element {
 }
 
 // this could be simplified if we only convert cachedForms, and cachedForms can encode EveryNonprofitInfo.
+// TODO: break into a class with multiple conversion methods
 function convertToFormData(
   nonprofits: EveryNonprofitInfo[] | null
 ): { nonprofits: EveryNonprofitInfo[] } {
@@ -60,9 +61,9 @@ const searchSelectForm = Devvit.createForm(
   async ({values}, ctx) => {
     const {ui} = ctx;
     if (typeof values.nonprofit != null) {
-      console.log(values.nonprofit)
+      //console.log(values.nonprofit)
       const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit)
-      console.log(nonprofitInfo)
+      //console.log(nonprofitInfo)
       // handle case where we see a missing field--specifically the ones that should have been set in prior form(s).
       // maybe empty fields shouldnt be caught at all in the hget wrapper since thats not unexpected behavior?
       // const nonprofitInfoForm: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
@@ -173,7 +174,7 @@ const searchSelectForm = Devvit.createForm(
 
   // Form 4 descriptionForm -> *imageForm* -> submitForm
   //FIXME: Skipping for now
-  const imageForm = Devvit.createForm( //TODO: can we even have users submit images in a form?
+  const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
     (data) => {
       return {
         fields: [
@@ -198,7 +199,7 @@ const searchSelectForm = Devvit.createForm(
       console.log(data.nonprofits);
       return {
         fields: [
-          { name: 'description',
+          { name: 'formDescription',
           label: `Fill in the text of your post here`,
           type: 'paragraph'},
           { name: 'postTitle',
@@ -210,7 +211,7 @@ const searchSelectForm = Devvit.createForm(
           type: 'select',
           options: [
               { label: `${data.nonprofits[0].profileUrl}`, // FIXME: should we make the data typesafe by converting to form?
-              value: `${data.nonprofits[0].profileUrl}`, //FIXME: `${data['profileUrl']}` if we are reading data that was cached instead, we should align these
+              value: `${data.nonprofits[0]}`, //FIXME: `${data['profileUrl']}` if we are reading data that was cached instead, we should align these
               },
             ],
           },
@@ -224,13 +225,12 @@ const searchSelectForm = Devvit.createForm(
       const {reddit} = ctx;
       const currentSubreddit = await reddit.getCurrentSubreddit();
       const postTitle = values.postTitle;
-      console.log(values);
-      console.log(values.description);
+      console.log(values.formDescription);
 
       const myrichtext = new RichTextBuilder()
         .paragraph((p) => {
           p.text({
-            text: String(values.description)
+            text: String(values.formDescription)
           }).link({
             text: "Donate",
             url: String(values.link),
@@ -239,13 +239,29 @@ const searchSelectForm = Devvit.createForm(
         })
         .build();
 
-
       const post: Post = await reddit.submitPost({
         title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
         subredditName: currentSubreddit.name,
-        richtext: myrichtext,
+        //richtext: myrichtext,
+        preview: LoadingState()
       });
-      // TODO cache form info with the post id
+      const postId = post.id;
+      console.log('postId in submit post: ', postId);
+      console.log("values in submit post: ", values);
+      console.log("values.link in submit post: ", values.link);
+      const partialFormToCache: Partial<CachedForm<FundraiserFormKeys, NonprofitPropsKeys>> = {
+        formFields: {
+          formDescription: values.formDescription,
+          formImageUrl: null
+        },
+        nonprofitProps: {
+          ein: values.link.ein, 
+          profileUrl: values.link.profileUrl,
+          description: values.link.description
+        }
+      };
+      await setPartialCachedForm(ctx, postId, partialFormToCache);
+
       ctx.ui.navigateTo(post)
     }
   )
