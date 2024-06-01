@@ -155,3 +155,33 @@ export function populateNonprofitSelect(
     }
     return [];
 }
+
+export async function fetchFundraiserRaisedDetails(
+    nonprofitIdentifier: string,
+    fundraiserIdentifier: string,
+    publicKey: string
+): Promise<{ currency: string; raised: number; supporters: number; goalAmount: number; goalType: string } | null> { //FIXME: turn this return into a reusable type
+    const apiUrl = `https://partners.every.org/v0.2/nonprofit/${nonprofitIdentifier}/fundraiser/${fundraiserIdentifier}/raised?apiKey=${publicKey}`;
+
+    try {
+        const request = new Request(apiUrl, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+        });
+        const response = await fetch(request);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return {
+            currency: data.currency,
+            raised: data.raised,
+            supporters: data.supporters,
+            goalAmount: data.goalAmount,
+            goalType: data.goalType
+        };
+    } catch (e) {
+        console.error('Error fetching fundraiser raised details:', e);
+        return null;
+    }
+}
