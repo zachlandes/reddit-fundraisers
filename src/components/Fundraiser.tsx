@@ -1,15 +1,15 @@
 import { Context, CustomPostType, Devvit } from '@devvit/public-api';
-import { EveryFundraiserInfo } from '../sources/Every.js';
-import { returnCachedFormAsJSON } from '../utils/Redis.js';
-import { CachedForm } from '../utils/CachedForm.js';
+import { EveryFundraiserInfo, EveryNonprofitInfo } from '../sources/Every.js';
+import { getCachedForm } from '../utils/Redis.js';
+import { CachedForm, FundraiserFormFields } from '../utils/CachedForm.js';
 
 
 
-export function FundraiserView(fundraiserInfo: EveryFundraiserInfo, link: string, context: Context): JSX.Element {
+export function FundraiserView(fundraiserInfo: EveryFundraiserInfo, context: Context): JSX.Element {
     return (
         <vstack alignment='center middle' gap='large' grow={true}>
             <vstack>
-              <image url="https://external-preview.redd.it/puppy-shark-doo-doo-dooo-v0-fvTbUdWIl5sAZpJzzafgu-dSbbwB9cZjADc4PkQDmNw.jpg?auto=webp&s=79a1b5de3973f6499d7785abf95c2a02387e3e78"
+              <image url={"https://external-preview.redd.it/puppy-shark-doo-doo-dooo-v0-fvTbUdWIl5sAZpJzzafgu-dSbbwB9cZjADc4PkQDmNw.jpg?auto=webp&s=79a1b5de3973f6499d7785abf95c2a02387e3e78"}
                 width="100%"
                 imageWidth={150}
                 imageHeight={150}
@@ -38,7 +38,7 @@ export function FundraiserView(fundraiserInfo: EveryFundraiserInfo, link: string
                 </vstack>
               </hstack>
               <vstack alignment='center middle'>
-                <button appearance='primary' width={50}onPress={() => context.ui.navigateTo(link)}>Donate</button>
+                <button appearance='primary' width={50}onPress={() => context.ui.navigateTo("No link")}>Donate</button>
               </vstack>
             </vstack>
             {/* <vstack>
@@ -49,30 +49,42 @@ export function FundraiserView(fundraiserInfo: EveryFundraiserInfo, link: string
 }
 
 export const FundraiserPost: CustomPostType = {
-    name: "FundraiserPost",
-    description: "Post fundraiser",
-    height: "tall",
-    render: async context => { 
-      const { postId } = context;
-      if (typeof postId === 'string') {
-        console.log("postId in custompostypeform: ", postId)
-        const cachedForm = await returnCachedFormAsJSON(context, postId);  
-        console.log("cachedForm in custompostType form: ", cachedForm)
-        let fInfo = {
-            nonprofitID: "2",
-            title: "FUNDRAISER INFO TITLE",
-            description: cachedForm?.formFields.formDescription ?? "No description",  
-            startDate: null,
-            endDate: null,
-            goal: 420,
-            raisedOffline: 69,
-            imageBase64: null
-        };
-        const link = cachedForm?.formFields.link ?? "No link"
-        return FundraiserView(fInfo, link, context); //FIXME: we need to refactor how we are storing all the relevant data for a post
-      } else {
-        throw new Error("postId was undefined"); //FIXME: If we have a failure here, will we end up creating a broken post?
-      }
-    }
-}
+  name: "FundraiserPost",
+  description: "Post fundraiser",
+  height: "tall",
+  render: async context => { 
+    const { postId } = context;
+    if (typeof postId === 'string') {
+      const cachedForm = await getCachedForm<EveryNonprofitInfo, FundraiserFormFields>(context, postId);
 
+      if (!cachedForm) {
+        throw new Error("Failed to retrieve cached form.");
+      }
+
+      // Extract formFields and nonprofitProps from cachedForm
+      const formFields = cachedForm.getAllFormFields();
+      const nonprofitProps = cachedForm.getAllNonprofitProps();
+
+      if (!formFields || !nonprofitProps) {
+        throw new Error("Form fields or nonprofit properties are missing."); //TODO: revisit this error handling. Since it's throwing should we catch?
+      }
+
+      // Create a fundraiserInfo object using properties from nonprofitProps and formFields
+      let fundraiserInfo: EveryFundraiserInfo = {
+          nonprofitID: nonprofitProps.ein, // FIXME: EIN may not be the right ID here
+          title: formFields.formDescription ?? "No description",
+          description: nonprofitProps.description,
+          startDate: null,
+          endDate: null,
+          goal: 420,
+          raisedOffline: 69,
+          imageBase64: null
+      };
+
+      // Pass the entire formFields and fundraiserInfo to FundraiserView
+      return FundraiserView(fundraiserInfo, context);
+    } else {
+      throw new Error("postId was undefined");
+    }
+  }
+}
