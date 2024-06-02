@@ -17,10 +17,10 @@ export async function createUserSubredditHashKey(context: Context): Promise<stri
     }
 }
 
-export async function setCachedForm<T extends GeneralNonprofitInfo, U extends BaseFormFields>(
+export async function setCachedForm(
     context: Context,
     key: string,
-    form: CachedForm<T, U>
+    form: CachedForm
 ): Promise<void> {
     const { redis } = context;
     const expireTimeInSeconds = 600; // FIXME: This should be in a config or enum, and it also may cause a bug for existing fundraisers
@@ -51,10 +51,10 @@ export async function getFormFields(context: Context, key: string, fieldName: st
 }
 
 // Make getCachedForm a generic function
-export async function getCachedForm<T extends GeneralNonprofitInfo, F extends BaseFormFields>(
+export async function getCachedForm(
     context: Context,
     key: string
-): Promise<CachedForm<T, F> | null> {
+): Promise<CachedForm | null> {
     const { redis } = context;
     try {
         const serializedForm = await redis.get(key);
@@ -62,7 +62,7 @@ export async function getCachedForm<T extends GeneralNonprofitInfo, F extends Ba
             return null;
         }
         const formData = JSON.parse(serializedForm);
-        const cachedForm = new CachedForm<T, F>();
+        const cachedForm = new CachedForm();
         cachedForm.deserializeFromRedis(formData);
         return cachedForm;
     } catch (error) {
@@ -70,3 +70,4 @@ export async function getCachedForm<T extends GeneralNonprofitInfo, F extends Ba
         return null;
     }
 }
+

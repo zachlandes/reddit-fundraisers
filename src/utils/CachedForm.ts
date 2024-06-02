@@ -1,69 +1,76 @@
-import type { GeneralNonprofitInfo } from '../sources/Every.js';
+import type { EveryNonprofitInfo, GeneralNonprofitInfo } from '../sources/Every.js';
 
+export interface TypeMapping {
+    generalNonprofitInfo: GeneralNonprofitInfo;
+    everyNonprofitInfo: EveryNonprofitInfo;
+    baseFormFields: BaseFormFields;
+    fundraiserFormFields: FundraiserFormFields;
+}
 
-export class CachedForm<T extends GeneralNonprofitInfo, F extends BaseFormFields> {
-    private formFields?: FormField<F>;
-    private nonprofitProps?: NonprofitProps<T>;
+// Identity function to ensure type safety
+function createTypeKeys<T>(t: { [P in keyof T]: P }): { [P in keyof T]: P } {
+    return t;
+}
+
+// This will have to be updated whenever new keys are added to TypeMapping
+export const TypeKeys = createTypeKeys<TypeMapping>({
+    generalNonprofitInfo: 'generalNonprofitInfo',
+    everyNonprofitInfo: 'everyNonprofitInfo',
+    baseFormFields: 'baseFormFields',
+    fundraiserFormFields: 'fundraiserFormFields'
+});
+
+export class CachedForm {
+    private aggregates: Map<keyof TypeMapping, PropertyManager<any>> = new Map();
     private lastUpdated?: string;
 
-    constructor() {
+    constructor() {}
+
+    private initializeProperties<K extends keyof TypeMapping>(key: K, info: TypeMapping[K]): void {
+        console.debug(`Initializing ${key} with:`, info);
+        this.aggregates.set(key, new PropertyManager<TypeMapping[K]>(info));
     }
 
-    initializeFormFields(formFieldsInitial: Partial<F>): void {
-        console.debug("Initializing form fields with:", formFieldsInitial);
-        this.formFields = new FormField<F>();
-        Object.keys(formFieldsInitial).forEach(key => {
-            this.formFields!.setProperty(key as keyof F, formFieldsInitial[key] as F[keyof F]);
-        });
-    }
-
-    initializeNonprofitProps(nonprofitInfo: T): void {
-        console.debug("Initializing nonprofit properties with:", nonprofitInfo);
-        this.nonprofitProps = new NonprofitProps<T>(nonprofitInfo);
-    }
-
-    setFormField<K extends keyof F>(key: K, value: F[K]): void {
-        console.debug(`Setting form field ${String(key)} to`, value);
-        if (!this.formFields) {
-            this.formFields = new FormField<F>();
+    private setProperty<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K], value: V): void {
+        console.debug(`Setting ${key} ${String(propKey)} to`, value);
+        let manager = this.aggregates.get(key);
+        if (!manager) {
+            manager = new PropertyManager<TypeMapping[K]>();
+            this.aggregates.set(key, manager);
         }
-        this.formFields.setProperty(key, value);
+        manager.setProperty(propKey, value);
     }
 
-    getFormField(key: keyof F): string | null {
-        if (!this.formFields) {
-            throw new Error("Form fields are not initialized.");
+    private getProperty<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K]): V | null {
+        const manager = this.aggregates.get(key);
+        if (!manager) {
+            throw new Error(`${key} is not initialized.`);
         }
-        return this.formFields.getProperty(key);
+        return manager.getProperty(propKey);
     }
 
-    getNonprofitProp<K extends keyof T>(key: K): T[K] | null {
-        if (!this.nonprofitProps) {
-            throw new Error("Nonprofit properties are not initialized.");
+    private getAllProperties<K extends keyof TypeMapping>(key: K): TypeMapping[K] {
+        const manager = this.aggregates.get(key);
+        if (!manager) {
+            throw new Error(`${key} is not initialized.`);
         }
-        return this.nonprofitProps.getProperty(key);
+        return manager.getAllProperties();
     }
 
-    setNonprofitProp<K extends keyof T>(key: K, value: T[K]): void {
-        console.debug(`Setting nonprofit property ${String(key)} to`, value);
-        if (!this.nonprofitProps) {
-            throw new Error("Nonprofit properties are not initialized.");
-        }
-        this.nonprofitProps.setProperty(key, value);
+    initialize(key: keyof TypeMapping, info: any): void {
+        this.initializeProperties(key, info);
     }
 
-    getAllNonprofitProps(): T {
-        if (!this.nonprofitProps) {
-            throw new Error("Nonprofit properties are not initialized.");
-        }
-        return this.nonprofitProps.getAllProperties();
+    setProp<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K], value: V): void {
+        this.setProperty(key, propKey, value);
     }
 
-    getAllFormFields(): F {
-        if (!this.formFields) {
-            throw new Error("Form fields are not initialized.");
-        }
-        return this.formFields.getAllProperties();
+    getProp<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K]): V | null {
+        return this.getProperty(key, propKey);
+    }
+
+    getAllProps<K extends keyof TypeMapping>(key: K): TypeMapping[K] {
+        return this.getAllProperties(key);
     }
 
     setLastUpdated(date: string): void {
@@ -75,28 +82,29 @@ export class CachedForm<T extends GeneralNonprofitInfo, F extends BaseFormFields
     }
 
     serializeForRedis(): Record<string, any> {
-        return {
-            formFields: this.formFields ? this.formFields.serialize() : {},
-            nonprofitProps: this.nonprofitProps ? this.nonprofitProps.getAllProperties() : {},
-            lastUpdated: this.lastUpdated
-        };
+        const result: Record<string, any> = {};
+        this.aggregates.forEach((manager, key) => {
+            result[key] = manager.serialize();
+        });
+        result.lastUpdated = this.lastUpdated;
+        return result;
     }
 
     deserializeFromRedis(data: Record<string, any>): void {
-        if (data.formFields) {
-            this.formFields = new FormField<F>(); 
-            this.formFields.deserialize(data.formFields);
-        }
-        if (data.nonprofitProps) {
-            this.nonprofitProps = new NonprofitProps<T>(data.nonprofitProps as T);
-        }
+        Object.entries(data).forEach(([key, value]) => {
+            if (key !== 'lastUpdated') {
+                const manager = new PropertyManager<any>();
+                manager.deserialize(value);
+                this.aggregates.set(key as keyof TypeMapping, manager);
+            }
+        });
         this.lastUpdated = data.lastUpdated;
     }
 }
 
-// Base type for form fields that always includes formDescription
 export type BaseFormFields = {
     formDescription: string | null;
+    formTitle: string | null;
     [key: string]: string | null;
 };
 
@@ -108,8 +116,13 @@ export type FundraiserFormFields = BaseFormFields & {
 export class PropertyManager<T> {
     protected properties: Map<keyof T, T[keyof T] | null>;
 
-    constructor() {
+    constructor(initialProperties?: Partial<T>) {
         this.properties = new Map<keyof T, T[keyof T] | null>();
+        if (initialProperties) {
+            for (const [key, value] of Object.entries(initialProperties)) {
+                this.properties.set(key as keyof T, value as T[keyof T]);
+            }
+        }
     }
 
     setProperty<K extends keyof T>(key: K, value: T[K]): void {

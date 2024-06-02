@@ -1,7 +1,8 @@
 import { Context, CustomPostType, Devvit } from '@devvit/public-api';
 import { EveryFundraiserInfo, EveryNonprofitInfo } from '../sources/Every.js';
 import { getCachedForm } from '../utils/Redis.js';
-import { CachedForm, FundraiserFormFields } from '../utils/CachedForm.js';
+import { CachedForm, FundraiserFormFields, TypeKeys } from '../utils/CachedForm.js';
+
 
 
 
@@ -55,18 +56,18 @@ export const FundraiserPost: CustomPostType = {
   render: async context => { 
     const { postId } = context;
     if (typeof postId === 'string') {
-      const cachedForm = await getCachedForm<EveryNonprofitInfo, FundraiserFormFields>(context, postId);
+      const cachedForm = await getCachedForm(context, postId);
 
       if (!cachedForm) {
         throw new Error("Failed to retrieve cached form.");
       }
 
-      // Extract formFields and nonprofitProps from cachedForm
-      const formFields = cachedForm.getAllFormFields();
-      const nonprofitProps = cachedForm.getAllNonprofitProps();
+      // Extract formFields and nonprofitProps from cachedForm using the defined keys
+      const formFields = cachedForm.getAllProps(TypeKeys.fundraiserFormFields);
+      const nonprofitProps = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
 
       if (!formFields || !nonprofitProps) {
-        throw new Error("Form fields or nonprofit properties are missing."); //TODO: revisit this error handling. Since it's throwing should we catch?
+        throw new Error("Form fields or nonprofit properties are missing.");
       }
 
       // Create a fundraiserInfo object using properties from nonprofitProps and formFields
@@ -88,3 +89,4 @@ export const FundraiserPost: CustomPostType = {
     }
   }
 }
+

@@ -5,7 +5,7 @@ import type { EveryNonprofitInfo, GeneralNonprofitInfo } from './sources/Every.j
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
 import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './components/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
-import { CachedForm, FundraiserFormFields } from './utils/CachedForm.js';
+import { CachedForm, FundraiserFormFields, TypeKeys } from './utils/CachedForm.js';
 import { createUserSubredditHashKey, setCachedForm } from './utils/Redis.js';
 import { FundraiserPost } from './components/Fundraiser.js';
 
@@ -110,27 +110,17 @@ const submitForm = Devvit.createForm(
     console.log(data.nonprofits);
     return {
       fields: [
-        { name: 'postTitle',
-        label: 'Post Title',
-        type: 'string'
-        },
-        { name: 'formDescription',
-        label: `Fill in the text of your post here`,
-        type: 'paragraph'},
-        { name: 'link',
-        label: 'link to donate',
-        type: 'select',
-        options: [
-            { label: `${data.nonprofits[0].profileUrl}`, // FIXME: should we make the data typesafe by converting to form?
-            value: JSON.stringify(data.nonprofits[0]), //FIXME: `${data['profileUrl']}` if we are reading data that was cached instead, we should align these
-            },
+        { name: 'postTitle', label: 'Post Title', type: 'string' },
+        { name: 'formDescription', label: 'Fill in the text of your post here', type: 'paragraph' },
+        { name: 'link', label: 'link to donate', type: 'select', options: [
+            { label: `${data.nonprofits[0].profileUrl}`, value: JSON.stringify(data.nonprofits[0]) },
           ],
         },
       ],
-        title: 'Confirm your selections and create your post',
-        acceptLabel: 'Submit',
-        cancelLabel: 'Cancel'
-    }
+      title: 'Confirm your selections and create your post',
+      acceptLabel: 'Submit',
+      cancelLabel: 'Cancel'
+    };
   },
   async ({values}, ctx) => {
     const {reddit} = ctx;
@@ -158,12 +148,14 @@ const submitForm = Devvit.createForm(
     const postId = post.id;
     console.log('postId in submit post: ', postId);
     console.log("values in submit post: ", values);
-    const partialFormToCache = new CachedForm<EveryNonprofitInfo, FundraiserFormFields>();
-    partialFormToCache.initializeFormFields({
+
+    const partialFormToCache = new CachedForm();
+    partialFormToCache.initialize(TypeKeys.fundraiserFormFields, {
       formDescription: values.formDescription,
+      formTitle: values.postTitle,
       formImageUrl: null
     });
-    partialFormToCache.initializeNonprofitProps(JSON.parse(values.link));
+    partialFormToCache.initialize(TypeKeys.everyNonprofitInfo, JSON.parse(values.link));
     console.log('Form to be cached:', partialFormToCache.serializeForRedis());
     await setCachedForm(ctx, postId, partialFormToCache);
     ctx.ui.navigateTo(post)
