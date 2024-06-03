@@ -1,5 +1,5 @@
 import { Context, Data, Devvit, SettingsClient } from '@devvit/public-api';
-import { Currency, EveryFundraiserInfo, EveryNonprofitInfo } from '../types/index.js';
+import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo } from '../types/index.js';
 
 export enum APIService {
     EVERY = `partners.every.org`
@@ -130,7 +130,7 @@ export async function fetchFundraiserRaisedDetails(
     nonprofitIdentifier: string,
     fundraiserIdentifier: string,
     publicKey: string
-): Promise<{ currency: string; raised: number; supporters: number; goalAmount: number; goalType: string } | null> { //FIXME: turn this return into a reusable type
+): Promise<EveryFundraiserRaisedDetails | null> {
     const apiUrl = `https://partners.every.org/v0.2/nonprofit/${nonprofitIdentifier}/fundraiser/${fundraiserIdentifier}/raised?apiKey=${publicKey}`;
 
     try {

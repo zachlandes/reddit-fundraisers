@@ -44,5 +44,13 @@ export type EveryFundraiserInfo = {
     currency?: Currency; 
 };
 
+export type EveryFundraiserRaisedDetails = {
+    currency: string;
+    raised: number;
+    supporters: number;
+    goalAmount: number;
+    goalType: string;
+};
+
 export * from './enums.js';
 
