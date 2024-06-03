@@ -1,5 +1,13 @@
 import { Currency } from './enums.js';
 
+export interface TypeMapping {
+    generalNonprofitInfo: GeneralNonprofitInfo;
+    everyNonprofitInfo: EveryNonprofitInfo;
+    baseFormFields: BaseFormFields;
+    fundraiserFormFields: FundraiserFormFields;
+    fundraiserDetails: EveryFundraiserRaisedDetails;
+}
+
 export type BaseFormFields = {
     formDescription: string | null;
     formTitle: string | null;
@@ -9,13 +17,6 @@ export type BaseFormFields = {
 export type FundraiserFormFields = BaseFormFields & {
     formImageUrl: string | null;
 };
-
-export interface TypeMapping {
-    generalNonprofitInfo: GeneralNonprofitInfo;
-    everyNonprofitInfo: EveryNonprofitInfo;
-    baseFormFields: BaseFormFields;
-    fundraiserFormFields: FundraiserFormFields;
-}
 
 export type GeneralNonprofitInfo = {
     name: string,

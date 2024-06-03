@@ -1,14 +1,14 @@
 import { TypeMapping } from '../types/index.js';
 
-// Identity function to ensure type safety
-export function createTypeKeys<T>(t: { [P in keyof T]: P }): { [P in keyof T]: P } {
-    return t;
+// map each key in TypeMapping to its own name as a value
+export function createTypeKeys<T>(): { [P in keyof T]: P } {
+    let keys: Partial<{ [P in keyof T]: P }> = {};
+    (Object.keys(keys) as Array<keyof T>).forEach((key) => {
+        keys[key] = key;
+    });
+    return keys as { [P in keyof T]: P };
 }
 
-// This will have to be updated whenever new keys are added to TypeMapping
-export const TypeKeys = createTypeKeys<TypeMapping>({
-    generalNonprofitInfo: 'generalNonprofitInfo',
-    everyNonprofitInfo: 'everyNonprofitInfo',
-    baseFormFields: 'baseFormFields',
-    fundraiserFormFields: 'fundraiserFormFields'
-}); //TODO: It may make sense, especially if we have multiple form flows, to create different sets of TypeKeys for different form flows
+// Automatically generated TypeKeys based on TypeMapping
+export const TypeKeys = createTypeKeys<TypeMapping>();//TODO: It may make sense, especially if we have multiple form flows, to create different sets of TypeKeys for different form flows
+

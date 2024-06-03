@@ -1,5 +1,6 @@
 import { Context } from '@devvit/public-api';
 import { CachedForm } from './CachedForm.js';
+import { EveryFundraiserRaisedDetails } from '../types/index.js';
 
 export async function createUserSubredditHashKey(context: Context): Promise<string> {
     const { reddit } = context;
@@ -69,4 +70,3 @@ export async function getCachedForm(
         return null;
     }
 }
-

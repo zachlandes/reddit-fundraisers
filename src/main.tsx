@@ -7,7 +7,7 @@ import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './components/Im
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
-import { setCachedForm } from './utils/Redis.js';
+import { getCachedForm, setCachedForm } from './utils/Redis.js';
 import { FundraiserPost } from './components/Fundraiser.js';
 
 Devvit.configure({
@@ -201,6 +201,35 @@ Devvit.addSettings([
     scope: 'app',
   },
 ]);
+
+import { updateFundraiserPost } from './utils/PostUpdater.js'; //FIXME: implement this function to update the post
+
+Devvit.addSchedulerJob({
+  name: 'update_fundraiser_subscriptions',
+  onRun: async (_, context) => {
+    const allSubscriptionsKey = "ALL_SUBSCRIPTIONS";
+    const postIds = (await context.redis.zRange(allSubscriptionsKey, 0, -1)).map(item => item.member); // Assuming the API returns an array of { member, score }
+    if (postIds.length > 0) {
+      for (const postId of postIds) {
+        try {
+          const cachedForm = await getCachedForm(context, postId);
+          if (cachedForm) {
+            const fundraiserInfo = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
+            if (fundraiserInfo) {
+              await updateFundraiserPost(context, postId, fundraiserInfo);
+            } else {
+              console.error(`No fundraiser details found for form with key: ${postId}`);
+            }
+          } else {
+            console.error(`No cached form found for key: ${postId}`);
+          }
+        } catch (error) {
+          console.error(`Error retrieving form for key ${postId}: `, error);
+        }
+      }
+    }
+  },
+});
 
 export default Devvit;
 
