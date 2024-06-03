@@ -1,38 +1,8 @@
 import { Context, Data, Devvit, SettingsClient } from '@devvit/public-api';
+import { Currency, EveryFundraiserInfo, EveryNonprofitInfo } from '../types/index.js';
 
 export enum APIService {
     EVERY = `partners.every.org`
-}
-
-export type GeneralNonprofitInfo = {
-    name: string,
-    profileUrl: string,
-    description: string,
-    ein: string,
-    websiteUrl: string
-};
-
-export type EveryNonprofitInfo = GeneralNonprofitInfo &
-{
-    primarySlug: string
-    logoUrl: string | null,
-    coverImageUrl: string | null,
-}
-
-export type EveryFundraiserInfo = {
-    nonprofitID: string;
-    title: string;
-    description: string | null;
-    startDate: Date | null;
-    endDate: Date | null;
-    goal: number | null;
-    raisedOffline: number | null;
-    imageBase64: string | null;
-    currency?: Currency; 
-};
-
-export enum Currency {
-    USD = "USD",
 }
 
 export async function createFundraiser(

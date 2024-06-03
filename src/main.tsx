@@ -1,12 +1,13 @@
 // Learn more at developers.reddit.com/docs
 import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public-api';
 import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
-import type { EveryNonprofitInfo, GeneralNonprofitInfo } from './sources/Every.js';
+import type { EveryNonprofitInfo } from './types/index.js';
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
 import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './components/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
-import { CachedForm, FundraiserFormFields, TypeKeys } from './utils/CachedForm.js';
-import { createUserSubredditHashKey, setCachedForm } from './utils/Redis.js';
+import { CachedForm } from './utils/CachedForm.js';
+import { TypeKeys } from './utils/typeHelpers.js';
+import { setCachedForm } from './utils/Redis.js';
 import { FundraiserPost } from './components/Fundraiser.js';
 
 Devvit.configure({

@@ -1,7 +1,8 @@
 import { Context, CustomPostType, Devvit } from '@devvit/public-api';
-import { EveryFundraiserInfo, EveryNonprofitInfo } from '../sources/Every.js';
+import { EveryFundraiserInfo } from '../types/index.js';
 import { getCachedForm } from '../utils/Redis.js';
-import { CachedForm, FundraiserFormFields, TypeKeys } from '../utils/CachedForm.js';
+import { CachedForm } from '../utils/CachedForm.js';
+import { TypeKeys } from '../utils/typeHelpers.js';
 
 
 

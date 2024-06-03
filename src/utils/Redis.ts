@@ -1,6 +1,5 @@
 import { Context } from '@devvit/public-api';
-import { BaseFormFields, CachedForm } from './CachedForm.js';
-import { GeneralNonprofitInfo } from '../sources/Every.js';
+import { CachedForm } from './CachedForm.js';
 
 export async function createUserSubredditHashKey(context: Context): Promise<string> {
     const { reddit } = context;
