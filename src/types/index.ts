@@ -53,5 +53,23 @@ export type EveryFundraiserRaisedDetails = {
     goalType: string;
 };
 
-export * from './enums.js';
+export type FundraiserCreationResponse = {
+    id: string;
+    nonprofitId: string;
+    title: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    goal: number;
+    raisedOffline: number | null;
+    currency: Currency;
+    amountRaised: number;
+    createdAt: string;
+    updatedAt: string;
+    links: {
+        self: string;
+        web: string;
+    };
+}
 
+export * from './enums.js';

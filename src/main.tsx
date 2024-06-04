@@ -1,13 +1,13 @@
 // Learn more at developers.reddit.com/docs
 import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public-api';
 import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
-import type { EveryNonprofitInfo } from './types/index.js';
+import { RedisKey, type EveryNonprofitInfo } from './types/index.js';
 import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
 import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './components/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
-import { getCachedForm, setCachedForm } from './utils/Redis.js';
+import { fetchPostsToUpdate, removePostFromRedis, setCachedForm } from './utils/Redis.js';
 import { FundraiserPost } from './components/Fundraiser.js';
 
 Devvit.configure({
@@ -163,34 +163,16 @@ const submitForm = Devvit.createForm(
   }
 )
 
-  Devvit.addMenuItem({
-    label: 'Create a fundraiser',
-    location: 'subreddit',
-    forUserType: 'moderator',
-    onPress: async (_event, { ui }) => {
-      return ui.showForm(searchTermForm);
-    },
-  });
+Devvit.addMenuItem({
+  label: 'Create a fundraiser',
+  location: 'subreddit',
+  forUserType: 'moderator',
+  onPress: async (_event, { ui }) => {
+    return ui.showForm(searchTermForm);
+  },
+});
 
-  Devvit.addCustomPostType(FundraiserPost);
-  //   name: "Fundraiser",
-  //   render: (context) => {
-  //     //const { useState, postId } = context;
-  //     // console.log(JSON.stringify({'addCustomPostTypeContext': context}));
-  //     return (
-  //       <blocks height="regular">
-  //         <vstack>
-  //           <text style="heading" size="xxlarge">
-  //             Fundraiser created! 2
-  //           </text>
-  //           <button icon="heart" appearance="primary" />
-  //           <text style="paragraph" size="small">
-  //           </text>
-  //         </vstack>
-  //       </blocks>
-  //     );
-  //   }
-  // });
+Devvit.addCustomPostType(FundraiserPost);
 
 Devvit.addSettings([
   {
@@ -202,32 +184,62 @@ Devvit.addSettings([
   },
 ]);
 
-import { updateFundraiserPost } from './utils/PostUpdater.js'; //FIXME: implement this function to update the post
-
 Devvit.addSchedulerJob({
-  name: 'update_fundraiser_subscriptions',
+  name: 'fundraiser_subscription_thread',
   onRun: async (_, context) => {
-    const allSubscriptionsKey = "ALL_SUBSCRIPTIONS";
-    const postIds = (await context.redis.zRange(allSubscriptionsKey, 0, -1)).map(item => item.member); // Assuming the API returns an array of { member, score }
-    if (postIds.length > 0) {
-      for (const postId of postIds) {
-        try {
-          const cachedForm = await getCachedForm(context, postId);
-          if (cachedForm) {
-            const fundraiserInfo = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
-            if (fundraiserInfo) {
-              await updateFundraiserPost(context, postId, fundraiserInfo);
-            } else {
-              console.error(`No fundraiser details found for form with key: ${postId}`);
-            }
-          } else {
-            console.error(`No cached form found for key: ${postId}`);
-          }
-        } catch (error) {
-          console.error(`Error retrieving form for key ${postId}: `, error);
-        }
-      }
+    const{ redis } = context;
+    const postsToUpdate = await fetchPostsToUpdate(redis);
+    for (const postId of postsToUpdate) {
+      await updatePostDetails(context, postId);
     }
+  },
+});
+
+Devvit.addTrigger({
+  event: 'AppInstall',
+  onEvent: async (_, context) => {
+    try {
+      await context.scheduler.runJob({
+        cron: `*/10 * * * * *`,
+        name: 'fundraiser_subscription_thread',
+        data: {},
+      });
+    } catch (e) {
+      console.error('Error scheduling job on app install:', e);
+      throw e;
+    }
+  },
+});
+
+Devvit.addTrigger({
+  event: 'AppUpgrade',
+  onEvent: async (_, context) => {
+    const jobs = await context.scheduler.listJobs();
+    const subscriptionJobs = jobs.filter((job) => job.name === 'fundraiser_subscription_thread');
+    if (subscriptionJobs.length > 1) {
+      console.log(`Found ${subscriptionJobs.length} subscription jobs, canceling all but the first one`);
+      for (let i = 1; i < subscriptionJobs.length; i++) {
+        console.log('Canceling job:', subscriptionJobs[i].id);
+        await context.scheduler.cancelJob(subscriptionJobs[i].id);
+      }
+    } else if (subscriptionJobs.length === 0) {
+      console.log('No subscription job found on app upgrade, scheduling a new one');
+      await context.scheduler.runJob({
+        cron: `*/10 * * * * *`,
+        name: 'fundraiser_subscription_thread',
+        data: {},
+      });
+    } else {
+      console.log('Scheduler job validated.');
+    }
+  },
+});
+
+Devvit.addTrigger({
+  event: 'PostDelete',
+  onEvent: async (event, context) => {
+    const { redis } = context;
+    await removePostFromRedis(redis, event.postId);
   },
 });
 

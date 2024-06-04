@@ -1,6 +1,7 @@
-import { Context } from '@devvit/public-api';
+import { Context, RedisClient } from '@devvit/public-api';
 import { CachedForm } from './CachedForm.js';
 import { EveryFundraiserRaisedDetails } from '../types/index.js';
+import { RedisKey } from '../types/enums.js'; // Import the enum
 
 export async function createUserSubredditHashKey(context: Context): Promise<string> {
     const { reddit } = context;
@@ -69,4 +70,33 @@ export async function getCachedForm(
         console.error(`Failed to retrieve form for key ${key}: `, error);
         return null;
     }
+}
+
+export async function addOrUpdatePostInRedis(redis: RedisClient, postId: string, endDate: Date): Promise<void> {
+    const score = endDate.getTime();
+    await redis.zAdd(RedisKey.AllSubscriptions, { score, member: postId });
+    console.log(`Post ${postId} added or updated with end date score ${score}`);
+}
+
+export async function removePostFromRedis(redis: RedisClient, postId: string): Promise<void> {
+    await redis.zRem(RedisKey.AllSubscriptions, [postId]);
+    console.log(`Post ${postId} removed from Redis`);
+}
+
+export async function removeExpiredPosts(redis: RedisClient): Promise<void> {
+    const currentTime = Date.now();
+    const removedCount = await redis.zRemRangeByScore(RedisKey.AllSubscriptions, Number.NEGATIVE_INFINITY, currentTime);
+    console.log(`Removed ${removedCount} expired posts from Redis`);
+}
+
+export async function fetchPostsToUpdate(redis: RedisClient): Promise<string[]> {
+    await removeExpiredPosts(redis);
+    const allMembers = await redis.zRange(RedisKey.AllSubscriptions, 0, -1);
+    const scoresPromises = allMembers.map(member => redis.zScore(RedisKey.AllSubscriptions, member.member));
+    const scores = await Promise.all(scoresPromises);
+    const currentTime = Date.now(); //FIXME: We may need to use dates (no hours mins) to be sure we update posts on the last day of their fundraiser
+    const postsToUpdate = allMembers.filter((_, index) => scores[index] > currentTime)
+                                    .map(member => member.member);
+    console.log(`Fetched ${postsToUpdate.length} posts to update`);
+    return postsToUpdate;
 }

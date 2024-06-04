@@ -1,5 +1,5 @@
 import { Context, Data, Devvit, SettingsClient } from '@devvit/public-api';
-import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo } from '../types/index.js';
+import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo, FundraiserCreationResponse } from '../types/index.js';
 
 export enum APIService {
     EVERY = `partners.every.org`
@@ -9,7 +9,7 @@ export async function createFundraiser(
     fundraiserInfo: EveryFundraiserInfo,
     publicKey: string,
     privateKey: string 
-): Promise<void> {
+): Promise<FundraiserCreationResponse> {
     const apiUrl = 'https://partners.every.org/v0.2/fundraiser';
 
     try {
@@ -42,9 +42,11 @@ export async function createFundraiser(
             throw new Error(`HTTP error! status: ${res.status}`);
         }
 
+        const data = await res.json();
         console.log('Fundraiser created successfully');
+        return data as FundraiserCreationResponse;
     } catch (e) {
-        console.error('Error creating fundraiser:', e); // FIXME: move logging to the calling function try-catch block
+        console.error('Error creating fundraiser:', e);
         throw e;
     }
 }
