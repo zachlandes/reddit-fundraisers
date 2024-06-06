@@ -1,11 +1,37 @@
 import { Context } from '@devvit/public-api';
 import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo, FundraiserCreationResponse } from '../types/index.js';
 
+const mockDescription = 
+    `I am reaching out on behalf of two sweet special needs kittens in need of help: Meet Gracie and Snowflake:
+
+    Gracie's journey has been one of immense challenge and resilience. Found on the euthanasia list due to swallowing issues, her future looked bleak.
+    
+    A dedicated foster volunteer saw something in her and took a chance. Despite initial hopeful evaluations, surgery revealed her condition was more complex than anticipated.
+    
+    Further testing, including a CT scan, showed that Gracie suffers from a rare condition causing food to potentially enter her lungs with each meal.
+    
+    Gracie is a happy loving kitten. She's a tiny lap cat filled with love and affection, and like many special needs pets she is seeking not pity but a chance to live.
+    
+    She now faces a critical moment, which I truly wish were different: without specialized surgery, euthanasia is her only other option. This surgery is her lifeline, her hope for a normal, joyful life. Gracie's prognosis is great with surgery. But, due to the rarity of her case the cost is simply not accessible for an adoptive family or for the rescue we're working with.
+    
+    I share this in transparency to help normalize the care of special needs pets. Gracie's surgery and care costs are just over $12,000. I know that number is incredibly high, and this is why the BUB Fund exists.
+    
+    If we can work together to support and normalize care for special needs pets we can help influence and create long term solutions with more accessible care. This is something deeply needed.
+    
+    In addition to Gracie, we're also raising funds for many other neo-natal kittens this season. Snowflake was a 21-day-old neonatal kitten found alone by a busy road.
+    
+    Brought to a shelter by a kind-hearted person, Snowflake needs round-the-clock care and bottle feeding. She is getting the care she needs thanks to the kindness of so many, and you are a part of both her and Gracie's stories.
+    
+    BUB's legacy teaches us about the importance of giving special needs pets a chance. By supporting Gracie and Snowflake, you honor BUB's spirit of overcoming adversity and helping those in need. Even more important, we help to increase awareness and change the trajectory for special needs pets. While they are often the first to face economic euthanasia we see them and know their lives have value; they are worth it.
+    
+    Thank you for considering supporting Gracie and Snowflake. Your generosity and action can change their world.`;
+
+
 export const mockFundraiserCreationResponse: FundraiserCreationResponse = {
     id: "mock-fundraiser-id",
     nonprofitId: "mock-nonprofit-id",
     title: "Mock Fundraiser Title",
-    description: "Mock description",
+    description: mockDescription,
     startDate: new Date(),
     endDate: new Date(new Date().setDate(new Date().getDate() + 1)),  // Tomorrow's date 
     goal: 10000,
