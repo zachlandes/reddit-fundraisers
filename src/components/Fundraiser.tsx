@@ -6,8 +6,7 @@ import { getEveryPublicKey } from '../utils/keyManagement.js';
 import { serializeFundraiserCreationResponse } from '../utils/dateUtils.js';
 
 export function FundraiserView(fundraiserCreationResponse: SerializedFundraiserCreationResponse | null, raised: number, context: Context, width: number, totalHeight: number): JSX.Element {
-    // Calculate the maximum height for the description text
-    const descriptionMaxHeight = totalHeight - 318; // //FIXME: we need to adjust this value (possibly dynamically for the cover image, maybe statically for the progress bar etc)
+    const descriptionMaxHeight = totalHeight - 328; // //FIXME: we need to adjust this value (possibly dynamically for the cover image, maybe statically for the progress bar etc)
 
     return (
         <vstack width={`${width}px`} alignment='center middle' gap='large'>
@@ -25,27 +24,27 @@ export function FundraiserView(fundraiserCreationResponse: SerializedFundraiserC
                 {fundraiserCreationResponse ? fundraiserCreationResponse.description : 'Loading description...'}
               </text>
               <spacer size='small' /> 
-              <vstack backgroundColor='#FFD5C6' cornerRadius='full' width='100%'>
-                <hstack backgroundColor='#D93A00' width={`${fundraiserCreationResponse ? (raised / fundraiserCreationResponse.goal) * 100 : 0}%`}>
-                  <spacer size='medium' shape='square' />
-                </hstack>
-              </vstack>
               <hstack width='100%'>
                 <hstack width='50%'>
                     <vstack>
-                        <text>RAISED</text>
-                        <text color='#018669'>${raised}</text>
+                        <text weight='bold'>${raised}</text>
+                        <text color='#706E6E'>Raised</text>
                     </vstack>
                 </hstack>
                 <hstack width='50%' alignment='end'>
                     <vstack alignment='end'>
-                        <text>NEXT MILESTONE</text>
-                        <text color='#018669'>${fundraiserCreationResponse ? fundraiserCreationResponse.goal : '0'}</text>
+                        <text weight='bold'>${fundraiserCreationResponse ? fundraiserCreationResponse.goal : '0'}</text>
+                        <text color='#706E6E'>Next milestone</text>
                     </vstack>
                 </hstack>
               </hstack>
+              <vstack backgroundColor='#f3f7f7' cornerRadius='full' width='100%'>
+                <hstack backgroundColor='#018669' width={`${fundraiserCreationResponse ? (raised / fundraiserCreationResponse.goal) * 100 : 0}%`}>
+                  <spacer size='medium' shape='square' />
+                </hstack>
+              </vstack>
               <vstack alignment='center middle' width='100%'>
-                <button appearance='primary' width={50} onPress={() => {
+                <button appearance='success' width={50} onPress={() => {
                   if (fundraiserCreationResponse) {
                     console.log("Navigate to:", fundraiserCreationResponse.links.web);
                     context.ui.navigateTo(fundraiserCreationResponse.links.web);
