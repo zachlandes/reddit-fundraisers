@@ -69,53 +69,45 @@ export async function createFundraiser(
 
 
 
-export async function fetchNonprofits<T extends EveryNonprofitInfo>(
+export async function fetchNonprofits(
     query: string,
     publicKey: string
-): Promise<T[] | null> {
+): Promise<EveryNonprofitInfo[] | null> {
     if (USE_MOCK) {
         console.log('Using mock data for fetchNonprofits');
-        return Promise.resolve(mockNonprofits as T[]);
+        return Promise.resolve(mockNonprofits);
     }
 
     const apiUrl = `https://partners.every.org/v0.2/search/${query}?apiKey=${publicKey}`;
-    let data;
-
     try {
         const request = new Request(apiUrl, {
             headers: { Accept: 'application/json' },
         });
         const res = await fetch(request);
-        data = await res.json();
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        return data.nonprofits.map((nonprofit: any) => parseNonprofitResult(nonprofit));
     } catch (e) {
         console.error(e);
         return null;
     }
-
-    const nonprofits: T[] = [];
-    data['nonprofits'].forEach((nonprofit: unknown) => {
-        nonprofits.push(parseNonprofitResult(nonprofit) as T)
-    });
-    return nonprofits;
 }
 
 export function parseNonprofitResult(
-    nonprofit: unknown
+    nonprofit: any
 ): EveryNonprofitInfo {
-    const coverImageUrlSafe = nonprofit.coverImageUrl ?? null;
-    const logoUrlSafe = nonprofit.logoUrl ?? null;
-
-    const nonprofitInfo: EveryNonprofitInfo = {
+    return {
         name: nonprofit.name,
         profileUrl: nonprofit.profileUrl,
         description: nonprofit.description,
         ein: nonprofit.ein,
         websiteUrl: nonprofit.websiteUrl,
-        coverImageUrl: coverImageUrlSafe,
-        logoUrl: logoUrlSafe
+        primarySlug: nonprofit.primarySlug,
+        logoUrl: nonprofit.logoUrl ?? null,
+        coverImageUrl: nonprofit.coverImageUrl ?? null
     };
-
-    return nonprofitInfo;
 }
 
 export function generateEveryDonationLink(

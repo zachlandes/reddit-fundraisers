@@ -1,5 +1,5 @@
-import type { JSONObject, Post } from '@devvit/public-api';
-import { GeneralNonprofitInfo } from '../sources/Every';
+import type { Context, JSONObject, Post } from '@devvit/public-api';
+import { GeneralNonprofitInfo } from '../types/index.js';
 
 
 function convertEveryNonprofitToFormData(
@@ -10,7 +10,7 @@ function convertEveryNonprofitToFormData(
     };
   }
 
-export function cacheNonProfitSearchResults(context, searchResults){
+export function cacheNonProfitSearchResults<T extends GeneralNonprofitInfo>(context: Context, searchResults: T[] | null){
     context.cache(
         //FIXME: Refactor to simplify?
         async () => {

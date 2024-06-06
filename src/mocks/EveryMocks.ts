@@ -29,7 +29,7 @@ export const mockNonprofits: EveryNonprofitInfo[] = [
         websiteUrl: "https://mock.nonprofit1.org",
         primarySlug: "mock-nonprofit-1",
         logoUrl: null,
-        coverImageUrl: null
+        coverImageUrl: "https://preview.redd.it/prochoice-activism-in-atlanta-ga-chomp-stomp-festival-nov-v0-1iv7quw5ocy91.jpg"
     },
     {
         name: "Mock Nonprofit 2",
@@ -39,7 +39,7 @@ export const mockNonprofits: EveryNonprofitInfo[] = [
         websiteUrl: "https://mock.nonprofit2.org",
         primarySlug: "mock-nonprofit-2",
         logoUrl: null,
-        coverImageUrl: null
+        coverImageUrl: "https://preview.redd.it/prochoice-activism-in-atlanta-ga-chomp-stomp-festival-nov-v0-1iv7quw5ocy91.jpg"
     }
 ];
 
