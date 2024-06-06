@@ -1,5 +1,9 @@
 import { Context, Data, Devvit, SettingsClient } from '@devvit/public-api';
 import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo, FundraiserCreationResponse } from '../types/index.js';
+import { mockFundraiserCreationResponse, mockNonprofits, getMockFundraiserRaisedDetails } from '../mocks/index.js';
+import { convertToDate } from '../utils/dateUtils.js';
+
+const USE_MOCK = true; // Toggle this to false to use real API calls
 
 export enum APIService {
     EVERY = `partners.every.org`
@@ -10,6 +14,11 @@ export async function createFundraiser(
     publicKey: string,
     privateKey: string 
 ): Promise<FundraiserCreationResponse> {
+    if (USE_MOCK) {
+        console.log('Using mock data for createFundraiser');
+        return Promise.resolve(mockFundraiserCreationResponse);
+    }
+
     const apiUrl = 'https://partners.every.org/v0.2/fundraiser';
 
     try {
@@ -44,7 +53,14 @@ export async function createFundraiser(
 
         const data = await res.json();
         console.log('Fundraiser created successfully');
-        return data as FundraiserCreationResponse;
+
+        return {
+            ...data,
+            startDate: convertToDate(data.startDate),
+            endDate: convertToDate(data.endDate),
+            createdAt: convertToDate(data.createdAt),
+            updatedAt: convertToDate(data.updatedAt)
+        } as FundraiserCreationResponse;
     } catch (e) {
         console.error('Error creating fundraiser:', e);
         throw e;
@@ -57,6 +73,11 @@ export async function fetchNonprofits<T extends EveryNonprofitInfo>(
     query: string,
     publicKey: string
 ): Promise<T[] | null> {
+    if (USE_MOCK) {
+        console.log('Using mock data for fetchNonprofits');
+        return Promise.resolve(mockNonprofits as T[]);
+    }
+
     const apiUrl = `https://partners.every.org/v0.2/search/${query}?apiKey=${publicKey}`;
     let data;
 
@@ -109,21 +130,20 @@ export function generateEveryDonationLink(
 
 export function populateNonprofitSelect(
     searchResults: string,
-): EveryNonprofitInfo[] {
-    // take search term and validate
+): { label: string, value: string }[] {
     if (searchResults.length > 0) {
         let searchResultsData: Data;
         try {
             searchResultsData = JSON.parse(searchResults);
             console.log(searchResultsData);
+        } catch {
+            console.error("Error parsing search results.");
+            return []; // Return empty if parsing fails
         }
-        catch {
-            return []; //FIXME:
-        }
-        // Return a list of objects
-        // return [{}]  // This is our options
-        const nonprofitInfos = searchResultsData.nonprofits as EveryNonprofitInfo[];
-        return nonprofitInfos;
+        return searchResultsData.nonprofits.map((nonprofit: EveryNonprofitInfo) => ({
+            label: nonprofit.name,
+            value: JSON.stringify(nonprofit)
+        }));
     }
     return [];
 }
@@ -131,8 +151,14 @@ export function populateNonprofitSelect(
 export async function fetchFundraiserRaisedDetails(
     nonprofitIdentifier: string,
     fundraiserIdentifier: string,
-    publicKey: string
+    publicKey: string,
+    context: Context
 ): Promise<EveryFundraiserRaisedDetails | null> {
+    if (USE_MOCK) {
+        console.log('Using mock data for fetchFundraiserRaisedDetails');
+        return getMockFundraiserRaisedDetails(context);
+    }
+    
     const apiUrl = `https://partners.every.org/v0.2/nonprofit/${nonprofitIdentifier}/fundraiser/${fundraiserIdentifier}/raised?apiKey=${publicKey}`;
 
     try {

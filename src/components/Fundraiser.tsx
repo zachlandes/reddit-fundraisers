@@ -1,51 +1,51 @@
 import { Context, CustomPostType, Devvit } from '@devvit/public-api';
-import { EveryFundraiserInfo } from '../types/index.js';
+import { Currency, FundraiserCreationResponse, EveryFundraiserRaisedDetails, SerializedFundraiserCreationResponse } from '../types/index.js';
 import { getCachedForm } from '../utils/Redis.js';
-import { CachedForm } from '../utils/CachedForm.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
+import { getEveryPublicKey } from '../utils/keyManagement.js';
+import { serializeFundraiserCreationResponse } from '../utils/dateUtils.js';
 
-
-
-
-export function FundraiserView(fundraiserInfo: EveryFundraiserInfo, context: Context): JSX.Element {
+export function FundraiserView(fundraiserCreationResponse: SerializedFundraiserCreationResponse | null, raised: number, context: Context): JSX.Element {
+    console.log("Rendering FundraiserView", { fundraiserCreationResponse, raised });
     return (
         <vstack alignment='center middle' gap='large' grow={true}>
             <vstack>
-              <image url={"https://external-preview.redd.it/puppy-shark-doo-doo-dooo-v0-fvTbUdWIl5sAZpJzzafgu-dSbbwB9cZjADc4PkQDmNw.jpg?auto=webp&s=79a1b5de3973f6499d7785abf95c2a02387e3e78"}
+              <image url={fundraiserCreationResponse ? fundraiserCreationResponse.links.web : 'placeholder-image-url'}
                 width="100%"
                 imageWidth={150}
                 imageHeight={150}
-                description="Generative artwork: Fuzzy Fingers">
+                description="Fundraiser Image">
               </image>
               <text size="xlarge">
-                Love
+                {fundraiserCreationResponse ? fundraiserCreationResponse.title : 'Loading title...'}
               </text>
               <text size='xsmall' weight='bold'>
-                Love + Ethos' mission is  ... 👋
-                {fundraiserInfo.title}
+                {fundraiserCreationResponse ? fundraiserCreationResponse.description : 'Loading description...'}
               </text>
               <vstack backgroundColor='#FFD5C6' cornerRadius='full' width='100%'>
-                <hstack backgroundColor='#D93A00' width={`50%`}>
+                <hstack backgroundColor='#D93A00' width={`${fundraiserCreationResponse ? (raised / fundraiserCreationResponse.goal) * 100 : 0}%`}>
                   <spacer size='medium' shape='square' />
                 </hstack>
               </vstack>
               <hstack>
                 <vstack>
                   <text>RAISED</text>
-                  <text color='#018669'>$69</text>
+                  <text color='#018669'>${raised}</text>
                 </vstack>
                 <vstack>
                   <text>NEXT MILESTONE</text>
-                  <text color='#018669'>${fundraiserInfo.goal}</text>
+                  <text color='#018669'>${fundraiserCreationResponse ? fundraiserCreationResponse.goal : '0'}</text>
                 </vstack>
               </hstack>
               <vstack alignment='center middle'>
-                <button appearance='primary' width={50}onPress={() => context.ui.navigateTo("No link")}>Donate</button>
+                <button appearance='primary' width={50} onPress={() => {
+                  if (fundraiserCreationResponse) {
+                    console.log("Navigate to:", fundraiserCreationResponse.links.web);
+                    context.ui.navigateTo(fundraiserCreationResponse.links.web);
+                  }
+                }}>Donate</button>
               </vstack>
             </vstack>
-            {/* <vstack>
-              <text>stack 2</text>
-            </vstack> */}
         </vstack>
     )
 }
@@ -55,39 +55,33 @@ export const FundraiserPost: CustomPostType = {
   description: "Post fundraiser",
   height: "tall",
   render: async context => { 
-    const { postId } = context;
-    if (typeof postId === 'string') {
-      const cachedForm = await getCachedForm(context, postId);
-
-      if (!cachedForm) {
-        throw new Error("Failed to retrieve cached form.");
-      }
-
-      // Extract formFields and nonprofitProps from cachedForm using the defined keys
-      const formFields = cachedForm.getAllProps(TypeKeys.fundraiserFormFields);
-      const nonprofitProps = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
-
-      if (!formFields || !nonprofitProps) {
-        throw new Error("Form fields or nonprofit properties are missing.");
-      }
-
-      // Create a fundraiserInfo object using properties from nonprofitProps and formFields
-      let fundraiserInfo: EveryFundraiserInfo = {
-          nonprofitID: nonprofitProps.ein, // FIXME: EIN may not be the right ID here
-          title: formFields.formDescription ?? "No description",
-          description: nonprofitProps.description,
-          startDate: null,
-          endDate: null,
-          goal: 420,
-          raisedOffline: 69,
-          imageBase64: null
-      };
-
-      // Pass the entire formFields and fundraiserInfo to FundraiserView
-      return FundraiserView(fundraiserInfo, context);
-    } else {
-      throw new Error("postId was undefined");
+    console.log("Starting render of FundraiserPost");
+    const { postId, useChannel, useState } = context;
+    
+    if (typeof postId !== 'string') {
+      throw new Error('postId is undefined');
     }
+    const cachedFundraiserData = await getCachedForm(context, postId);
+    const initialFundraiserData = cachedFundraiserData ? serializeFundraiserCreationResponse(cachedFundraiserData.getAllProps(TypeKeys.fundraiserCreationResponse)) : null;
+    
+    // Initialize state with cached values
+    const [fundraiserData, setFundraiserData] = useState<SerializedFundraiserCreationResponse | null>(initialFundraiserData);
+    const [raised, setRaised] = useState<number>(cachedFundraiserData ? cachedFundraiserData.getAllProps(TypeKeys.fundraiserCreationResponse).amountRaised : 0); 
+
+    // Subscribe to real-time updates for live changes to the raised amount
+    const updateChannel = useChannel({
+      name: 'fundraiser_updates',
+      onMessage: (data) => {
+        console.log("Received message on fundraiser_updates channel:", data);
+        if (data.postId === postId && data.updatedDetails) {
+          console.log('Received update for raised amount:', data.updatedDetails.raised);
+          setRaised(data.updatedDetails.raised); // Update state with new raised amount
+        }
+      }
+    });
+
+    updateChannel.subscribe();
+
+    return FundraiserView(fundraiserData, raised, context);
   }
 }
-

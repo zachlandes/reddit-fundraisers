@@ -24,7 +24,7 @@ export async function setCachedForm(
     form: CachedForm
 ): Promise<void> {
     const { redis } = context;
-    const expireTimeInSeconds = 600; // FIXME: This should be in a config or enum, and it also may cause a bug for existing fundraisers
+    const expireTimeInSeconds = 6000; // FIXME: This should be in a config or enum, and it also may cause a bug for existing fundraisers
     try {
         if (!form.getLastUpdated()) {
             form.setLastUpdated(Date.now().toString());

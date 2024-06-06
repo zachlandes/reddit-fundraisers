@@ -65,6 +65,9 @@ export class CachedForm {
     serializeForRedis(): Record<string, any> {
         const result: Record<string, any> = {};
         this.aggregates.forEach((manager, key) => {
+            if (typeof key !== 'string') {
+                console.error(`Invalid key type: ${typeof key}`);
+            }
             result[key] = manager.serialize();
         });
         result.lastUpdated = this.lastUpdated;

@@ -1,20 +1,24 @@
 // Learn more at developers.reddit.com/docs
 import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public-api';
 import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
-import { RedisKey, type EveryNonprofitInfo } from './types/index.js';
-import { fetchNonprofits, populateNonprofitSelect } from './sources/Every.js';
+import { Currency, FundraiserCreationResponse, RedisKey, type EveryNonprofitInfo } from './types/index.js';
+import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundraiserRaisedDetails } from './sources/Every.js';
 import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './components/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
-import { fetchPostsToUpdate, removePostFromRedis, setCachedForm } from './utils/Redis.js';
+import { fetchPostsToUpdate, removePostFromRedis, setCachedForm, getCachedForm, addOrUpdatePostInRedis } from './utils/Redis.js';
 import { FundraiserPost } from './components/Fundraiser.js';
+import { getEveryPublicKey, getEveryPrivateKey } from './utils/keyManagement.js';
+import { generateDateOptions } from './utils/dateUtils.js';
+import { convertToFormData } from './utils/formUtils.js';
 
 Devvit.configure({
   redditAPI: true,
   http: true,
   media: true,
-  redis: true
+  redis: true,
+  realtime: true // Ensure realtime is enabled
 });
 
 export function LoadingState(): JSX.Element {
@@ -27,16 +31,6 @@ export function LoadingState(): JSX.Element {
       </vstack>
     </zstack>
   );
-}
-
-// this could be simplified if we only convert cachedForms, and cachedForms can encode EveryNonprofitInfo.
-// TODO: break into a class with multiple conversion methods
-function convertToFormData(
-  nonprofits: EveryNonprofitInfo[] | null
-): { nonprofits: EveryNonprofitInfo[] } {
-  return {
-    nonprofits: nonprofits ?? [],
-  };
 }
 
 //Form 1
@@ -55,14 +49,13 @@ const searchTermForm = Devvit.createForm(
   },
   async ({ values }, ctx) => {
     const term = values.searchTerm
+    let everyPublicKey: string | undefined;
     try {
-      const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');
+      everyPublicKey = await ctx.settings.get('every-public-api-key');
     } catch (e) {
       console.error(e)
       ctx.ui.showToast('There was an error searching for your term. Please try again later!')
     }
-    const everyPublicKey: string | undefined = await ctx.settings.get('every-public-api-key');
-
     if (typeof everyPublicKey === 'string') {
       const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
       console.log(":::searchResults: \n" + JSON.stringify(searchResults));
@@ -78,16 +71,14 @@ const searchTermForm = Devvit.createForm(
 // Form 2: submitForm -> *searchSelectForm* -> descriptionForm
 const searchSelectForm = Devvit.createForm(
   (data) => {
+    const nonprofitSelectOptions = populateNonprofitSelect(JSON.stringify(data));
     return {
       fields: [
         {
           name: 'nonprofit',
           label: 'Select your nonprofit',
           type: 'select',
-          options: populateNonprofitSelect(JSON.stringify(data)).map((nonprofit: EveryNonprofitInfo) => ({
-            label: `${nonprofit.name}`,
-            value: JSON.stringify(nonprofit),
-          })),
+          options: nonprofitSelectOptions,
         },
       ],
       title: 'Select your nonprofit from the search results',
@@ -108,6 +99,7 @@ const searchSelectForm = Devvit.createForm(
 // Form 5 imageForm -> *submitForm*
 const submitForm = Devvit.createForm(
   (data) => {
+    const endDateOptions = generateDateOptions();
     console.log(data.nonprofits);
     return {
       fields: [
@@ -117,6 +109,8 @@ const submitForm = Devvit.createForm(
             { label: `${data.nonprofits[0].profileUrl}`, value: JSON.stringify(data.nonprofits[0]) },
           ],
         },
+        { name: 'endDate', label: 'End Date', type: 'select', options: endDateOptions },
+        { name: 'goal', label: 'Fundraising Goal', type: 'number' },
       ],
       title: 'Confirm your selections and create your post',
       acceptLabel: 'Submit',
@@ -129,26 +123,46 @@ const submitForm = Devvit.createForm(
     const postTitle = values.postTitle;
     console.log(values.formDescription);
 
-    // const myrichtext = new RichTextBuilder()
-    //   .paragraph((p) => {
-    //     p.text({
-    //       text: String(values.formDescription)
-    //     }).link({
-    //       text: "Donate",
-    //       url: String(values.link),
-    //       tooltip: "Go to the every.org donate page"
-    //     });
-    //   })
-    //   .build();
+    const fundraiserInfo = {
+      nonprofitID: JSON.parse(values.link).nonprofitId,
+      title: values.postTitle,
+      description: values.formDescription,
+      startDate: null,
+      endDate: new Date(values.endDate),
+      goal: values.goal,
+      raisedOffline: null,
+      //imageBase64: values.imageBase64,
+      currency: Currency.USD,
+    };
+    let publicKey;
+    let privateKey;
 
+    try {
+      publicKey = await getEveryPublicKey(ctx);
+      privateKey = await getEveryPrivateKey(ctx);
+    } catch (error) {
+      console.error("Error retrieving Every.org API keys:", error);
+      ctx.ui.showToast('There was an issue accessing necessary credentials for creating the fundraiser. Please try again later!');
+      return; 
+    }
+
+    let fundraiserCreatedInfo: FundraiserCreationResponse;
+    try {
+      fundraiserCreatedInfo = await createFundraiser(fundraiserInfo, publicKey, privateKey);
+    } catch (error) {
+      console.error("Error creating fundraiser:", error);
+      ctx.ui.showToast('There was an error creating the fundraiser. Please try again later!');
+      return;
+    }
+    
     const post: Post = await reddit.submitPost({
-      title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+      title: postTitle && postTitle.length > 0 ? postTitle : `${fundraiserCreatedInfo.title} Fundraiser`,
       subredditName: currentSubreddit.name,
       preview: LoadingState()
     });
+
     const postId = post.id;
     console.log('postId in submit post: ', postId);
-    console.log("values in submit post: ", values);
 
     const partialFormToCache = new CachedForm();
     partialFormToCache.initialize(TypeKeys.fundraiserFormFields, {
@@ -157,8 +171,10 @@ const submitForm = Devvit.createForm(
       formImageUrl: null
     });
     partialFormToCache.initialize(TypeKeys.everyNonprofitInfo, JSON.parse(values.link));
+    partialFormToCache.initialize(TypeKeys.fundraiserCreationResponse, fundraiserCreatedInfo);
     console.log('Form to be cached:', partialFormToCache.serializeForRedis());
     await setCachedForm(ctx, postId, partialFormToCache);
+    await addOrUpdatePostInRedis(ctx.redis, post.id, new Date(values.endDate)); //FIXME: add try catch
     ctx.ui.navigateTo(post)
   }
 )
@@ -182,15 +198,53 @@ Devvit.addSettings([
     isSecret: true,
     scope: 'app',
   },
+  {
+    name: 'every-private-api-key',
+    label: 'Every.org private api key',
+    type: 'string',
+    isSecret: true,
+    scope: 'app',
+  },
 ]);
 
 Devvit.addSchedulerJob({
-  name: 'fundraiser_subscription_thread',
+  name: 'update_fundraiser_posts',
   onRun: async (_, context) => {
-    const{ redis } = context;
+    const redis = context.redis;
     const postsToUpdate = await fetchPostsToUpdate(redis);
     for (const postId of postsToUpdate) {
-      await updatePostDetails(context, postId);
+      const postExists = await context.reddit.getPostById(postId);
+      if (!postExists) {
+        console.log(`Post with ID ${postId} not found, skipping update.`);
+        continue;
+      }
+      const cachedForm = await getCachedForm(context, postId);
+      if (!cachedForm) {
+        console.error(`No cached form found for postId: ${postId}`);
+        continue;
+      }
+      const fundraiserInfo = cachedForm.getAllProps(TypeKeys.fundraiserCreationResponse);
+      console.log('Nonprofit ID for getting new raised amount:', fundraiserInfo.nonprofitId);
+      console.log('Fundraiser ID for getting new raised amount:', fundraiserInfo.id);
+      const updatedDetails = await fetchFundraiserRaisedDetails(
+        fundraiserInfo.nonprofitId,
+        fundraiserInfo.id,
+        await getEveryPublicKey(context),
+        context
+      );
+      console.log("Updated Details:", updatedDetails?.raised);
+      if (updatedDetails && updatedDetails.raised !== fundraiserInfo.amountRaised) {
+        // Update only the amountRaised in the cached form
+        console.log("Updating the cached form amount raised for postId: " + postId);
+        cachedForm.setProp(TypeKeys.fundraiserCreationResponse, 'amountRaised', updatedDetails.raised);
+        await setCachedForm(context, postId, cachedForm);
+        console.log(`For ${postId} there is a new raised amount: ${updatedDetails.raised}`);
+        // Send only the postId and the updated amountRaised to the real-time channel
+        await context.realtime.send('fundraiser_updates', {
+          postId: postId,
+          raised: updatedDetails.raised
+        });
+      }
     }
   },
 });
@@ -200,8 +254,8 @@ Devvit.addTrigger({
   onEvent: async (_, context) => {
     try {
       await context.scheduler.runJob({
-        cron: `*/10 * * * * *`,
-        name: 'fundraiser_subscription_thread',
+        cron: '*/10 * * * * *',
+        name: 'update_fundraiser_posts',
         data: {},
       });
     } catch (e) {
@@ -215,18 +269,17 @@ Devvit.addTrigger({
   event: 'AppUpgrade',
   onEvent: async (_, context) => {
     const jobs = await context.scheduler.listJobs();
-    const subscriptionJobs = jobs.filter((job) => job.name === 'fundraiser_subscription_thread');
-    if (subscriptionJobs.length > 1) {
-      console.log(`Found ${subscriptionJobs.length} subscription jobs, canceling all but the first one`);
-      for (let i = 1; i < subscriptionJobs.length; i++) {
-        console.log('Canceling job:', subscriptionJobs[i].id);
-        await context.scheduler.cancelJob(subscriptionJobs[i].id);
+    const updateJobs = jobs.filter((job) => job.name === 'update_fundraiser_posts');
+    if (updateJobs.length > 1) {
+      console.log(`Found ${updateJobs.length} update jobs, canceling all but the first one`);
+      for (let i = 1; i < updateJobs.length; i++) {
+        await context.scheduler.cancelJob(updateJobs[i].id);
       }
-    } else if (subscriptionJobs.length === 0) {
-      console.log('No subscription job found on app upgrade, scheduling a new one');
+    } else if (updateJobs.length === 0) {
+      console.log('No update job found on app upgrade, scheduling a new one');
       await context.scheduler.runJob({
-        cron: `*/10 * * * * *`,
-        name: 'fundraiser_subscription_thread',
+        cron: '*/10 * * * * *',
+        name: 'update_fundraiser_posts',
         data: {},
       });
     } else {
@@ -348,3 +401,3061 @@ export default Devvit;
   //     return ctx.ui.showForm(submitForm, values);
   //   }
   // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
+// // Form 3 searchSelectForm -> *descriptionForm* -> imageForm
+// //FIXME: Skipping for now. I need this is buggy, too.
+// const descriptionForm = Devvit.createForm( //TODO: unfinished
+//   () => {
+//     return {
+//       fields: [
+//         { label: `Fill in the text of your post here`,
+//         type: 'paragraph',
+//         name: 'description'}
+//       ],
+//       title: 'Describing Your Fundraiser',
+//       acceptLabel: 'Next (post preview)',//'Next (image upload)',
+//       cancelLabel: 'Cancel'
+//     }
+//   },
+//   async ({values}, ctx) => {
+//     if (values.description != null) {
+//       let cachedDescriptionForm; // Declare outside the try block
+//       try {
+//         const key = await createUserSubredditHashKey(ctx);
+//         cachedDescriptionForm = await returnCachedFormAsJSON<EveryNonprofitInfo, FundraiserFormFields>(ctx, key);
+//         if (cachedDescriptionForm != null) {
+//           cachedDescriptionForm.setFormField('formDescription', values.description);
+//           console.log("cachedDescriptionForm: ", cachedDescriptionForm);
+//         } else {
+//           throw new Error("Cached form is null");
+//         }
+//       } catch (error) {
+//         console.error('Failed to get userSubreddit Key or set form in redis:', error);
+//         ctx.ui.showToast("There was an error, please try again later!");
+//       }
+//       if (cachedDescriptionForm) {
+//         const nonprofitInfoArray = [cachedDescriptionForm.getAllNonprofitProps()]; 
+//         return ctx.ui.showForm(submitForm, convertToFormData(nonprofitInfoArray));
+//       }
+//     }
+//   }
+// );
+//   async ({ values }, ctx) => {
+//     const {reddit} = ctx;
+//     const currentSubreddit = await reddit.getCurrentSubreddit();
+//     const postTitle = values.postTitle;
+//     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit) as EveryNonprofitInfo;
+//     console.log(postTitle + " ::::LOGO::: " + JSON.stringify(nonprofitInfo.logoUrl));
+
+//     const imageUrl: string | null = nonprofitInfo.logoUrl;
+//     let response: MediaAsset;
+
+//     try {
+//       response = await ctx.media.upload({
+//         url: imageUrl,
+//         type: 'image',
+//       });
+//     } catch (e) {
+//       console.log(StringUtil.caughtToString(e));
+//       console.log('Image upload failed.');
+//       console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+//       return;
+//     }
+
+//     const myrichtext = new RichTextBuilder()
+//       .paragraph((p) => {
+//         p.text({
+//           text: nonprofitInfo.description
+//         }).text({
+//           text: "secondChild"
+//         });
+//       }).image({
+//         mediaId: response.mediaId
+//       })
+//       .build();
+//     // console.log(myrichtext)
+
+//     const post: Post = await reddit.submitPost({
+//       //preview: LoadingState(),
+//       title: postTitle && postTitle.length > 0 ? postTitle : `Nonprofit Fundraiser`,
+//       subredditName: currentSubreddit.name,
+//       richtext: myrichtext,
+//     });
+//  }
+//);
+
+  // // Form 4 descriptionForm -> *imageForm* -> submitForm
+  // //FIXME: Skipping for now
+  // const imageForm = Devvit.createForm( //TODO: implement when image uploads are launched
+  //   (data) => {
+  //     return {
+  //       fields: [
+  //         { name: 'image',
+  //         label: 'Select a different image',
+  //         type: 'string',
+  //         }
+  //       ],
+  //       title: 'Selecting an Image For Your Post',
+  //       acceptLabel: 'Next (post preview)',
+  //       cancelLabel: 'Cancel'
+  //     }
+  //   },
+  //   async ({values}, ctx) => {
+  //     return ctx.ui.showForm(submitForm, values);
+  //   }
+  // )
+
+
+
