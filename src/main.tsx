@@ -3,7 +3,7 @@ import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public
 import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
 import { Currency, FundraiserCreationResponse, RedisKey, type EveryNonprofitInfo } from './types/index.js';
 import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundraiserRaisedDetails } from './sources/Every.js';
-import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './components/ImageHandlers.js'
+import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './utils/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
@@ -12,6 +12,7 @@ import { FundraiserPost } from './components/Fundraiser.js';
 import { getEveryPublicKey, getEveryPrivateKey } from './utils/keyManagement.js';
 import { generateDateOptions } from './utils/dateUtils.js';
 import { convertToFormData } from './utils/formUtils.js';
+import { uploadNonprofitLogo } from './utils/imageUtils.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -122,9 +123,16 @@ const submitForm = Devvit.createForm(
     const currentSubreddit = await reddit.getCurrentSubreddit();
     const postTitle = values.postTitle;
     console.log(values.formDescription);
-
+    const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.link);
+    let logoUrl = nonprofitInfo.logoUrl;
+    if (logoUrl != null) {
+      const logoUploadResponse = await uploadNonprofitLogo(ctx, logoUrl);
+      if (logoUploadResponse) {
+        nonprofitInfo.logoUrl = logoUploadResponse.mediaUrl;
+      }
+    }
     const fundraiserInfo = {
-      nonprofitID: JSON.parse(values.link).nonprofitId,
+      nonprofitID: nonprofitInfo.nonprofitID,
       title: values.postTitle,
       description: values.formDescription,
       startDate: null,
@@ -170,7 +178,7 @@ const submitForm = Devvit.createForm(
       formTitle: values.postTitle,
       formImageUrl: null
     });
-    partialFormToCache.initialize(TypeKeys.everyNonprofitInfo, JSON.parse(values.link));
+    partialFormToCache.initialize(TypeKeys.everyNonprofitInfo, nonprofitInfo);
     partialFormToCache.initialize(TypeKeys.fundraiserCreationResponse, fundraiserCreatedInfo);
     console.log('Form to be cached:', partialFormToCache.serializeForRedis());
     await setCachedForm(ctx, postId, partialFormToCache);

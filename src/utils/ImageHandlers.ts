@@ -30,5 +30,3 @@ export async function uploadImageToRedditCDN(
   return response;
 }
 
-// TODO: MOVE THIS FILE TO UTILS
-

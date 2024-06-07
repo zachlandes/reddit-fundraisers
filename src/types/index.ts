@@ -21,6 +21,7 @@ export type FundraiserFormFields = BaseFormFields & {
 };
 
 export type GeneralNonprofitInfo = {
+    nonprofitID: string,
     name: string,
     profileUrl: string,
     description: string,

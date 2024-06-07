@@ -99,6 +99,7 @@ export function parseNonprofitResult(
     nonprofit: any
 ): EveryNonprofitInfo {
     return {
+        nonprofitID: nonprofit.nonprofitID,
         name: nonprofit.name,
         profileUrl: nonprofit.profileUrl,
         description: nonprofit.description,

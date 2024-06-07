@@ -29,7 +29,7 @@ const mockDescription =
 
 export const mockFundraiserCreationResponse: FundraiserCreationResponse = {
     id: "mock-fundraiser-id",
-    nonprofitId: "mock-nonprofit-id",
+    nonprofitId: "mock-nonprofit-id-1",
     title: "Mock Fundraiser Title",
     description: mockDescription,
     startDate: new Date(),
@@ -48,23 +48,25 @@ export const mockFundraiserCreationResponse: FundraiserCreationResponse = {
 
 export const mockNonprofits: EveryNonprofitInfo[] = [
     {
+        nonprofitID: "mock-nonprofit-id-1",
         name: "Mock Nonprofit 1",
         profileUrl: "https://mock.nonprofit1.org",
         description: "Description of Mock Nonprofit 1",
         ein: "123456789",
         websiteUrl: "https://mock.nonprofit1.org",
         primarySlug: "mock-nonprofit-1",
-        logoUrl: null,
+        logoUrl: "https://preview.redd.it/jm1soorioazc1.png?width=48&format=png&auto=webp&s=14097ee16c53b905edb4357a724794d166bf51cb",
         coverImageUrl: "https://preview.redd.it/prochoice-activism-in-atlanta-ga-chomp-stomp-festival-nov-v0-1iv7quw5ocy91.jpg"
     },
     {
+        nonprofitID: "mock-nonprofit-id-2",
         name: "Mock Nonprofit 2",
         profileUrl: "https://mock.nonprofit2.org",
         description: "Description of Mock Nonprofit 2",
         ein: "987654321",
         websiteUrl: "https://mock.nonprofit2.org",
         primarySlug: "mock-nonprofit-2",
-        logoUrl: null,
+        logoUrl: "https://preview.redd.it/jm1soorioazc1.png?width=48&format=png&auto=webp&s=14097ee16c53b905edb4357a724794d166bf51cb",
         coverImageUrl: "https://preview.redd.it/prochoice-activism-in-atlanta-ga-chomp-stomp-festival-nov-v0-1iv7quw5ocy91.jpg"
     }
 ];
