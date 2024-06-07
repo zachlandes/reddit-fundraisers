@@ -6,6 +6,7 @@ import { getEveryPublicKey } from '../utils/keyManagement.js';
 import { serializeFundraiserCreationResponse } from '../utils/dateUtils.js';
 import { usePagination } from '@devvit/kit';
 import { paginateText } from '../utils/renderUtils.js';
+import pixelWidth from 'string-pixel-width';
 
 export function FundraiserView(
   fundraiserCreationResponse: SerializedFundraiserCreationResponse | null,
@@ -13,12 +14,13 @@ export function FundraiserView(
   context: Context,
   width: number,
   totalHeight: number,
-  nonprofitInfo: EveryNonprofitInfo | null
+  nonprofitInfo: EveryNonprofitInfo | null,
+  charWidth: number
 ): JSX.Element {
-    const descriptionMaxHeight = totalHeight - 388; // Adjust this value as necessary
-    const lineHeight = 21; // Adjust this value based on your text styling
-    const lineWidth = width - 10; // Adjust this value based on your text container width
-    const charWidth = 8.7; // Adjust this value based on your font size and style
+    const { useState } = context;
+    const descriptionMaxHeight = totalHeight - 338; // Adjust this value as necessary
+    const lineHeight = 16; // Adjust this value based on your text styling
+    const lineWidth = width; // Adjust this value based on your text container width
 
     const descriptionPages = fundraiserCreationResponse
         ? paginateText(fundraiserCreationResponse.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth)
@@ -138,9 +140,13 @@ export const FundraiserPost: CustomPostType = {
 
     updateChannel.subscribe();
 
+    // Measure character width using string-pixel-width with a supported font
+    const fontStack = "arial";
+    const charWidth = pixelWidth('0', { font: fontStack, size: 12 });
+
     return (
       <blocks>
-        {FundraiserView(fundraiserData, raised, context, width, height, nonprofitInfo)}
+        {FundraiserView(fundraiserData, raised, context, width, height, nonprofitInfo, charWidth)}
       </blocks>
     );
   }
