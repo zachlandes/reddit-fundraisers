@@ -18,7 +18,7 @@ export function FundraiserView(
   charWidth: number
 ): JSX.Element {
     const { useState } = context;
-    const descriptionMaxHeight = totalHeight - 338; // Adjust this value as necessary
+    const descriptionMaxHeight = totalHeight - 388; // Adjust this value as necessary
     const lineHeight = 16; // Adjust this value based on your text styling
     const lineWidth = width; // Adjust this value based on your text container width
 
