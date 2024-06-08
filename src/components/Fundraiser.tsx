@@ -18,9 +18,9 @@ export function FundraiserView(
   charWidth: number
 ): JSX.Element {
     const { useState } = context;
-    const descriptionMaxHeight = totalHeight - 388; // Adjust this value as necessary
-    const lineHeight = 16; // Adjust this value based on your text styling
-    const lineWidth = width; // Adjust this value based on your text container width
+    const descriptionMaxHeight = totalHeight - 388; 
+    const lineHeight = 16;
+    const lineWidth = width+60; 
 
     const descriptionPages = fundraiserCreationResponse
         ? paginateText(fundraiserCreationResponse.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth)
@@ -93,7 +93,7 @@ export function FundraiserView(
               </vstack>
               <spacer size='small' />
               <vstack alignment='center middle' width='100%'>
-                <button appearance='success' width={50} onPress={() => {
+                <button appearance='success' width='100%' maxWidth={30} onPress={() => {
                   if (fundraiserCreationResponse) {
                     console.log("Navigate to:", fundraiserCreationResponse.links.web);
                     context.ui.navigateTo(fundraiserCreationResponse.links.web);

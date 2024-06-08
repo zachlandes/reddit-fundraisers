@@ -72,7 +72,8 @@ export const mockNonprofits: EveryNonprofitInfo[] = [
 ];
 
 export const getMockFundraiserRaisedDetails = async (context: Context): Promise<EveryFundraiserRaisedDetails> => {
-    const key = 'fundraiser-raised-amount';
+    const {postId} = context;
+    const key = `fundraiser-raised-amount-${postId}`;
     const initialAmount = 100;
     const incrementAmount = 20;
     const ttl = 600; // TTL in seconds (10 minutes)
