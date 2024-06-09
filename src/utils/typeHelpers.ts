@@ -7,5 +7,6 @@ export const TypeKeys: { [P in keyof TypeMapping]: P } = {
     baseFormFields: 'baseFormFields',
     fundraiserFormFields: 'fundraiserFormFields',
     fundraiserDetails: 'fundraiserDetails',
-    fundraiserCreationResponse: 'fundraiserCreationResponse'
+    fundraiserCreationResponse: 'fundraiserCreationResponse',
+    everyExistingFundraiserInfo: 'everyExistingFundraiserInfo'
 };

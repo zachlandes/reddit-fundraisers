@@ -8,6 +8,7 @@ export interface TypeMapping {
     fundraiserFormFields: FundraiserFormFields;
     fundraiserDetails: EveryFundraiserRaisedDetails;
     fundraiserCreationResponse: FundraiserCreationResponse;
+    everyExistingFundraiserInfo: EveryExistingFundraiserInfo;
 }
 
 export type BaseFormFields = {
@@ -46,6 +47,31 @@ export type EveryFundraiserInfo = {
     raisedOffline: number | null;
     imageBase64?: string | null; //FIXME: if this is optional, should we allow null?
     currency: Currency; 
+};
+
+export type EveryExistingFundraiserInfo = {
+    entityName: string;
+    id: string;
+    createdAt: Date;
+    nonprofitId: string;
+    creatorUserId: string;
+    creatorNonprofitId: string;
+    slug: string;
+    title: string;
+    description: string | null;
+    active: boolean;
+    startDate: Date | null;
+    endDate: Date | null;
+    pinnedAt: Date | null;
+    goalAmount: number;
+    goalCurrency: string;
+    metadata: {
+        donationThankYouMessage: string;
+    };
+    parentFundraiserId: string | null;
+    childrenFundraiserIds: string[];
+    eventIds: string[];
+    coverImageCloudinaryId: string | null; //FIXME: rename to coverImageUrl maybe, and add code to check if it is uploaded to reddit and create if not, then substitute the reddit link
 };
 
 export type EveryFundraiserRaisedDetails = {

@@ -1,5 +1,6 @@
 import { Context } from '@devvit/public-api';
-import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo, FundraiserCreationResponse } from '../types/index.js';
+import { Currency, EveryExistingFundraiserInfo, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo, FundraiserCreationResponse } from '../types/index.js';
+import { getTomorrowDate } from '../utils/dateUtils.js';
 
 const mockDescription = 
     `I am reaching out on behalf of two sweet special needs kittens in need of help: Meet Gracie and Snowflake:
@@ -33,7 +34,7 @@ export const mockFundraiserCreationResponse: FundraiserCreationResponse = {
     title: "Mock Fundraiser Title",
     description: mockDescription,
     startDate: new Date(),
-    endDate: new Date(new Date().setDate(new Date().getDate() + 1)),  // Tomorrow's date 
+    endDate: getTomorrowDate(),
     goal: 10000,
     raisedOffline: null,
     currency: Currency.USD,
@@ -56,7 +57,7 @@ export const mockNonprofits: EveryNonprofitInfo[] = [
         websiteUrl: "https://mock.nonprofit1.org",
         primarySlug: "mock-nonprofit-1",
         logoUrl: "https://preview.redd.it/jm1soorioazc1.png?width=48&format=png&auto=webp&s=14097ee16c53b905edb4357a724794d166bf51cb",
-        coverImageUrl: "https://preview.redd.it/prochoice-activism-in-atlanta-ga-chomp-stomp-festival-nov-v0-1iv7quw5ocy91.jpg"
+        coverImageUrl: "https://i.redd.it/3pwwc5t0pf5d1.jpeg"
     },
     {
         nonprofitID: "mock-nonprofit-id-2",
@@ -67,7 +68,7 @@ export const mockNonprofits: EveryNonprofitInfo[] = [
         websiteUrl: "https://mock.nonprofit2.org",
         primarySlug: "mock-nonprofit-2",
         logoUrl: "https://preview.redd.it/jm1soorioazc1.png?width=48&format=png&auto=webp&s=14097ee16c53b905edb4357a724794d166bf51cb",
-        coverImageUrl: "https://preview.redd.it/prochoice-activism-in-atlanta-ga-chomp-stomp-festival-nov-v0-1iv7quw5ocy91.jpg"
+        coverImageUrl: "https://i.redd.it/3pwwc5t0pf5d1.jpeg"
     }
 ];
 
@@ -98,4 +99,29 @@ export const getMockFundraiserRaisedDetails = async (context: Context): Promise<
         goalAmount: 10000,
         goalType: "fixed"
     };
+};
+
+export const mockExistingFundraiserDetails: EveryExistingFundraiserInfo = {
+    entityName: "Mock Nonprofit 1",
+    id: "mock-fundraiser-id",
+    createdAt: new Date("2023-01-01T00:00:00.000Z"),
+    nonprofitId: "mock-nonprofit-id-1",
+    creatorUserId: "mock-user-id",
+    creatorNonprofitId: "mock-nonprofit-id-1",
+    slug: "mock-fundraiser-slug",
+    title: "Mock Fundraiser Title",
+    description: "Mock description",
+    active: true,
+    startDate: new Date("2023-01-01T00:00:00.000Z"),
+    endDate: getTomorrowDate(),
+    pinnedAt: null,
+    goalAmount: 10000,
+    goalCurrency: "USD",
+    metadata: {
+        donationThankYouMessage: "Thank you for supporting this fundraiser!"
+    },
+    parentFundraiserId: null,
+    childrenFundraiserIds: [],
+    eventIds: [],
+    coverImageCloudinaryId: "https://i.redd.it/3pwwc5t0pf5d1.jpeg"
 };

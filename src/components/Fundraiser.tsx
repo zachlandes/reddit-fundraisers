@@ -7,6 +7,7 @@ import { serializeFundraiserCreationResponse } from '../utils/dateUtils.js';
 import { usePagination } from '@devvit/kit';
 import { paginateText } from '../utils/renderUtils.js';
 import pixelWidth from 'string-pixel-width';
+import { fetchExistingFundraiserDetails } from '../sources/Every.js';
 
 export function FundraiserView(
   fundraiserCreationResponse: SerializedFundraiserCreationResponse | null,
@@ -15,46 +16,42 @@ export function FundraiserView(
   width: number,
   totalHeight: number,
   nonprofitInfo: EveryNonprofitInfo | null,
-  charWidth: number
+  charWidth: number,
+  coverImageUrl: string | null
 ): JSX.Element {
     const { useState } = context;
-    const descriptionMaxHeight = totalHeight - 388; 
+    const descriptionMaxHeight = totalHeight - 398; 
     const lineHeight = 16;
-    const lineWidth = width+60; 
-
+    const lineWidth = width + 60; 
+    const imageHeight = 150; // Height of the cover image
+    const logoHeight = 30; // Height of the logo image
+    //FIXME: we should think carefully about how we obtain these values, e.g. what should be dynamic, what should be based on the (potentially cached) image dimensions, etc.
     const descriptionPages = fundraiserCreationResponse
-        ? paginateText(fundraiserCreationResponse.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth)
+        ? paginateText(fundraiserCreationResponse.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : ['Loading description...'];
 
     const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
 
     return (
         <vstack width={`${width}px`} gap='small'>
-            <vstack width="100%" alignment='center middle'>
-                <image url={fundraiserCreationResponse ? fundraiserCreationResponse.links.web : 'placeholder-image-url'}
-                    width="100%"
-                    imageWidth={150}
-                    imageHeight={150}
-                    description="Fundraiser Image">
-                </image>
-            </vstack>
-            <vstack width="100%" alignment="start">
-                <hstack width="100%" alignment="start" gap="small">
-                    <image
-                        url={nonprofitInfo && nonprofitInfo.logoUrl ? nonprofitInfo.logoUrl : 'placeholder-image-url'}
+            {currentPage === 0 && (
+                <vstack width="100%" alignment='center middle'>
+                    <image 
+                        url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
                         width="100%"
-                        imageWidth={30}
-                        imageHeight={30}
+                        imageWidth={`${width}px`}
+                        imageHeight={`${imageHeight}px`}
+                        description="Fundraiser Image"
+                    />
+                    <image 
+                        url={nonprofitInfo?.logoUrl ? nonprofitInfo.logoUrl : 'placeholder-logo-url'}
+                        width="100%"
+                        imageWidth={`${width}px`}
+                        imageHeight={`${logoHeight}px`}
                         description="Nonprofit Logo"
                     />
-                    <text
-                        weight="bold"
-                        onPress={nonprofitInfo && nonprofitInfo.profileUrl ? () => context.ui.navigateTo(nonprofitInfo.profileUrl) : undefined}
-                    >
-                        {nonprofitInfo ? nonprofitInfo.name : 'Nonprofit Name'}
-                    </text>
-                </hstack>
-            </vstack>
+                </vstack>
+            )}
             <vstack width='100%' padding="medium" alignment='start middle'>
               <text size="xlarge">
                 {fundraiserCreationResponse ? fundraiserCreationResponse.title : 'A fundraiser!'}
@@ -118,13 +115,27 @@ export const FundraiserPost: CustomPostType = {
     if (typeof postId !== 'string') {
       throw new Error('postId is undefined');
     }
-    const cachedFundraiserData = await getCachedForm(context, postId);
-    const initialFundraiserData = cachedFundraiserData ? serializeFundraiserCreationResponse(cachedFundraiserData.getAllProps(TypeKeys.fundraiserCreationResponse)) : null;
-    const initialNonprofitInfo = cachedFundraiserData ? cachedFundraiserData.getAllProps(TypeKeys.everyNonprofitInfo) : null;
+    const cachedPostData = await getCachedForm(context, postId);
+    const initialFundraiserData = cachedPostData ? serializeFundraiserCreationResponse(cachedPostData.getAllProps(TypeKeys.fundraiserCreationResponse)) : null;
+    const initialNonprofitInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyNonprofitInfo) : null;
     
     const [fundraiserData, setFundraiserData] = useState<SerializedFundraiserCreationResponse | null>(initialFundraiserData);
-    const [raised, setRaised] = useState<number>(cachedFundraiserData ? cachedFundraiserData.getAllProps(TypeKeys.fundraiserCreationResponse).amountRaised : 0); 
+    const [raised, setRaised] = useState<number>(cachedPostData ? cachedPostData.getAllProps(TypeKeys.fundraiserCreationResponse).amountRaised : 0); 
     const [nonprofitInfo, setNonprofitInfo] = useState<EveryNonprofitInfo | null>(initialNonprofitInfo);
+
+    const publicKey = await getEveryPublicKey(context);
+
+    let coverImageUrl: string | null = null;
+    if (nonprofitInfo && fundraiserData) {
+      const existingFundraiserDetails = await fetchExistingFundraiserDetails(
+        nonprofitInfo.nonprofitID,
+        fundraiserData.id,
+        publicKey
+      );
+      coverImageUrl = existingFundraiserDetails?.coverImageCloudinaryId ?? null;
+    }
+
+    const [coverImageUrlState, setCoverImageUrl] = useState<string | null>(coverImageUrl);
 
     // Subscribe to real-time updates for live changes to the raised amount
     const updateChannel = useChannel({
@@ -146,7 +157,7 @@ export const FundraiserPost: CustomPostType = {
 
     return (
       <blocks>
-        {FundraiserView(fundraiserData, raised, context, width, height, nonprofitInfo, charWidth)}
+        {FundraiserView(fundraiserData, raised, context, width, height, nonprofitInfo, charWidth, coverImageUrlState)}
       </blocks>
     );
   }

@@ -35,3 +35,8 @@ export function serializeFundraiserCreationResponse(data: FundraiserCreationResp
         updatedAt: new Date(data.updatedAt).toISOString()
     };
 }
+
+export const getTomorrowDate = (): Date => {
+    const today = new Date();
+    return new Date(today.setDate(today.getDate() + 1));
+};

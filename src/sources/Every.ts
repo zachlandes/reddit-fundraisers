@@ -1,6 +1,6 @@
 import { Context, Data, Devvit, SettingsClient } from '@devvit/public-api';
-import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo, FundraiserCreationResponse } from '../types/index.js';
-import { mockFundraiserCreationResponse, mockNonprofits, getMockFundraiserRaisedDetails } from '../mocks/index.js';
+import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo, FundraiserCreationResponse, EveryExistingFundraiserInfo } from '../types/index.js';
+import { mockFundraiserCreationResponse, mockNonprofits, getMockFundraiserRaisedDetails, mockExistingFundraiserDetails } from '../mocks/index.js';
 import { convertToDate } from '../utils/dateUtils.js';
 
 const USE_MOCK = true; // Toggle this to false to use real API calls
@@ -173,6 +173,61 @@ export async function fetchFundraiserRaisedDetails(
         };
     } catch (e) {
         console.error('Error fetching fundraiser raised details:', e);
+        return null;
+    }
+}
+
+export async function fetchExistingFundraiserDetails(
+    nonprofitIdentifier: string,
+    fundraiserIdentifier: string,
+    publicKey: string
+): Promise<EveryExistingFundraiserInfo | null> {
+    if (USE_MOCK) {
+        console.log('Using mock data for fetchExistingFundraiserDetails');
+        // Return mock data if available
+        return Promise.resolve(mockExistingFundraiserDetails);
+    }
+
+    const apiUrl = `https://partners.every.org/v0.2/nonprofit/${nonprofitIdentifier}/fundraiser/${fundraiserIdentifier}?apiKey=${publicKey}`;
+
+    try {
+        const request = new Request(apiUrl, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+        });
+        const response = await fetch(request);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const fundraiser = data.data.fundraiser;
+
+        return {
+            entityName: fundraiser.entityName,
+            id: fundraiser.id,
+            createdAt: convertToDate(fundraiser.createdAt),
+            nonprofitId: fundraiser.nonprofitId,
+            creatorUserId: fundraiser.creatorUserId,
+            creatorNonprofitId: fundraiser.creatorNonprofitId,
+            slug: fundraiser.slug,
+            title: fundraiser.title,
+            description: fundraiser.description,
+            active: fundraiser.active,
+            startDate: fundraiser.startDate ? convertToDate(fundraiser.startDate) : null,
+            endDate: fundraiser.endDate ? convertToDate(fundraiser.endDate) : null,
+            pinnedAt: fundraiser.pinnedAt ? convertToDate(fundraiser.pinnedAt) : null,
+            goalAmount: fundraiser.goalAmount,
+            goalCurrency: fundraiser.goalCurrency,
+            metadata: {
+                donationThankYouMessage: fundraiser.metadata.donationThankYouMessage,
+            },
+            parentFundraiserId: fundraiser.parentFundraiserId,
+            childrenFundraiserIds: fundraiser.childrenFundraiserIds,
+            eventIds: fundraiser.eventIds,
+            coverImageCloudinaryId: fundraiser.coverImageCloudinaryId
+        } as EveryExistingFundraiserInfo;
+    } catch (e) {
+        console.error('Error fetching fundraiser details:', e);
         return null;
     }
 }
