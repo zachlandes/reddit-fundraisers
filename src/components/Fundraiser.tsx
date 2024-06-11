@@ -19,6 +19,7 @@ export function FundraiserView(
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
   raised: number,
   goal: number | null,
+  goalType: string,
   context: Context,
   width: number,
   totalHeight: number,
@@ -88,7 +89,11 @@ export function FundraiserView(
                 <hstack width='50%' alignment='end'>
                     <vstack alignment='end'>
                         <text weight='bold'>${goal ? goal : raised}</text>
-                        <text color='#706E6E'>Next milestone</text>
+                        {goalType && (
+                          <text color='#706E6E'>
+                            {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
+                          </text>
+                        )}
                     </vstack>
                 </hstack>
               </hstack>
@@ -133,6 +138,7 @@ export const FundraiserPost: CustomPostType = {
     const [fundraiserInfo, setFundraiserInfo] = useState<SerializedEveryExistingFundraiserInfo | null>(
       initialFundraiserInfo ? serializeExistingFundraiserResponse(initialFundraiserInfo) : null
     );
+    const [goalType, setGoalType] = useState<string>(fundraiserRaisedDetails ? fundraiserRaisedDetails.goalType : ''); //FIXME: handle null/empty goal type including render
     const [raised, setRaised] = useState<number>(fundraiserRaisedDetails ? fundraiserRaisedDetails.raised : 0);
     const [goal, setGoal] = useState<number | null>(fundraiserRaisedDetails ? fundraiserRaisedDetails.goalAmount : null);
     const [nonprofitInfo, setNonprofitInfo] = useState<EveryNonprofitInfo | null>(initialNonprofitInfo);
@@ -199,7 +205,7 @@ export const FundraiserPost: CustomPostType = {
 
     return (
       <blocks>
-        {FundraiserView(fundraiserInfo, raised, goal,context, width, height, nonprofitInfo, charWidth, coverImageUrlState, fundraiserURL)}
+        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, charWidth, coverImageUrlState, fundraiserURL)}
       </blocks>
     );
   }
