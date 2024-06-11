@@ -21,10 +21,10 @@ export async function uploadImageToRedditCDN(
   /**
    * Upload an image to reddit from an approved domain
    */
-  const domain = parse(imageUrl).domain;
-  if (APPROVED_DOMAINS.includes(domain || '')) {
-    return imageUrl;
-  }
+  // const domain = parse(imageUrl).domain; //FIXME: I am not sure we want to use this since we always want to use the reddit CDN.
+  // if (APPROVED_DOMAINS.includes(domain || '')) {
+  //   return imageUrl;
+  // }
 
   let response: MediaAsset = await media.upload({ url: imageUrl, type: 'image' });
   return response;
