@@ -1,3 +1,8 @@
+import { Context } from "@devvit/public-api";
+import { getCachedForm, setCachedForm } from "./Redis.js";
+import { TypeKeys } from "./typeHelpers.js";
+import { EveryFundraiserRaisedDetails } from "../types/index.js";
+
 export function paginateText(description: string, maxHeight: number, lineHeight: number, lineWidth: number, charWidth: number, imageHeight: number, logoHeight: number): string[] {
     const maxLinesPerPage = Math.floor(maxHeight / lineHeight);
     const maxCharsPerLine = Math.floor(lineWidth / charWidth);
@@ -52,4 +57,33 @@ export function paginateText(description: string, maxHeight: number, lineHeight:
     }
 
     return pages;
+}
+
+export async function updateCachedFundraiserDetails(context: Context, postId: string, updatedDetails: EveryFundraiserRaisedDetails, fundraiserRaisedDetails: EveryFundraiserRaisedDetails) {
+    const cachedForm = await getCachedForm(context, postId);
+    if (!cachedForm) {
+        console.error(`No cached form found for postId: ${postId}`);
+        return;
+    }
+
+    if (updatedDetails.raised !== fundraiserRaisedDetails.raised) {
+        console.log("Updating the cached form amount raised for postId: " + postId);
+        cachedForm.setProp(TypeKeys.fundraiserDetails, 'raised', updatedDetails.raised);
+    }
+
+    if (updatedDetails.goalAmount !== fundraiserRaisedDetails.goalAmount) {
+        console.log("Updating the cached form goal amount for postId: " + postId);
+        cachedForm.setProp(TypeKeys.fundraiserDetails, 'goalAmount', updatedDetails.goalAmount);
+    }
+
+    await setCachedForm(context, postId, cachedForm);
+}
+
+export async function sendFundraiserUpdates(context: Context, postId: string, updatedDetails: EveryFundraiserRaisedDetails) {
+    await context.realtime.send('fundraiser_updates', {
+        postId: postId,
+        raised: updatedDetails.raised,
+        goalAmount: updatedDetails.goalAmount
+    });
+    console.log(`Sent real-time update for postId: ${postId}`);
 }

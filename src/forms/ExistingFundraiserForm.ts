@@ -1,5 +1,5 @@
 import { Devvit } from "@devvit/public-api";
-import { fetchExistingFundraiserDetails } from "../sources/Every.js";
+import { fetchExistingFundraiserDetails, fetchFundraiserRaisedDetails } from "../sources/Every.js";
 import { CachedForm } from "../utils/CachedForm.js";
 import { addOrUpdatePostInRedis, setCachedForm } from "../utils/Redis.js";
 import { LoadingState } from "../main.js";
@@ -59,6 +59,12 @@ export const existingFundraiserForm = Devvit.createForm(
                 return;
             }
 
+            const fundraiserRaisedDetails = await fetchFundraiserRaisedDetails(nonprofitIdentifier, fundraiserIdentifier, everyPublicKey, ctx);
+            if (!fundraiserRaisedDetails) {
+                ctx.ui.showToast('Failed to fetch fundraiser raised details. Please check the URL and try again.');
+                return;
+            }
+
             const postTitle = values.postTitle || `${existingFundraiserDetails.fundraiserInfo.title} Fundraiser`; //TODO:  Not necessary if user must submit nonempty title field. Check if this is the case.
             let currentSubreddit;
             try {
@@ -88,14 +94,7 @@ export const existingFundraiserForm = Devvit.createForm(
             const cachedForm = new CachedForm();
             cachedForm.initialize('everyExistingFundraiserInfo', existingFundraiserDetails.fundraiserInfo);
             cachedForm.initialize('everyNonprofitInfo', existingFundraiserDetails.nonprofitInfo);
-            const emptyFundraiserRaisedDetails: EveryFundraiserRaisedDetails = {
-                currency: existingFundraiserDetails.fundraiserInfo.goalCurrency,
-                raised: 0,
-                supporters: 0,
-                goalAmount: existingFundraiserDetails.fundraiserInfo.goalAmount,
-                goalType: "n/a"
-            };
-            cachedForm.initialize('fundraiserDetails', emptyFundraiserRaisedDetails);
+            cachedForm.initialize('fundraiserDetails', fundraiserRaisedDetails);
             try {
                 await setCachedForm(ctx, postId, cachedForm);
             } catch (error) {

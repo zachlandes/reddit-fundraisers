@@ -18,6 +18,7 @@ function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiser
 export function FundraiserView(
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
   raised: number,
+  goal: number | null,
   context: Context,
   width: number,
   totalHeight: number,
@@ -86,13 +87,13 @@ export function FundraiserView(
                 </hstack>
                 <hstack width='50%' alignment='end'>
                     <vstack alignment='end'>
-                        <text weight='bold'>${fundraiserInfo ? fundraiserInfo.goalAmount : '0'}</text>
+                        <text weight='bold'>${goal ? goal : raised}</text>
                         <text color='#706E6E'>Next milestone</text>
                     </vstack>
                 </hstack>
               </hstack>
               <vstack backgroundColor='#f3f7f7' cornerRadius='full' width='100%'>
-                <hstack backgroundColor='#008A10' width={`${fundraiserInfo ? (raised / fundraiserInfo.goalAmount) * 100 : 0}%`}>
+                <hstack backgroundColor='#008A10' width={`${goal ? (raised / goal) * 100 : 0}%`}>
                   <spacer size='medium' shape='square' />
                 </hstack>
               </vstack>
@@ -133,6 +134,7 @@ export const FundraiserPost: CustomPostType = {
       initialFundraiserInfo ? serializeExistingFundraiserResponse(initialFundraiserInfo) : null
     );
     const [raised, setRaised] = useState<number>(fundraiserRaisedDetails ? fundraiserRaisedDetails.raised : 0);
+    const [goal, setGoal] = useState<number | null>(fundraiserRaisedDetails ? fundraiserRaisedDetails.goalAmount : null);
     const [nonprofitInfo, setNonprofitInfo] = useState<EveryNonprofitInfo | null>(initialNonprofitInfo);
 
     const publicKey = await getEveryPublicKey(context);
@@ -178,8 +180,14 @@ export const FundraiserPost: CustomPostType = {
       onMessage: (data) => {
         console.log("Received message on fundraiser_updates channel:", data);
         if (data.postId === postId && data.updatedDetails) {
-          console.log('Received update for raised amount:', data.updatedDetails.raised);
-          setRaised(data.updatedDetails.raised); // Update state with new raised amount
+          if (data.updatedDetails.raised !== undefined && data.updatedDetails.raised !== fundraiserRaisedDetails?.raised) {
+            console.log('Received update for raised amount:', data.updatedDetails.raised);
+            setRaised(data.updatedDetails.raised);
+          }
+          if (data.updatedDetails.goalAmount !== undefined && data.updatedDetails.goalAmount !== fundraiserRaisedDetails?.goalAmount) {
+            console.log('Received update for goal amount:', data.updatedDetails.goalAmount);
+            setGoal(data.updatedDetails.goalAmount);
+          }
         }
       }
     });
@@ -191,7 +199,7 @@ export const FundraiserPost: CustomPostType = {
 
     return (
       <blocks>
-        {FundraiserView(fundraiserInfo, raised, context, width, height, nonprofitInfo, charWidth, coverImageUrlState, fundraiserURL)}
+        {FundraiserView(fundraiserInfo, raised, goal,context, width, height, nonprofitInfo, charWidth, coverImageUrlState, fundraiserURL)}
       </blocks>
     );
   }

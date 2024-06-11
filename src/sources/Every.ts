@@ -207,7 +207,7 @@ export async function fetchExistingFundraiserDetails(
         }
         const data = await response.json();
         const fundraiser = data.data.fundraiser;
-        const nonprofit = data.data.nonprofits[0]; // Assuming the first nonprofit is the one we want
+        const nonprofit = data.data.nonprofits[0]; // Assuming the first nonprofit is the one we want //FIXME: Look into whether this is a good assumption
 
         return {
             fundraiserInfo: {

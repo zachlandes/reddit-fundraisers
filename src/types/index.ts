@@ -63,7 +63,7 @@ export type EveryExistingFundraiserInfo = {
     startDate: Date | null;
     endDate: Date | null;
     pinnedAt: Date | null;
-    goalAmount: number;
+    goalAmount: number; // will be null if they are using automatic, "smart" goals. Raised details will show it, though.
     goalCurrency: Currency;
     metadata: {
         donationThankYouMessage: string;

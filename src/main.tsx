@@ -14,6 +14,7 @@ import { generateDateOptions } from './utils/dateUtils.js';
 import { convertToFormData } from './utils/formUtils.js';
 import { uploadNonprofitLogo } from './utils/imageUtils.js';
 import { existingFundraiserForm } from './forms/ExistingFundraiserForm.js';
+import { updateCachedFundraiserDetails, sendFundraiserUpdates } from './utils/renderUtils.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -252,17 +253,9 @@ Devvit.addSchedulerJob({
         context
       );
       console.log("Updated Details:", updatedDetails?.raised);
-      if (updatedDetails && updatedDetails.raised !== fundraiserRaisedDetails.raised) {
-        // Update only the amountRaised in the cached form
-        console.log("Updating the cached form amount raised for postId: " + postId);
-        cachedForm.setProp(TypeKeys.fundraiserDetails, 'raised', updatedDetails.raised); // FIXME: we only care about amount raised so why cache the whole response?
-        await setCachedForm(context, postId, cachedForm); //FIXME: are we losing data here? Check that all properties of the cached form we downloaded are still set
-        console.log(`For ${postId} there is a new raised amount: ${updatedDetails.raised}`);
-        // Send only the postId and the updated amountRaised to the real-time channel
-        await context.realtime.send('fundraiser_updates', {
-          postId: postId,
-          raised: updatedDetails.raised
-        });
+      if (updatedDetails && (updatedDetails.raised !== fundraiserRaisedDetails.raised || updatedDetails.goalAmount !== fundraiserRaisedDetails.goalAmount)) {
+        await updateCachedFundraiserDetails(context, postId, updatedDetails, fundraiserRaisedDetails);
+        await sendFundraiserUpdates(context, postId, updatedDetails);
       }
     }
   },
@@ -325,3 +318,4 @@ Devvit.addTrigger({
 });
 
 export default Devvit;
+
