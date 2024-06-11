@@ -1,0 +1,181 @@
+{
+    "message": "OK",
+    "data": {
+        "fundraiser": {
+            "entityName": "Fundraiser",
+            "id": "38610f7c-d5d3-4c97-92a9-4f1ee4a65e67",
+            "createdAt": "2024-05-29T15:30:07.452Z",
+            "nonprofitId": "6fde4ca3-6caf-4a2b-b948-63965eb0ab23",
+            "creatorUserId": "fbc20906-bdb6-4c14-89ba-44ed6ba53f63",
+            "creatorNonprofitId": "6fde4ca3-6caf-4a2b-b948-63965eb0ab23",
+            "slug": "gracie-and-snowflake",
+            "title": "Gracie and Snowflake: Special Needs Kittens ",
+            "description": "I am reaching out on behalf of two sweet special needs kittens in need of help: Meet Gracie and Snowflake:\n\nGracie’s journey has been one of immense challenge and resilience. Found on the euthanasia list due to swallowing issues, her future looked bleak. \n\nA dedicated foster volunteer saw something in her and took a chance. Despite initial hopeful evaluations, surgery revealed her condition was more complex than anticipated. \n\nFurther testing, including a CT scan, showed that Gracie suffers from a rare condition causing food to potentially enter her lungs with each meal.\n\nGracie is a happy loving kitten. She’s a tiny lap cat filled with love and affection, and like many special needs pets she is seeking not pity but a chance to live. \n\nShe now faces a critical moment, which I truly wish were different: without specialized surgery, euthanasia is her only other option. This surgery is her lifeline, her hope for a normal, joyful life. Gracie's prognosis is great with surgery. But, due to the rarity of her case the cost is simply not accessible for an adoptive family or for the rescue we're working with.\n\nI share this in transparency to help normalize the care of special needs pets. Gracie's surgery and care costs are just over $12,000. I know that number is incredibly high, and this is why the BUB Fund exists. \n\nIf we can work together to support and normalize care for special needs pets we can help influence and create long term solutions with more accessible care. This is something deeply needed. \n\nIn addition to Gracie, we're also raising funds for many other neo-natal kittens this season. Snowflake was a 21-day-old neonatal kitten found alone by a busy road.\n\nBrought to a shelter by a kind-hearted person, Snowflake needs round-the-clock care and bottle feeding. She is getting the care she needs thanks to the kindness of so many, and you are a part of both her and Gracie's stories.\n\nBUB's legacy teaches us about the importance of giving special needs pets a chance. By supporting Gracie and Snowflake, you honor BUB’s spirit of overcoming adversity and helping those in need. Even more important, we help to increase awareness and change the trajectory for special needs pets. While they are often the first to face economic euthanasia we see them and know their lives have value; they are worth it.\n\nThank you for considering supporting Gracie and Snowflake. Your generosity and action can change their world.",
+            "coverImageCloudinaryId": "profile_pics/xlhu5eq6fygxpjxgtvke",
+            "active": true,
+            "startDate": null,
+            "endDate": null,
+            "pinnedAt": null,
+            "goalAmount": null,
+            "goalCurrency": "USD",
+            "metadata": {
+                "donationThankYouMessage": "Thank you for caring for special needs pets; your generosity transform their lives. We are so grateful for you,\n\nSending you the warmest wishes,\nStacy and the Lil BUB Family"
+            },
+            "parentFundraiserId": null,
+            "childrenFundraiserIds": [],
+            "eventIds": []
+        },
+        "users": [
+            {
+                "entityName": "User",
+                "id": "fbc20906-bdb6-4c14-89ba-44ed6ba53f63",
+                "firstName": "Stacy",
+                "lastName": "Jane",
+                "legalName": null,
+                "username": "lil.bubs.big.fund063",
+                "twitterHandle": null,
+                "facebookHandle": null,
+                "instagramHandle": null,
+                "linkedInHandle": null,
+                "youtubeHandle": null,
+                "youtubeUrl": null,
+                "locationAddress": null,
+                "isPrivate": false,
+                "verifiedStatus": "NOT_VERIFIED",
+                "followedByCurrentUserStatus": "unset"
+            }
+        ],
+        "nonprofits": [
+            {
+                "entityName": "Nonprofit",
+                "id": "6fde4ca3-6caf-4a2b-b948-63965eb0ab23",
+                "createdAt": "2020-12-28T18:08:43.763Z",
+                "name": "Lil BUB's Big Fund",
+                "primarySlug": "lilbubsbigfund",
+                "ein": "844229672",
+                "isDisbursable": true,
+                "description": "Lil BUB is a one of a kind space cat. Since landing on Earth, she's raised over $1,000,000 for homeless pets nationwide.",
+                "descriptionLong": "Lil BUB’s Big Fund exists to advocate for special needs companion animals and build a community that celebrates and fosters the human-animal bond. With a focus on animals that are the most difficult to adopt, the most expensive to care for, and are at a high risk of euthanasia. \n\nLil BUB’s Big Fund provides access to care for special needs pets nationwide. We work with community leaders, shelters, and rescues nationwide to create special needs focused frameworks. We visit schools to promote kindness and inclusion. Through our work, we share BUB’s message of overcoming adversity and the knowledge that the things that make us different are worthy of being seen and appreciated.",
+                "locationAddress": "BLOOMINGTON, IN",
+                "locationLatLng": null,
+                "nteeCode": "D20",
+                "nteeCodeMeaning": {},
+                "websiteUrl": "https://www.goodjobbub.org",
+                "twitterHandle": "IAMLILBUB",
+                "facebookHandle": "iamlilbub",
+                "instagramHandle": "iamlilbub",
+                "linkedInHandle": null,
+                "youtubeHandle": "user/LilBubBub",
+                "revenueAmt": null,
+                "causeCategory": "ANIMALS",
+                "logoCloudinaryId": "profile_pics/dsor2nxk97p87umlwhvt",
+                "coverImageCloudinaryId": "profile_pics/ipxxsfqxtt6skku7vh1z",
+                "displayType": "NONPROFIT",
+                "type": "NONPROFIT",
+                "fundCreatingEntityId": null,
+                "fundCreatingEntityType": null,
+                "metadata": {
+                    "focusArea": "NATIONAL"
+                },
+                "countryCode": "US",
+                "donationThankYouMessage": "Thank you so much for your support! Without you, we couldn't do this life-changing work. ",
+                "archived": false,
+                "disbursementType": "STRIPE_CONNECT",
+                "hasAdmin": true,
+                "tags": [
+                    "4c60ea40-6865-4285-999a-5ad623797c12",
+                    "af7b922e-df53-49a2-9ff6-100e5a4a332b",
+                    "ff110a9a-b86c-4305-abda-a0d53564343f",
+                    "f3ecb613-355d-4186-ad68-523774727b32",
+                    "661c7333-edc7-49c5-8245-3e8a8aa3f120"
+                ],
+                "endorsedNonprofitIds": null,
+                "createdFundIds": null,
+                "endorserNonprofitIds": null,
+                "likesInfo": {
+                    "count": 206,
+                    "hasLoggedInUserLiked": false
+                },
+                "supporterInfo": {
+                    "numSupporters": 3348,
+                    "loggedInUserSupported": false
+                },
+                "memberCount": null,
+                "loggedInUserMembership": null,
+                "donatedCurrencies": null
+            }
+        ],
+        "tags": [
+            {
+                "entityName": "Tag",
+                "id": "4c60ea40-6865-4285-999a-5ad623797c12",
+                "createdAt": "2021-09-02T19:55:56.615Z",
+                "tagName": "dogs",
+                "causeCategory": "ANIMALS",
+                "description": "Discover nonprofits supporting dogs.",
+                "title": "Dogs",
+                "tagImageCloudinaryId": "profile_pics/lrrwrxt6dc90powx1597",
+                "shareImageCloudinaryId": null,
+                "shareText": "Join us in supporting nonprofits supporting dogs.",
+                "active": true,
+                "likesCount": 0
+            },
+            {
+                "entityName": "Tag",
+                "id": "af7b922e-df53-49a2-9ff6-100e5a4a332b",
+                "createdAt": "2021-09-02T20:00:29.541Z",
+                "tagName": "cats",
+                "causeCategory": "ANIMALS",
+                "description": "Discover nonprofits supporting cats",
+                "title": "Cats",
+                "tagImageCloudinaryId": "profile_pics/oabdmgkjdl2jypgium0w",
+                "shareImageCloudinaryId": null,
+                "shareText": "Join us in supporting nonprofits supporting our feline friends",
+                "active": true,
+                "likesCount": 0
+            },
+            {
+                "entityName": "Tag",
+                "id": "ff110a9a-b86c-4305-abda-a0d53564343f",
+                "createdAt": "2021-02-18T21:28:45.113Z",
+                "tagName": "women-led",
+                "causeCategory": "HUMAN_AND_CIVIL_RIGHTS",
+                "description": "Discover women-led nonprofits.",
+                "title": "Women Led",
+                "tagImageCloudinaryId": "cause_JUSTICE_sub-cause_women_led_v43ccf",
+                "shareImageCloudinaryId": null,
+                "shareText": "Join us in supporting women-led nonprofits.",
+                "active": true,
+                "likesCount": 0
+            },
+            {
+                "entityName": "Tag",
+                "id": "f3ecb613-355d-4186-ad68-523774727b32",
+                "createdAt": "2020-11-19T18:47:22.783Z",
+                "tagName": "animals",
+                "causeCategory": "ANIMALS",
+                "description": null,
+                "title": "Animals",
+                "tagImageCloudinaryId": "animals_hjoysx",
+                "shareImageCloudinaryId": "og-ani_tl9w8f",
+                "shareText": null,
+                "active": true,
+                "likesCount": 0
+            },
+            {
+                "entityName": "Tag",
+                "id": "661c7333-edc7-49c5-8245-3e8a8aa3f120",
+                "createdAt": "2022-01-07T16:28:18.952Z",
+                "tagName": "disabilities",
+                "causeCategory": "HUMAN_AND_CIVIL_RIGHTS",
+                "description": "Discover nonprofits supporting people with disabilities.",
+                "title": "Disabilities",
+                "tagImageCloudinaryId": "profile_pics/msnrrktrwtiptnzfcuxn",
+                "shareImageCloudinaryId": null,
+                "shareText": "Join us in helping nonprofits supporting people with disabilities.",
+                "active": true,
+                "likesCount": 0
+            }
+        ]
+    }
+}
