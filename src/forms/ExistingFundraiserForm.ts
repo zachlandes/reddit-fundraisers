@@ -59,7 +59,7 @@ export const existingFundraiserForm = Devvit.createForm(
                 return;
             }
 
-            const postTitle = values.postTitle || `${existingFundraiserDetails.fundraiserDetails.title} Fundraiser`; //TODO:  Not necessary if user must submit nonempty title field. Check if this is the case.
+            const postTitle = values.postTitle || `${existingFundraiserDetails.fundraiserInfo.title} Fundraiser`; //TODO:  Not necessary if user must submit nonempty title field. Check if this is the case.
             let currentSubreddit;
             try {
                 currentSubreddit = await reddit.getCurrentSubreddit();
@@ -86,13 +86,13 @@ export const existingFundraiserForm = Devvit.createForm(
 
             // Cache the fetched details
             const cachedForm = new CachedForm();
-            cachedForm.initialize('everyExistingFundraiserInfo', existingFundraiserDetails.fundraiserDetails);
+            cachedForm.initialize('everyExistingFundraiserInfo', existingFundraiserDetails.fundraiserInfo);
             cachedForm.initialize('everyNonprofitInfo', existingFundraiserDetails.nonprofitInfo);
             const emptyFundraiserRaisedDetails: EveryFundraiserRaisedDetails = {
-                currency: existingFundraiserDetails.fundraiserDetails.goalCurrency,
+                currency: existingFundraiserDetails.fundraiserInfo.goalCurrency,
                 raised: 0,
                 supporters: 0,
-                goalAmount: existingFundraiserDetails.fundraiserDetails.goalAmount,
+                goalAmount: existingFundraiserDetails.fundraiserInfo.goalAmount,
                 goalType: "n/a"
             };
             cachedForm.initialize('fundraiserDetails', emptyFundraiserRaisedDetails);
@@ -112,7 +112,7 @@ export const existingFundraiserForm = Devvit.createForm(
                 }
                 return;
             }
-            await addOrUpdatePostInRedis(ctx.redis, post.id, existingFundraiserDetails.fundraiserDetails.endDate ? new Date(existingFundraiserDetails.fundraiserDetails.endDate) : null);
+            await addOrUpdatePostInRedis(ctx.redis, post.id, existingFundraiserDetails.fundraiserInfo.endDate ? new Date(existingFundraiserDetails.fundraiserInfo.endDate) : null);
             ctx.ui.navigateTo(post);
         } catch (error) {
             console.error('Error fetching or caching fundraiser details:', error);

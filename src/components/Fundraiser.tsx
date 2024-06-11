@@ -144,8 +144,8 @@ export const FundraiserPost: CustomPostType = {
         initialFundraiserInfo.id,
         publicKey
       );
-      const cloudinaryUrl = existingFundraiserDetails?.fundraiserDetails.coverImageCloudinaryId ?? null;
-      
+      const cloudinaryUrl = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
+      console.log(cloudinaryUrl)
       if (cloudinaryUrl) {
         const result = await uploadImageToRedditCDN(cloudinaryUrl, context.media);
         if (typeof result === 'string') {

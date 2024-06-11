@@ -3,7 +3,7 @@ import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonpr
 import { mockFundraiserCreationResponse, mockNonprofits, getMockFundraiserRaisedDetails, mockExistingFundraiserDetails } from '../mocks/index.js';
 import { convertToDate } from '../utils/dateUtils.js';
 
-const USE_MOCK = true; // Toggle this to false to use real API calls
+const USE_MOCK = false; // Toggle this to false to use real API calls
 
 export enum APIService {
     EVERY = `partners.every.org`
@@ -185,11 +185,11 @@ export async function fetchExistingFundraiserDetails(
     nonprofitIdentifier: string,
     fundraiserIdentifier: string,
     publicKey: string
-): Promise<{ fundraiserDetails: EveryExistingFundraiserInfo, nonprofitInfo: EveryNonprofitInfo } | null> {
+): Promise<{ fundraiserInfo: EveryExistingFundraiserInfo, nonprofitInfo: EveryNonprofitInfo } | null> {
     if (USE_MOCK) {
         console.log('Using mock data for fetchExistingFundraiserDetails');
         return Promise.resolve({
-            fundraiserDetails: mockExistingFundraiserDetails,
+            fundraiserInfo: mockExistingFundraiserDetails,
             nonprofitInfo: mockNonprofits[0] 
         });
     }
@@ -210,7 +210,7 @@ export async function fetchExistingFundraiserDetails(
         const nonprofit = data.data.nonprofits[0]; // Assuming the first nonprofit is the one we want
 
         return {
-            fundraiserDetails: {
+            fundraiserInfo: {
                 entityName: fundraiser.entityName,
                 id: fundraiser.id,
                 createdAt: convertToDate(fundraiser.createdAt),
