@@ -64,7 +64,7 @@ export type EveryExistingFundraiserInfo = {
     endDate: Date | null;
     pinnedAt: Date | null;
     goalAmount: number;
-    goalCurrency: string;
+    goalCurrency: Currency;
     metadata: {
         donationThankYouMessage: string;
     };
@@ -120,5 +120,29 @@ export type SerializedFundraiserCreationResponse = {
         web: string;
     };
 };
+
+export type SerializedEveryExistingFundraiserInfo = {
+    id: string;
+    nonprofitId: string;
+    creatorUserId: string;
+    creatorNonprofitId: string;
+    slug: string;
+    title: string;
+    description: string;
+    active: boolean;
+    startDate: string | null;  
+    endDate: string | null;   
+    pinnedAt: string | null;
+    goalAmount: number;
+    goalCurrency: Currency;
+    metadata: {
+        donationThankYouMessage: string;
+    };
+    parentFundraiserId: string | null;
+    childrenFundraiserIds: string[];
+    eventIds: string[];
+    coverImageCloudinaryId: string | null;
+};
+
 
 export * from './enums.js';

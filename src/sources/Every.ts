@@ -111,6 +111,10 @@ export function parseNonprofitResult(
     };
 }
 
+function generateProfileUrl(primarySlug: string): string {
+    return `https://every.org/${primarySlug}`;
+}
+
 export function generateEveryDonationLink(
     //webhookToken: string,
     nonprofit: EveryNonprofitInfo,
@@ -181,11 +185,13 @@ export async function fetchExistingFundraiserDetails(
     nonprofitIdentifier: string,
     fundraiserIdentifier: string,
     publicKey: string
-): Promise<EveryExistingFundraiserInfo | null> {
+): Promise<{ fundraiserDetails: EveryExistingFundraiserInfo, nonprofitInfo: EveryNonprofitInfo } | null> {
     if (USE_MOCK) {
         console.log('Using mock data for fetchExistingFundraiserDetails');
-        // Return mock data if available
-        return Promise.resolve(mockExistingFundraiserDetails);
+        return Promise.resolve({
+            fundraiserDetails: mockExistingFundraiserDetails,
+            nonprofitInfo: mockNonprofits[0] 
+        });
     }
 
     const apiUrl = `https://partners.every.org/v0.2/nonprofit/${nonprofitIdentifier}/fundraiser/${fundraiserIdentifier}?apiKey=${publicKey}`;
@@ -201,31 +207,44 @@ export async function fetchExistingFundraiserDetails(
         }
         const data = await response.json();
         const fundraiser = data.data.fundraiser;
+        const nonprofit = data.data.nonprofits[0]; // Assuming the first nonprofit is the one we want
 
         return {
-            entityName: fundraiser.entityName,
-            id: fundraiser.id,
-            createdAt: convertToDate(fundraiser.createdAt),
-            nonprofitId: fundraiser.nonprofitId,
-            creatorUserId: fundraiser.creatorUserId,
-            creatorNonprofitId: fundraiser.creatorNonprofitId,
-            slug: fundraiser.slug,
-            title: fundraiser.title,
-            description: fundraiser.description,
-            active: fundraiser.active,
-            startDate: fundraiser.startDate ? convertToDate(fundraiser.startDate) : null,
-            endDate: fundraiser.endDate ? convertToDate(fundraiser.endDate) : null,
-            pinnedAt: fundraiser.pinnedAt ? convertToDate(fundraiser.pinnedAt) : null,
-            goalAmount: fundraiser.goalAmount,
-            goalCurrency: fundraiser.goalCurrency,
-            metadata: {
-                donationThankYouMessage: fundraiser.metadata.donationThankYouMessage,
-            },
-            parentFundraiserId: fundraiser.parentFundraiserId,
-            childrenFundraiserIds: fundraiser.childrenFundraiserIds,
-            eventIds: fundraiser.eventIds,
-            coverImageCloudinaryId: fundraiser.coverImageCloudinaryId
-        } as EveryExistingFundraiserInfo;
+            fundraiserDetails: {
+                entityName: fundraiser.entityName,
+                id: fundraiser.id,
+                createdAt: convertToDate(fundraiser.createdAt),
+                nonprofitId: fundraiser.nonprofitId,
+                creatorUserId: fundraiser.creatorUserId,
+                creatorNonprofitId: fundraiser.creatorNonprofitId,
+                slug: fundraiser.slug,
+                title: fundraiser.title,
+                description: fundraiser.description,
+                active: fundraiser.active,
+                startDate: fundraiser.startDate ? convertToDate(fundraiser.startDate) : null,
+                endDate: fundraiser.endDate ? convertToDate(fundraiser.endDate) : null,
+                pinnedAt: fundraiser.pinnedAt ? convertToDate(fundraiser.pinnedAt) : null,
+                goalAmount: parseInt(fundraiser.goalAmount),
+                goalCurrency: fundraiser.goalCurrency,
+                metadata: {
+                    donationThankYouMessage: fundraiser.metadata.donationThankYouMessage,
+                },
+                parentFundraiserId: fundraiser.parentFundraiserId,
+                childrenFundraiserIds: fundraiser.childrenFundraiserIds,
+                eventIds: fundraiser.eventIds,
+                coverImageCloudinaryId: fundraiser.coverImageCloudinaryId
+            } as EveryExistingFundraiserInfo,
+            nonprofitInfo: {
+                nonprofitID: nonprofit.id,
+                name: nonprofit.name,
+                profileUrl: generateProfileUrl(nonprofit.primarySlug),
+                description: nonprofit.description,
+                ein: nonprofit.ein,
+                websiteUrl: nonprofit.websiteUrl,
+                primarySlug: nonprofit.primarySlug,
+                logoUrl: nonprofit.logoCloudinaryId ? `https://res.cloudinary.com/${nonprofit.logoCloudinaryId}` : null,
+            } as EveryNonprofitInfo,
+        };
     } catch (e) {
         console.error('Error fetching fundraiser details:', e);
         return null;

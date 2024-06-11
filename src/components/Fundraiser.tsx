@@ -1,23 +1,30 @@
 import { Context, CustomPostType, Devvit } from '@devvit/public-api';
-import { Currency, FundraiserCreationResponse, EveryFundraiserRaisedDetails, SerializedFundraiserCreationResponse, EveryNonprofitInfo } from '../types/index.js';
+import { Currency, FundraiserCreationResponse, EveryFundraiserRaisedDetails, SerializedFundraiserCreationResponse, EveryNonprofitInfo, EveryExistingFundraiserInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
 import { getCachedForm } from '../utils/Redis.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
 import { getEveryPublicKey } from '../utils/keyManagement.js';
-import { serializeFundraiserCreationResponse } from '../utils/dateUtils.js';
+import { serializeFundraiserCreationResponse, serializeExistingFundraiserResponse } from '../utils/dateUtils.js';
 import { usePagination } from '@devvit/kit';
 import { paginateText } from '../utils/renderUtils.js';
 import pixelWidth from 'string-pixel-width';
 import { fetchExistingFundraiserDetails } from '../sources/Every.js';
+import { uploadImageToRedditCDN } from '../utils/ImageHandlers.js';
+
+function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null): string {
+  if (!fundraiserInfo) return ''; // TODO: better default?
+  return `https://every.org//f/${fundraiserInfo.slug || fundraiserInfo.id}`;
+}
 
 export function FundraiserView(
-  fundraiserCreationResponse: SerializedFundraiserCreationResponse | null,
+  fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
   raised: number,
   context: Context,
   width: number,
   totalHeight: number,
   nonprofitInfo: EveryNonprofitInfo | null,
   charWidth: number,
-  coverImageUrl: string | null
+  coverImageUrl: string | null,
+  fundraiserURL: string
 ): JSX.Element {
     const { useState } = context;
     const descriptionMaxHeight = totalHeight - 398; 
@@ -26,8 +33,9 @@ export function FundraiserView(
     const imageHeight = 150; // Height of the cover image
     const logoHeight = 30; // Height of the logo image
     //FIXME: we should think carefully about how we obtain these values, e.g. what should be dynamic, what should be based on the (potentially cached) image dimensions, etc.
-    const descriptionPages = fundraiserCreationResponse
-        ? paginateText(fundraiserCreationResponse.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
+    //FIXME: next milestone text needs adjusting to fit appropriate scenario (e.g. fixed, single goal)
+    const descriptionPages = fundraiserInfo
+        ? paginateText(fundraiserInfo.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : ['Loading description...'];
 
     const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
@@ -54,7 +62,7 @@ export function FundraiserView(
             )}
             <vstack width='100%' padding="medium" alignment='start middle'>
               <text size="xlarge">
-                {fundraiserCreationResponse ? fundraiserCreationResponse.title : 'A fundraiser!'}
+                {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
               </text>
               <vstack width='100%' minHeight={`${descriptionMaxHeight}px`}>
                 {currentItems.map((page, index) => (
@@ -78,22 +86,22 @@ export function FundraiserView(
                 </hstack>
                 <hstack width='50%' alignment='end'>
                     <vstack alignment='end'>
-                        <text weight='bold'>${fundraiserCreationResponse ? fundraiserCreationResponse.goal : '0'}</text>
+                        <text weight='bold'>${fundraiserInfo ? fundraiserInfo.goalAmount : '0'}</text>
                         <text color='#706E6E'>Next milestone</text>
                     </vstack>
                 </hstack>
               </hstack>
               <vstack backgroundColor='#f3f7f7' cornerRadius='full' width='100%'>
-                <hstack backgroundColor='#008A10' width={`${fundraiserCreationResponse ? (raised / fundraiserCreationResponse.goal) * 100 : 0}%`}>
+                <hstack backgroundColor='#008A10' width={`${fundraiserInfo ? (raised / fundraiserInfo.goalAmount) * 100 : 0}%`}>
                   <spacer size='medium' shape='square' />
                 </hstack>
               </vstack>
               <spacer size='small' />
               <vstack alignment='center middle' width='100%'>
                 <button appearance='success' width='100%' maxWidth={30} onPress={() => {
-                  if (fundraiserCreationResponse) {
-                    console.log("Navigate to:", fundraiserCreationResponse.links.web);
-                    context.ui.navigateTo(fundraiserCreationResponse.links.web);
+                  if (fundraiserInfo) {
+                    console.log("Navigate to:", fundraiserURL); //TODO: remove this logging?
+                    context.ui.navigateTo(fundraiserURL);
                   }
                 }}>Donate</button>
               </vstack>
@@ -115,27 +123,46 @@ export const FundraiserPost: CustomPostType = {
     if (typeof postId !== 'string') {
       throw new Error('postId is undefined');
     }
+
     const cachedPostData = await getCachedForm(context, postId);
-    const initialFundraiserData = cachedPostData ? serializeFundraiserCreationResponse(cachedPostData.getAllProps(TypeKeys.fundraiserCreationResponse)) : null;
+    const initialFundraiserInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyExistingFundraiserInfo) : null;
+    const fundraiserRaisedDetails = cachedPostData ? cachedPostData.getAllProps(TypeKeys.fundraiserDetails) : null;
     const initialNonprofitInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyNonprofitInfo) : null;
     
-    const [fundraiserData, setFundraiserData] = useState<SerializedFundraiserCreationResponse | null>(initialFundraiserData);
-    const [raised, setRaised] = useState<number>(cachedPostData ? cachedPostData.getAllProps(TypeKeys.fundraiserCreationResponse).amountRaised : 0); 
+    const [fundraiserInfo, setFundraiserInfo] = useState<SerializedEveryExistingFundraiserInfo | null>(
+      initialFundraiserInfo ? serializeExistingFundraiserResponse(initialFundraiserInfo) : null
+    );
+    const [raised, setRaised] = useState<number>(fundraiserRaisedDetails ? fundraiserRaisedDetails.raised : 0);
     const [nonprofitInfo, setNonprofitInfo] = useState<EveryNonprofitInfo | null>(initialNonprofitInfo);
 
     const publicKey = await getEveryPublicKey(context);
 
     let coverImageUrl: string | null = null;
-    if (nonprofitInfo && fundraiserData) {
+    if (nonprofitInfo && initialFundraiserInfo) {
       const existingFundraiserDetails = await fetchExistingFundraiserDetails(
         nonprofitInfo.nonprofitID,
-        fundraiserData.id,
+        initialFundraiserInfo.id,
         publicKey
       );
-      coverImageUrl = existingFundraiserDetails?.coverImageCloudinaryId ?? null;
+      const cloudinaryUrl = existingFundraiserDetails?.fundraiserDetails.coverImageCloudinaryId ?? null;
+      
+      if (cloudinaryUrl) {
+        const result = await uploadImageToRedditCDN(cloudinaryUrl, context.media);
+        if (typeof result === 'string') {
+          coverImageUrl = result;
+        } else {
+          coverImageUrl = result.mediaUrl;
+        }
+      } else {
+        coverImageUrl = null;
+      }
     }
 
     const [coverImageUrlState, setCoverImageUrl] = useState<string | null>(coverImageUrl);
+
+    // Initialize fundraiserURL state
+    const fundraiserUrl = generateFundraiserURL(fundraiserInfo);
+    const [fundraiserURL, setFundraiserURL] = useState<string>(fundraiserUrl);
 
     // Subscribe to real-time updates for live changes to the raised amount
     const updateChannel = useChannel({
@@ -148,7 +175,6 @@ export const FundraiserPost: CustomPostType = {
         }
       }
     });
-
     updateChannel.subscribe();
 
     // Measure character width using string-pixel-width with a supported font
@@ -157,7 +183,7 @@ export const FundraiserPost: CustomPostType = {
 
     return (
       <blocks>
-        {FundraiserView(fundraiserData, raised, context, width, height, nonprofitInfo, charWidth, coverImageUrlState)}
+        {FundraiserView(fundraiserInfo, raised, context, width, height, nonprofitInfo, charWidth, coverImageUrlState, fundraiserURL)}
       </blocks>
     );
   }

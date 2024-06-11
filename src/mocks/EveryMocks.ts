@@ -116,7 +116,7 @@ export const mockExistingFundraiserDetails: EveryExistingFundraiserInfo = {
     endDate: getTomorrowDate(),
     pinnedAt: null,
     goalAmount: 10000,
-    goalCurrency: "USD",
+    goalCurrency: Currency.USD,
     metadata: {
         donationThankYouMessage: "Thank you for supporting this fundraiser!"
     },

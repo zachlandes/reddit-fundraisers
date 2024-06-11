@@ -1,4 +1,4 @@
-import { FundraiserCreationResponse, SerializedFundraiserCreationResponse } from "../types/index.js";
+import { FundraiserCreationResponse, SerializedFundraiserCreationResponse, EveryExistingFundraiserInfo, SerializedEveryExistingFundraiserInfo } from "../types/index.js";
 
 export function convertToDate(dateString: string | undefined): Date | null {
     if (!dateString) return null;
@@ -33,6 +33,17 @@ export function serializeFundraiserCreationResponse(data: FundraiserCreationResp
         endDate: new Date(data.endDate).toISOString(),
         createdAt: new Date(data.createdAt).toISOString(),
         updatedAt: new Date(data.updatedAt).toISOString()
+    };
+}
+
+export function serializeExistingFundraiserResponse(data: EveryExistingFundraiserInfo): SerializedEveryExistingFundraiserInfo {
+  console.log(data.startDate)
+  return {
+        ...data,
+        startDate: data.startDate ? new Date(data.startDate).toISOString() : null,
+        endDate: data.endDate ? new Date(data.endDate).toISOString() : null,
+        pinnedAt: data.pinnedAt ? new Date(data.pinnedAt).toISOString() : null,
+        description: data.description ?? ""
     };
 }
 
