@@ -10,9 +10,9 @@ import pixelWidth from 'string-pixel-width';
 import { fetchExistingFundraiserDetails } from '../sources/Every.js';
 import { uploadImageToRedditCDN } from '../utils/ImageHandlers.js';
 
-function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null): string {
+function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
-  return `https://every.org//f/${fundraiserInfo.slug || fundraiserInfo.id}`;
+  return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}?viewport=desktop#/donate`; //FIXME: viewport=dynamic value?
 }
 
 export function FundraiserView(
@@ -174,7 +174,7 @@ export const FundraiserPost: CustomPostType = {
     const [coverImageUrlState, setCoverImageUrl] = useState<string | null>(coverImageUrl);
 
     // Initialize fundraiserURL state
-    const fundraiserUrl = generateFundraiserURL(fundraiserInfo);
+    const fundraiserUrl = generateFundraiserURL(fundraiserInfo, nonprofitInfo);
     const [fundraiserURL, setFundraiserURL] = useState<string>(fundraiserUrl);
 
     // Subscribe to real-time updates for live changes to the raised amount
