@@ -154,13 +154,13 @@ export const FundraiserPost: CustomPostType = {
       );
       const imagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
       console.log(imagePath)
-      function generateCloudinaryURL(cloudName: string, imagePath: string): string {
+      function generateCloudinaryURL(imagePath: string): string {
         const transformations = 'f_auto,c_limit,w_1200,q_auto';
         const url = `https://res.cloudinary.com/everydotorg/image/upload/${transformations}/${imagePath}`;
         return url;
       }
       if (imagePath) {
-        const cloudinaryUrl = generateCloudinaryURL('everydotorg', imagePath);
+        const cloudinaryUrl = generateCloudinaryURL(imagePath);
         console.log(`cover image url(generated): ${cloudinaryUrl}`)
         const result = await uploadImageToRedditCDN(cloudinaryUrl, context.media);
         if (typeof result === 'string') {
