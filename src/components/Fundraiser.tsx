@@ -29,13 +29,12 @@ export function FundraiserView(
   fundraiserURL: string
 ): JSX.Element {
     const { useState } = context;
-    const descriptionMaxHeight = totalHeight - 398; 
+    const descriptionMaxHeight = totalHeight - 438; 
     const lineHeight = 16;
     const lineWidth = width + 60; 
     const imageHeight = 150; // Height of the cover image
     const logoHeight = 30; // Height of the logo image
     //FIXME: we should think carefully about how we obtain these values, e.g. what should be dynamic, what should be based on the (potentially cached) image dimensions, etc.
-    //FIXME: next milestone text needs adjusting to fit appropriate scenario (e.g. fixed, single goal)
     const descriptionPages = fundraiserInfo
         ? paginateText(fundraiserInfo.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : ['Loading description...'];
@@ -44,24 +43,22 @@ export function FundraiserView(
 
     return (
         <vstack width={`${width}px`} gap='small'>
-            {currentPage === 0 && (
-                <vstack width="100%" alignment='center middle'>
-                    <image 
-                        url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
-                        width="100%"
-                        imageWidth={`${width}px`}
-                        imageHeight={`${imageHeight}px`}
-                        description="Fundraiser Image"
-                    />
-                    <image 
-                        url={nonprofitInfo?.logoUrl ? nonprofitInfo.logoUrl : 'placeholder-logo-url'}
-                        width="100%"
-                        imageWidth={`${width}px`}
-                        imageHeight={`${logoHeight}px`}
-                        description="Nonprofit Logo"
-                    />
-                </vstack>
-            )}
+            <vstack width="100%" alignment='center middle'>
+                <image 
+                    url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
+                    width="100%"
+                    imageWidth={`${width}px`}
+                    imageHeight={`${imageHeight}px`}
+                    description="Fundraiser Image"
+                />
+                <image 
+                    url={nonprofitInfo?.logoUrl ? nonprofitInfo.logoUrl : 'placeholder-logo-url'}
+                    width="100%"
+                    imageWidth={`${width}px`}
+                    imageHeight={`${logoHeight}px`}
+                    description="Nonprofit Logo"
+                />
+            </vstack>
             <vstack width='100%' padding="medium" alignment='start middle'>
               <text size="xlarge">
                 {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
