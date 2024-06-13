@@ -8,7 +8,7 @@ import { usePagination } from '@devvit/kit';
 import { paginateText } from '../utils/renderUtils.js';
 import pixelWidth from 'string-pixel-width';
 import { fetchExistingFundraiserDetails } from '../sources/Every.js';
-import { uploadImageToRedditCDN } from '../utils/ImageHandlers.js';
+import { uploadNonprofitLogo } from '../utils/imageUtils.js';
 
 function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
@@ -29,9 +29,9 @@ export function FundraiserView(
   fundraiserURL: string
 ): JSX.Element {
     const { useState } = context;
-    const descriptionMaxHeight = totalHeight - 438; 
+    const descriptionMaxHeight = totalHeight - 438;
     const lineHeight = 16;
-    const lineWidth = width + 60; 
+    const lineWidth = width + 60;
     const imageHeight = 150; // Height of the cover image
     const logoHeight = 30; // Height of the logo image
     //FIXME: we should think carefully about how we obtain these values, e.g. what should be dynamic, what should be based on the (potentially cached) image dimensions, etc.
@@ -44,14 +44,14 @@ export function FundraiserView(
     return (
         <vstack width={`${width}px`} gap='small'>
             <vstack width="100%" alignment='center middle'>
-                <image 
+                <image
                     url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
                     width="100%"
                     imageWidth={`${width}px`}
                     imageHeight={`${imageHeight}px`}
                     description="Fundraiser Image"
                 />
-                <image 
+                <image
                     url={nonprofitInfo?.logoUrl ? nonprofitInfo.logoUrl : 'placeholder-logo-url'}
                     width="100%"
                     imageWidth={`${width}px`}
@@ -75,17 +75,17 @@ export function FundraiserView(
                 <text>{currentPage + 1}</text>
                 <button onPress={toNextPage} icon="right" />
               </hstack>
-              <spacer size='small' /> 
+              <spacer size='small' />
               <hstack width='100%'>
                 <hstack width='50%' alignment='start'>
                     <vstack>
-                        <text weight='bold'>${raised}</text>
+                        <text weight='bold'>${raised / 100}</text>  {/* comes in as cents */}
                         <text color='#706E6E'>Raised</text>
                     </vstack>
                 </hstack>
                 <hstack width='50%' alignment='end'>
                     <vstack alignment='end'>
-                        <text weight='bold'>${goal ? goal : raised}</text>
+                        <text weight='bold'>${goal ? goal / 100 : raised / 100}</text> {/* comes in as cents */}
                         {goalType && (
                           <text color='#706E6E'>
                             {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
@@ -117,12 +117,12 @@ export const FundraiserPost: CustomPostType = {
   name: "FundraiserPost",
   description: "Post fundraiser",
   height: "tall",
-  render: async context => { 
+  render: async context => {
     const { height, width } = context.dimensions ?? { height: 480, width: 320 }; // Default dimensions if not provided
     console.log("Starting render of FundraiserPost with dimensions:", { height, width });
 
     const { postId, useChannel, useState } = context;
-    
+
     if (typeof postId !== 'string') {
       throw new Error('postId is undefined');
     }
@@ -131,7 +131,7 @@ export const FundraiserPost: CustomPostType = {
     const initialFundraiserInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyExistingFundraiserInfo) : null;
     const fundraiserRaisedDetails = cachedPostData ? cachedPostData.getAllProps(TypeKeys.fundraiserDetails) : null;
     const initialNonprofitInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyNonprofitInfo) : null;
-    
+
     const [fundraiserInfo, setFundraiserInfo] = useState<SerializedEveryExistingFundraiserInfo | null>(
       initialFundraiserInfo ? serializeExistingFundraiserResponse(initialFundraiserInfo) : null
     );
@@ -159,7 +159,7 @@ export const FundraiserPost: CustomPostType = {
       if (imagePath) {
         const cloudinaryUrl = generateCloudinaryURL(imagePath);
         console.log(`cover image url(generated): ${cloudinaryUrl}`)
-        const result = await uploadImageToRedditCDN(cloudinaryUrl, context.media);
+        const result = await uploadNonprofitLogo(cloudinaryUrl, context.media);
         if (typeof result === 'string') {
           coverImageUrl = result;
         } else {

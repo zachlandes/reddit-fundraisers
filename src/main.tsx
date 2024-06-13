@@ -3,7 +3,6 @@ import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public
 import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
 import { Currency, FundraiserCreationResponse, RedisKey, type EveryNonprofitInfo } from './types/index.js';
 import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundraiserRaisedDetails } from './sources/Every.js';
-import { ApprovedDomainsFormatted, uploadImageToRedditCDN} from './utils/ImageHandlers.js'
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
@@ -153,7 +152,7 @@ const submitForm = Devvit.createForm(
     } catch (error) {
       console.error("Error retrieving Every.org API keys:", error);
       ctx.ui.showToast('There was an issue accessing necessary credentials for creating the fundraiser. Please try again later!');
-      return; 
+      return;
     }
 
     let fundraiserCreatedInfo: FundraiserCreationResponse;
@@ -164,7 +163,7 @@ const submitForm = Devvit.createForm(
       ctx.ui.showToast('There was an error creating the fundraiser. Please try again later!');
       return;
     }
-    
+
     const post: Post = await reddit.submitPost({
       title: postTitle && postTitle.length > 0 ? postTitle : `${fundraiserCreatedInfo.title} Fundraiser`,
       subredditName: currentSubreddit.name,
