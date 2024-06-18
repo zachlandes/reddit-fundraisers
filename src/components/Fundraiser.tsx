@@ -159,7 +159,7 @@ export const FundraiserPost: CustomPostType = {
       if (imagePath) {
         const cloudinaryUrl = generateCloudinaryURL(imagePath);
         console.log(`cover image url(generated): ${cloudinaryUrl}`)
-        const result = await uploadNonprofitLogo(cloudinaryUrl, context.media);
+        const result = await uploadNonprofitLogo(context, cloudinaryUrl);
         if (typeof result === 'string') {
           coverImageUrl = result;
         } else {
