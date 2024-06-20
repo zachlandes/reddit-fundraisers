@@ -9,6 +9,7 @@ import { paginateText } from '../utils/renderUtils.js';
 import pixelWidth from 'string-pixel-width';
 import { fetchExistingFundraiserDetails } from '../sources/Every.js';
 import { uploadNonprofitLogo } from '../utils/imageUtils.js';
+import { ImageManager } from '../utils/ImageResolutions.js';
 
 function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
@@ -155,21 +156,10 @@ export const FundraiserPost: CustomPostType = {
       );
       const imagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
       console.log(imagePath)
-      function generateCloudinaryURL(imagePath: string): string {
-        const transformations = 'f_auto,c_limit,w_1200,q_auto';
-        const url = `https://res.cloudinary.com/everydotorg/image/upload/${transformations}/${imagePath}`;
-        return url;
-      }
-      if (imagePath) {
-        const cloudinaryUrl = generateCloudinaryURL(imagePath);
-        console.log(`cover image url(generated): ${cloudinaryUrl}`)
-        const result = await uploadNonprofitLogo(context, cloudinaryUrl);
-        if (typeof result === 'string') {
-          coverImageUrl = result;
-        } else {
-          coverImageUrl = result.mediaUrl;
-        }
-        console.log(`reddit image url: ${coverImageUrl}`)
+      const imageManager = new ImageManager(context);
+      if (imagePath !== null) { 
+        coverImageUrl = await imageManager.getImageUrl(imagePath, width);
+        console.log(`cover image url: ${coverImageUrl}`)
       } else {
         coverImageUrl = null;
       }

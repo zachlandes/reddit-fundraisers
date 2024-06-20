@@ -29,3 +29,8 @@ export async function uploadNonprofitLogo(ctx: Context, imageUrl: string): Promi
         return null;
     }
 }
+
+export function generateCloudinaryURL(imagePath: string, width: string): string {
+    const transformations = `f_auto,c_limit,${width},q_auto`;
+    return `https://res.cloudinary.com/everydotorg/image/upload/${transformations}/${imagePath}`;
+}
