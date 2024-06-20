@@ -71,9 +71,13 @@ export function FundraiserView(
                 ))}
               </vstack>
               <hstack alignment="middle center" gap="small">
-                <button onPress={toPrevPage} icon="left" />
+                {currentPage > 0 && (
+                  <button onPress={toPrevPage} icon="left" />
+                )}
                 <text>{currentPage + 1}</text>
-                <button onPress={toNextPage} icon="right" />
+                {descriptionPages.length > 1 && currentPage < descriptionPages.length - 1 && (
+                  <button onPress={toNextPage} icon="right" />
+                )}
               </hstack>
               <spacer size='small' />
               <hstack width='100%'>
