@@ -93,7 +93,6 @@ export const existingFundraiserForm = Devvit.createForm(
             // Cache the fetched details
             const cachedForm = new CachedForm();
             cachedForm.initialize('everyExistingFundraiserInfo', existingFundraiserDetails.fundraiserInfo);
-            console.log('Caching nonprofit info:', existingFundraiserDetails.nonprofitInfo);
             cachedForm.initialize('everyNonprofitInfo', existingFundraiserDetails.nonprofitInfo);
             cachedForm.initialize('fundraiserDetails', fundraiserRaisedDetails);
             try {

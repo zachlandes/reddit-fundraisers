@@ -24,14 +24,12 @@ export async function setCachedForm(
     form: CachedForm
 ): Promise<void> {
     const { redis } = context;
-    const expireTimeInSeconds = 6000; // FIXME: This should be in a config or enum, and it also may cause a bug for existing fundraisers
     try {
         if (!form.getLastUpdated()) {
-            form.setLastUpdated(Date.now().toString());
+            form.setLastUpdated(new Date().toISOString());
         }
         const serializedForm = JSON.stringify(form.serializeForRedis());
         await redis.set(key, serializedForm);
-        await redis.expire(key, expireTimeInSeconds);
         console.log('Form saved successfully.');
     } catch (error) {
         console.error('Error saving form: ', error);
@@ -80,7 +78,15 @@ export async function addOrUpdatePostInRedis(redis: RedisClient, postId: string,
     console.log(`Post ${postId} added or updated with end date score ${score}`);
 }
 
-export async function removePostFromRedis(redis: RedisClient, postId: string): Promise<void> {
+export async function removePostAndFormFromRedis(redis: RedisClient, postId: string): Promise<void> {
+    // Remove the post from the list of subscriptions
+    await removePostSubscriptionFromRedis(redis, postId);
+    // Remove the CachedForm associated with the post
+    await redis.del(postId);
+    console.log(`Post and associated form with ID ${postId} removed from Redis`);
+}
+
+export async function removePostSubscriptionFromRedis(redis: RedisClient, postId: string): Promise<void> {
     await redis.zRem(RedisKey.AllSubscriptions, [postId]);
     console.log(`Post ${postId} removed from Redis`);
 }

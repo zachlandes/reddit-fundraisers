@@ -10,6 +10,7 @@ export class CachedForm {
     private initializeProperties<K extends keyof TypeMapping>(key: K, info: TypeMapping[K]): void {
         console.debug(`Initializing ${key} with:`, info);
         this.aggregates.set(key, new PropertyManager<TypeMapping[K]>(info));
+        this.setLastUpdated(new Date().toISOString()); // Update lastUpdated when initializing properties
     }
 
     private setProperty<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K], value: V): void {
@@ -20,6 +21,7 @@ export class CachedForm {
             this.aggregates.set(key, manager);
         }
         manager.setProperty(propKey, value);
+        this.setLastUpdated(new Date().toISOString()); // Update lastUpdated whenever a property is set
     }
 
     private getProperty<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K]): V | null {

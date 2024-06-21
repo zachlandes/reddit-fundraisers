@@ -6,7 +6,7 @@ import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundra
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
-import { fetchPostsToUpdate, removePostFromRedis, setCachedForm, getCachedForm, addOrUpdatePostInRedis } from './utils/Redis.js';
+import { fetchPostsToUpdate, setCachedForm, getCachedForm, addOrUpdatePostInRedis, removePostAndFormFromRedis } from './utils/Redis.js';
 import { FundraiserPost } from './components/Fundraiser.js';
 import { getEveryPublicKey, getEveryPrivateKey } from './utils/keyManagement.js';
 import { generateDateOptions } from './utils/dateUtils.js';
@@ -90,7 +90,6 @@ const searchSelectForm = Devvit.createForm(
   async ({values}, ctx) => {
     const {ui} = ctx;
     if (values.nonprofit != null) {
-      console.log(values.nonprofit)
       const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.nonprofit);
       return ui.showForm(submitForm, convertToFormData([nonprofitInfo]));
     }
@@ -121,7 +120,6 @@ const submitForm = Devvit.createForm(
     const {reddit} = ctx;
     const currentSubreddit = await reddit.getCurrentSubreddit();
     const postTitle = values.postTitle;
-    console.log(values.formDescription);
     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.link);
 
     // Get Logo ID
@@ -177,8 +175,30 @@ const submitForm = Devvit.createForm(
     partialFormToCache.initialize(TypeKeys.everyNonprofitInfo, nonprofitInfo);
     partialFormToCache.initialize(TypeKeys.fundraiserCreationResponse, fundraiserCreatedInfo);
     console.log('Form to be cached:', partialFormToCache.serializeForRedis());
-    await setCachedForm(ctx, postId, partialFormToCache);
-    await addOrUpdatePostInRedis(ctx.redis, post.id, new Date(values.endDate)); //FIXME: add try catch
+    try {
+      await setCachedForm(ctx, postId, partialFormToCache);
+      await addOrUpdatePostInRedis(ctx.redis, post.id, new Date(values.endDate));
+    } catch (error) {
+      console.error('Error during Redis operations:', error);
+      ctx.ui.showToast('Failed to save the post. Please try again.');
+
+      // Attempt to clean up by removing any potentially partially written data
+      try {
+        await removePostAndFormFromRedis(ctx.redis, postId);
+      } catch (cleanupError) {
+        console.error('cleanupError: Failed to clean up Redis data:', cleanupError);
+      }
+
+      // Attempt to delete the Reddit post to avoid orphaned posts
+      try {
+        await ctx.reddit.remove(postId, false);
+      } catch (removePostError) {
+        console.error('removePostError: Failed to remove the Reddit post:', removePostError);
+        ctx.ui.showToast('There was an issue creating your fundraiser post. Please delete the post manually and try again.');
+      }
+
+      return; 
+    }
     ctx.ui.navigateTo(post)
   }
 )
@@ -299,7 +319,7 @@ Devvit.addTrigger({
     const postId = event.postId;
 
     // Remove the post from Redis
-    await removePostFromRedis(redis, postId);
+    await removePostAndFormFromRedis(redis, postId);
 
     // Remove the fundraiser-raised-amount key associated with the post (only relevant to mockforms)
     const fundraiserKey = `fundraiser-raised-amount-${postId}`;
@@ -310,5 +330,6 @@ Devvit.addTrigger({
 });
 
 export default Devvit;
+
 
 
