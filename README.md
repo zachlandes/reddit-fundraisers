@@ -1,6 +1,6 @@
 # SnoowyDayFund
 
-SnoowyDayFund is an app for Reddit, built on Reddit's devvit platform, that enables Reddit users to create fundraisers for nonprofits using the Every.org API. These fundraisers stay updated in real-time with the latest raised and goal amounts.
+SnoowyDayFund is an app for Reddit, built on Reddit's devvit platform, that enables Reddit users to create fundraisers for nonprofits using the Every.org API and display them as posts. These fundraiser posts stay updated in real-time with the latest tally of funds raised!
 
 ## Features
 
