@@ -117,7 +117,6 @@ export function FundraiserView(
               <vstack alignment='center middle' width='100%'>
                 <button appearance='success' width='100%' maxWidth={30} onPress={() => {
                   if (fundraiserInfo) {
-                    console.log("Navigate to:", fundraiserURL); //TODO: remove this logging?
                     context.ui.navigateTo(fundraiserURL);
                   }
                 }}>Donate</button>
@@ -166,8 +165,8 @@ export const FundraiserPost: CustomPostType = {
       );
       const coverImagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
       const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoCloudinaryId ?? null;
-      console.log("cloudinary coverImagePath: ", coverImagePath);
-      console.log("cloudinary logoImagePath: ", logoImagePath);
+      console.log("cloudinary coverImageId: ", coverImagePath);
+      console.log("cloudinary logoImageId: ", logoImagePath);
       const imageManager = new ImageManager(context);
       if (coverImagePath !== null) {
         coverImageUrl = await imageManager.getImageUrl(coverImagePath, width);

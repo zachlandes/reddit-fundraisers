@@ -16,15 +16,14 @@ export const ApprovedDomainsFormatted: string = APPROVED_DOMAINS.map(
 
 
 //FIXME: We ought to only upload a logo if we don't have one already (how to handle the nonprofit changing their logo then?)
-export async function uploadNonprofitLogo(ctx: Context, imageUrl: string): Promise<MediaAsset | null> {
+export async function uploadNonprofitImage(ctx: Context, imageUrl: string): Promise<MediaAsset | null> {
     try {
         return await ctx.media.upload({
             url: imageUrl,
             type: 'image',
         });
     } catch (e) {
-        console.log(StringUtil.caughtToString(e));
-        console.log('Image upload failed.');
+        console.log(`Image upload failed.`, StringUtil.caughtToString(e));
         //console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
         return null;
     }
@@ -77,7 +76,7 @@ export class ImageManager {
         let cachedUrl = await this.ctx.redis.get(cacheKey);
         if (!cachedUrl) {
             const imageUrl = generateCloudinaryURL(cloudinaryId, `w_${this.logoWidth}`);
-            const result = await uploadNonprofitLogo(this.ctx, imageUrl);
+            const result = await uploadNonprofitImage(this.ctx, imageUrl);
             if (result && result.mediaUrl) {
                 // Sleep before caching the URL to deal with time reddit takes to make an image available
                 await sleep(3000);
@@ -97,7 +96,7 @@ export class ImageManager {
             if (!cachedUrl) {
                 // If not cached, generate URL and upload
                 const imageUrl = resolution.generateUrl(cloudinaryId);
-                const result = await uploadNonprofitLogo(this.ctx, imageUrl);
+                const result = await uploadNonprofitImage(this.ctx, imageUrl);
                 if (result && result.mediaUrl) {
                     // Sleep before caching the URL to deal with time reddit takes to make an image available
                     await sleep(3000);

@@ -54,7 +54,7 @@ const searchTermForm = Devvit.createForm(
     try {
       everyPublicKey = await ctx.settings.get('every-public-api-key');
     } catch (e) {
-      console.error(e)
+      console.error(`Error getting public key: ${e}`)
       ctx.ui.showToast('There was an error searching for your term. Please try again later!')
     }
     if (typeof everyPublicKey === 'string') {

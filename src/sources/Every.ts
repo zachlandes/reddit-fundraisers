@@ -90,7 +90,8 @@ export async function fetchNonprofits(
         const data = await res.json();
         return data.nonprofits.map((nonprofit: any) => parseNonprofitResult(nonprofit));
     } catch (e) {
-        console.error(e);
+        const error = e as Error;
+        console.error(`Error fetching nonprofits with query "${query}":`, error.message || error.toString());
         return null;
     }
 }
@@ -133,7 +134,6 @@ export function populateNonprofitSelect(
         let searchResultsData: Data;
         try {
             searchResultsData = JSON.parse(searchResults);
-            console.log(searchResultsData);
         } catch {
             console.error("Error parsing search results.");
             return []; // Return empty if parsing fails
