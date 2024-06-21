@@ -125,7 +125,7 @@ const submitForm = Devvit.createForm(
     const postTitle = values.postTitle;
     console.log(values.formDescription);
     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.link);
-    let logoUrl = nonprofitInfo.logoUrl;
+    let logoUrl = nonprofitInfo.logoUrl; //FIXME: We need to be consistent in how we derive logo and cover images; see ImageManager, which we are using, via CloudinaryID, to form cover image urls in fundraiser.tsx
     if (logoUrl != null) {
       const logoUploadResponse = await uploadNonprofitLogo(ctx, logoUrl);
       if (logoUploadResponse) {

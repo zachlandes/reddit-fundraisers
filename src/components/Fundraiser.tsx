@@ -30,7 +30,7 @@ export function FundraiserView(
   logoImageUrl: string | null,
   fundraiserURL: string
 ): JSX.Element {
-    const { useState } = context;
+    const { ui } = context;
     const descriptionMaxHeight = totalHeight - 438;
     const lineHeight = 16;
     const lineWidth = width + 60;
@@ -53,15 +53,28 @@ export function FundraiserView(
                     imageHeight={`${imageHeight}px`}
                     description="Fundraiser Image"
                 />
-                <vstack width="100%" alignment='start middle'>
-                    <image
-                        url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
-                        width="100%"
-                        imageWidth={"45px"}
-                        imageHeight={`${logoHeight}px`}
-                        description="Nonprofit Logo"
-                    />
-                </vstack>
+            </vstack>
+            <vstack width="100%" alignment='start middle'>
+                <hstack>
+                <image
+                    url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
+                    width="100%"
+                    imageWidth={"45px"}
+                    imageHeight={`${logoHeight}px`}
+                    description="Nonprofit Logo"
+                />
+                </hstack>
+                <hstack>
+                <button
+                    onPress={() => {
+                      if (nonprofitInfo?.profileUrl) {
+                        ui.navigateTo(nonprofitInfo.profileUrl);
+                      }
+                    }}
+                  >
+                    {nonprofitInfo?.name}
+                </button>
+                </hstack>
             </vstack>
             <vstack width='100%' padding="medium" alignment='start middle'>
               <text size="xlarge">
@@ -159,7 +172,7 @@ export const FundraiserPost: CustomPostType = {
         publicKey
       );
       const coverImagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
-      const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoUrl ?? null;
+      const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoUrl ?? null; //FIXME: this is wrong
       console.log("cloudinary coverImagePath: ", coverImagePath);
       console.log("cloudinary logoImagePath: ", logoImagePath);
       const imageManager = new ImageManager(context);
