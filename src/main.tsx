@@ -264,10 +264,19 @@ Devvit.addSchedulerJob({
         await getEveryPublicKey(context),
         context
       );
-      console.log("Updated Details:", updatedDetails?.raised);
-      if (updatedDetails && (updatedDetails.raised !== fundraiserRaisedDetails.raised || updatedDetails.goalAmount !== fundraiserRaisedDetails.goalAmount)) {
-        await updateCachedFundraiserDetails(context, postId, updatedDetails, fundraiserRaisedDetails);
-        await sendFundraiserUpdates(context, postId, updatedDetails);
+      if (updatedDetails) {
+        let changes = [];
+        if (updatedDetails.raised !== fundraiserRaisedDetails.raised) {
+          changes.push(`Raised: ${updatedDetails.raised}`);
+        }
+        if (updatedDetails.goalAmount !== fundraiserRaisedDetails.goalAmount) {
+          changes.push(`Goal: ${updatedDetails.goalAmount}`);
+        }
+        if (changes.length > 0) {
+          await updateCachedFundraiserDetails(context, postId, updatedDetails, fundraiserRaisedDetails);
+          await sendFundraiserUpdates(context, postId, updatedDetails);
+          console.log(`Updated Details for post: ${postId}, ${changes.join(', ')}`);
+        }
       }
     }
   },

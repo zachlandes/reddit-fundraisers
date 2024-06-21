@@ -94,7 +94,9 @@ export async function removePostSubscriptionFromRedis(redis: RedisClient, postId
 export async function removeExpiredPosts(redis: RedisClient): Promise<void> {
     const currentTime = Date.now();
     const removedCount = await redis.zRemRangeByScore(RedisKey.AllSubscriptions, Number.NEGATIVE_INFINITY, currentTime);
-    console.log(`Removed ${removedCount} expired posts from Redis`);
+    if (removedCount > 0) {
+        console.log(`Removed ${removedCount} expired posts from Redis`);
+    }
 }
 
 export async function fetchPostsToUpdate(redis: RedisClient): Promise<string[]> {
