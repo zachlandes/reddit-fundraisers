@@ -3,41 +3,46 @@ import { getCachedForm, setCachedForm } from "./Redis.js";
 import { TypeKeys } from "./typeHelpers.js";
 import { EveryFundraiserRaisedDetails } from "../types/index.js";
 
-export function paginateText(description: string, maxHeight: number, lineHeight: number, lineWidth: number, charWidth: number, imageHeight: number, logoHeight: number): string[] {
-    const maxLinesPerPage = Math.floor(maxHeight / lineHeight);
-    const maxCharsPerPage = maxLinesPerPage * Math.floor(lineWidth / charWidth);
+export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number, imageHeight: number, logoHeight: number): string[] {
+    // Calculate the maximum number of lines per page considering the heights of images and logos
+    const maxLinesPerPage = Math.floor((totalHeight - imageHeight - logoHeight) / lineHeight);
+    console.log(`Total height available: ${totalHeight}px, Max lines per page: ${maxLinesPerPage}`);
+
+    const maxCharsPerLine = Math.floor(lineWidth / charWidth);
     const words = description.split(' ');
     const pages: string[] = [];
     let currentPage = '';
-    let currentCharCount = 0;
+    let currentLine = '';
+    let currentLineCount = 0;
 
     words.forEach(word => {
-        const wordLength = word.length + 1; // +1 for the space after the word
-        if (currentCharCount + wordLength > maxCharsPerPage) {
-            pages.push(currentPage.trim());
-            currentPage = word + ' ';
-            currentCharCount = wordLength;
+        // Check if adding this word would exceed the max characters per line
+        if (currentLine.length + word.length + 1 > maxCharsPerLine) {
+            // If adding this word exceeds the line, add the current line to the page
+            currentPage += currentLine + '\n';
+            currentLine = word + ' '; // Start a new line with the current word
+            currentLineCount++;
+
+            // Check if adding this line exceeds the max lines per page
+            if (currentLineCount >= maxLinesPerPage) {
+                pages.push(currentPage.trim());
+                console.log(`Page added with ${currentLineCount} lines.`);
+                currentPage = '';
+                currentLineCount = 0;
+            }
         } else {
-            currentPage += word + ' ';
-            currentCharCount += wordLength;
+            // If not, add the word to the current line
+            currentLine += word + ' ';
         }
     });
 
+    // Add the last line and page if not empty
+    if (currentLine) {
+        currentPage += currentLine;
+    }
     if (currentPage) {
         pages.push(currentPage.trim());
-    }
-
-    // Adjust the first page to account for the combined image and logo height
-    if (pages.length > 0) {
-        const combinedImageLines = Math.ceil((imageHeight + logoHeight) / lineHeight);
-        const firstPageLines = pages[0].split('\n');
-        if (firstPageLines.length > combinedImageLines) {
-            pages[0] = firstPageLines.slice(0, firstPageLines.length - combinedImageLines).join('\n');
-            const remainingText = firstPageLines.slice(firstPageLines.length - combinedImageLines).join(' ');
-            if (remainingText) {
-                pages[1] = remainingText + (pages[1] ? '\n' + pages[1] : '');
-            }
-        }
+        console.log(`Last page added with ${currentLineCount + 1} lines (including the last line).`);
     }
 
     return pages;

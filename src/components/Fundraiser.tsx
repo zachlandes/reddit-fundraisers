@@ -30,12 +30,12 @@ export function FundraiserView(
   fundraiserURL: string
 ): JSX.Element {
     const { ui } = context;
-    const descriptionMaxHeight = totalHeight - 438;
+    const descriptionMaxHeight = totalHeight - 195;
     const lineHeight = 16;
     const lineWidth = width + 60;
     const imageHeight = 150; // Height of the cover image
     const logoHeight = 45; // Height of the logo image
-    //FIXME: we should think carefully about how we obtain these values, e.g. what should be dynamic, what should be based on the (potentially cached) image dimensions, etc.
+    const descriptionContainerMaxHeight = descriptionMaxHeight - imageHeight - logoHeight;
     const descriptionPages = fundraiserInfo
         ? paginateText(fundraiserInfo.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : ['Loading description...'];
@@ -50,6 +50,7 @@ export function FundraiserView(
                     width="100%"
                     imageWidth={`${width}px`}
                     imageHeight={`${imageHeight}px`}
+                    resizeMode="cover"
                     description="Fundraiser Image"
                 />
             </vstack>
@@ -60,6 +61,7 @@ export function FundraiserView(
                       width="100%"
                       imageWidth={"45px"}
                       imageHeight={`${logoHeight}px`}
+                      resizeMode="cover"
                       description="Nonprofit Logo"
                   />
                 </hstack>
@@ -77,7 +79,7 @@ export function FundraiserView(
               <text size="xlarge">
                 {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
               </text>
-              <vstack width='100%' minHeight={`${descriptionMaxHeight}px`}>
+              <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight}px`}>
                 {currentItems.map((page, index) => (
                     <text key={index.toString()} size='small' wrap overflow="ellipsis">
                         {page}
