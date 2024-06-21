@@ -55,24 +55,22 @@ export function FundraiserView(
             </vstack>
             <vstack width="100%" alignment='start middle'>
                 <hstack>
-                <image
-                    url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
-                    width="100%"
-                    imageWidth={"45px"}
-                    imageHeight={`${logoHeight}px`}
-                    description="Nonprofit Logo"
-                />
+                  <image
+                      url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
+                      width="100%"
+                      imageWidth={"45px"}
+                      imageHeight={`${logoHeight}px`}
+                      description="Nonprofit Logo"
+                  />
                 </hstack>
                 <hstack>
-                <button
-                    onPress={() => {
-                      if (nonprofitInfo?.profileUrl) {
-                        ui.navigateTo(nonprofitInfo.profileUrl);
-                      }
-                    }}
-                  >
+                  <text weight='bold' onPress={() => {
+                    if (nonprofitInfo?.profileUrl) {
+                      ui.navigateTo(nonprofitInfo.profileUrl);
+                    }
+                  }}>
                     {nonprofitInfo?.name}
-                </button>
+                  </text>
                 </hstack>
             </vstack>
             <vstack width='100%' padding="medium" alignment='start middle'>
@@ -87,13 +85,9 @@ export function FundraiserView(
                 ))}
               </vstack>
               <hstack alignment="middle center" gap="small">
-                {currentPage > 0 && (
-                  <button onPress={toPrevPage} icon="left" />
-                )}
+                <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} />
                 <text>{currentPage + 1}</text>
-                {descriptionPages.length > 1 && currentPage < descriptionPages.length - 1 && (
-                  <button onPress={toNextPage} icon="right" />
-                )}
+                <button onPress={toNextPage} icon="right" disabled={descriptionPages.length <= 1 || currentPage === descriptionPages.length - 1} />
               </hstack>
               <spacer size='small' />
               <hstack width='100%'>

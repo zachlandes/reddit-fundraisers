@@ -107,7 +107,8 @@ export function parseNonprofitResult(
         websiteUrl: nonprofit.websiteUrl,
         primarySlug: nonprofit.primarySlug,
         logoUrl: nonprofit.logoUrl ?? null,
-        coverImageUrl: nonprofit.coverImageUrl ?? null
+        coverImageUrl: nonprofit.coverImageUrl ?? null,
+        logoCloudinaryId: nonprofit.logoCloudinaryId ?? null // Expect this to be null from the nonprofit search endpoint
     };
 }
 
@@ -242,7 +243,7 @@ export async function fetchExistingFundraiserDetails(
                 ein: nonprofit.ein,
                 websiteUrl: nonprofit.websiteUrl,
                 primarySlug: nonprofit.primarySlug,
-                logoUrl: nonprofit.logoCloudinaryId ? `https://res.cloudinary.com/${nonprofit.logoCloudinaryId}` : null,
+                logoCloudinaryId: nonprofit.logoCloudinaryId,
             } as EveryNonprofitInfo,
         };
     } catch (e) {

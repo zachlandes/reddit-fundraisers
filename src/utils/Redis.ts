@@ -74,7 +74,8 @@ export async function getCachedForm(
 
 export async function addOrUpdatePostInRedis(redis: RedisClient, postId: string, endDate: Date | null): Promise<void> {
     // Use a very distant future date if endDate is null
-    const score = endDate ? endDate.getTime() : new Date('9999-12-31').getTime();
+    console.log("endDate: ", endDate);
+    const score = endDate ? endDate.getTime() : new Date('2054-12-31').getTime();
     await redis.zAdd(RedisKey.AllSubscriptions, { score, member: postId });
     console.log(`Post ${postId} added or updated with end date score ${score}`);
 }

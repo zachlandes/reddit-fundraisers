@@ -101,7 +101,6 @@ const searchSelectForm = Devvit.createForm(
 const submitForm = Devvit.createForm(
   (data) => {
     const endDateOptions = generateDateOptions();
-    console.log(data.nonprofits);
     return {
       fields: [
         { name: 'postTitle', label: 'Post Title', type: 'string' },
@@ -239,8 +238,6 @@ Devvit.addSchedulerJob({
       }
       const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
       const fundraiserRaisedDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
-      console.log('Nonprofit ID for getting new raised amount:', fundraiserInfo.nonprofitId);
-      console.log('Fundraiser ID for getting new raised amount:', fundraiserInfo.id);
       const updatedDetails = await fetchFundraiserRaisedDetails(
         fundraiserInfo.nonprofitId,
         fundraiserInfo.id,
@@ -313,4 +310,5 @@ Devvit.addTrigger({
 });
 
 export default Devvit;
+
 

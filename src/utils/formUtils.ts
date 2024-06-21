@@ -20,7 +20,6 @@ export function fundraiserUrlHelper(url: string): { nonprofitIdentifier: string;
   try {
       const parsedUrl = new URL(url);
       const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
-      console.log("URL Segments:", pathSegments);
       if (!(parsedUrl.hostname === 'every.org' || parsedUrl.hostname === 'www.every.org') || pathSegments.length !== 3 || pathSegments[1] !== 'f') {
           throw new Error('URL format is incorrect. Please use the format: https://every.org/nonprofit-name/f/fundraiser-name');
       }
