@@ -25,7 +25,7 @@ export async function uploadNonprofitLogo(ctx: Context, imageUrl: string): Promi
     } catch (e) {
         console.log(StringUtil.caughtToString(e));
         console.log('Image upload failed.');
-        console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
+        //console.log(`Please use images from ${ApprovedDomainsFormatted}.`);
         return null;
     }
 }

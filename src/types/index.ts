@@ -35,6 +35,7 @@ export type EveryNonprofitInfo = GeneralNonprofitInfo &
     primarySlug: string
     logoUrl: string | null,
     coverImageUrl: string | null,
+    logoCloudinaryId: string | null
 }
 
 export type EveryFundraiserInfo = {
@@ -46,7 +47,7 @@ export type EveryFundraiserInfo = {
     goal: number | null;
     raisedOffline: number | null;
     imageBase64?: string | null; //FIXME: if this is optional, should we allow null?
-    currency: Currency; 
+    currency: Currency;
 };
 
 export type EveryExistingFundraiserInfo = {
@@ -87,8 +88,8 @@ export type FundraiserCreationResponse = {
     nonprofitId: string;
     title: string;
     description: string;
-    startDate: Date | null;  
-    endDate: Date;   
+    startDate: Date | null;
+    endDate: Date;
     goal: number;
     raisedOffline: number | null;
     currency: Currency;
@@ -107,8 +108,8 @@ export type SerializedFundraiserCreationResponse = {
     nonprofitId: string;
     title: string;
     description: string;
-    startDate: string | null;  
-    endDate: string;   
+    startDate: string | null;
+    endDate: string;
     goal: number;
     raisedOffline: number | null;
     currency: Currency;
@@ -130,8 +131,8 @@ export type SerializedEveryExistingFundraiserInfo = {
     title: string;
     description: string;
     active: boolean;
-    startDate: string | null;  
-    endDate: string | null;   
+    startDate: string | null;
+    endDate: string | null;
     pinnedAt: string | null;
     goalAmount: number;
     goalCurrency: Currency;

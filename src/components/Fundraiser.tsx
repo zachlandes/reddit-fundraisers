@@ -8,8 +8,7 @@ import { usePagination } from '@devvit/kit';
 import { paginateText } from '../utils/renderUtils.js';
 import pixelWidth from 'string-pixel-width';
 import { fetchExistingFundraiserDetails } from '../sources/Every.js';
-import { uploadNonprofitLogo } from '../utils/imageUtils.js';
-import { ImageManager } from '../utils/ImageResolutions.js';
+import { ImageManager } from '../utils/imageUtils.js';
 
 function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
@@ -172,11 +171,11 @@ export const FundraiserPost: CustomPostType = {
         publicKey
       );
       const coverImagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
-      const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoUrl ?? null; //FIXME: this is wrong
+      const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoCloudinaryId ?? null;
       console.log("cloudinary coverImagePath: ", coverImagePath);
       console.log("cloudinary logoImagePath: ", logoImagePath);
       const imageManager = new ImageManager(context);
-      if (coverImagePath !== null) { 
+      if (coverImagePath !== null) {
         coverImageUrl = await imageManager.getImageUrl(coverImagePath, width);
         console.log(`cover image url: ${coverImageUrl}`)
       } else {

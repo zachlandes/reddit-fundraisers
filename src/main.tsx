@@ -11,7 +11,6 @@ import { FundraiserPost } from './components/Fundraiser.js';
 import { getEveryPublicKey, getEveryPrivateKey } from './utils/keyManagement.js';
 import { generateDateOptions } from './utils/dateUtils.js';
 import { convertToFormData } from './utils/formUtils.js';
-import { uploadNonprofitLogo } from './utils/imageUtils.js';
 import { existingFundraiserForm } from './forms/ExistingFundraiserForm.js';
 import { updateCachedFundraiserDetails, sendFundraiserUpdates } from './utils/renderUtils.js';
 
@@ -125,13 +124,10 @@ const submitForm = Devvit.createForm(
     const postTitle = values.postTitle;
     console.log(values.formDescription);
     const nonprofitInfo: EveryNonprofitInfo = JSON.parse(values.link);
-    let logoUrl = nonprofitInfo.logoUrl; //FIXME: We need to be consistent in how we derive logo and cover images; see ImageManager, which we are using, via CloudinaryID, to form cover image urls in fundraiser.tsx
-    if (logoUrl != null) {
-      const logoUploadResponse = await uploadNonprofitLogo(ctx, logoUrl);
-      if (logoUploadResponse) {
-        nonprofitInfo.logoUrl = logoUploadResponse.mediaUrl;
-      }
-    }
+
+    // Get Logo ID
+    nonprofitInfo.logoCloudinaryId = JSON.parse(values.link).logoCloudinaryId
+
     const fundraiserInfo = {
       nonprofitID: nonprofitInfo.nonprofitID,
       title: values.postTitle,
