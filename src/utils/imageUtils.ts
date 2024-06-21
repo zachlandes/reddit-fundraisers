@@ -34,3 +34,14 @@ export function generateCloudinaryURL(imagePath: string, width: string): string 
     const transformations = `f_auto,c_limit,${width},q_auto`;
     return `https://res.cloudinary.com/everydotorg/image/upload/${transformations}/${imagePath}`;
 }
+
+export function sleep(ms: number) : Promise<void>{
+    return new Promise (resolve => {
+        var startTime = Date.now()
+        while ((Date.now() - startTime) < ms)
+        {
+            // do nothing
+        }
+        resolve()
+    })
+}

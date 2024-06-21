@@ -1,5 +1,5 @@
 import { Context } from "@devvit/public-api";
-import { generateCloudinaryURL, uploadNonprofitLogo } from "./imageUtils.js";
+import { generateCloudinaryURL, uploadNonprofitLogo, sleep } from "./imageUtils.js";
 
 interface ImageResolution {
     width: number;
@@ -23,7 +23,7 @@ class DesktopImage implements ImageResolution {
 // Additional resolution classes can be defined similarly.
 
 export class ImageManager {
-    private logoWidth = 120; // Fixed width for logos
+    private logoWidth = 45; // Fixed width for logos
     private resolutions: ImageResolution[] = [new MobileImage(), new DesktopImage()]; // For responsive images
 
     constructor(private ctx: Context) {}
@@ -36,6 +36,8 @@ export class ImageManager {
             const imageUrl = generateCloudinaryURL(cloudinaryId, `w_${this.logoWidth}`);
             const result = await uploadNonprofitLogo(this.ctx, imageUrl);
             if (result && result.mediaUrl) {
+                // Sleep before caching the URL to deal with time reddit takes to make an image available
+                await sleep(3000);
                 await this.ctx.redis.set(cacheKey, result.mediaUrl);
                 cachedUrl = result.mediaUrl;
             }
@@ -54,6 +56,8 @@ export class ImageManager {
                 const imageUrl = resolution.generateUrl(cloudinaryId);
                 const result = await uploadNonprofitLogo(this.ctx, imageUrl);
                 if (result && result.mediaUrl) {
+                    // Sleep before caching the URL to deal with time reddit takes to make an image available
+                    await sleep(3000);
                     await this.ctx.redis.set(cacheKey, result.mediaUrl);
                 }
             }

@@ -27,6 +27,7 @@ export function FundraiserView(
   nonprofitInfo: EveryNonprofitInfo | null,
   charWidth: number,
   coverImageUrl: string | null,
+  logoImageUrl: string | null,
   fundraiserURL: string
 ): JSX.Element {
     const { useState } = context;
@@ -34,7 +35,7 @@ export function FundraiserView(
     const lineHeight = 16;
     const lineWidth = width + 60;
     const imageHeight = 150; // Height of the cover image
-    const logoHeight = 30; // Height of the logo image
+    const logoHeight = 45; // Height of the logo image
     //FIXME: we should think carefully about how we obtain these values, e.g. what should be dynamic, what should be based on the (potentially cached) image dimensions, etc.
     const descriptionPages = fundraiserInfo
         ? paginateText(fundraiserInfo.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
@@ -52,13 +53,15 @@ export function FundraiserView(
                     imageHeight={`${imageHeight}px`}
                     description="Fundraiser Image"
                 />
-                <image
-                    url={nonprofitInfo?.logoUrl ? nonprofitInfo.logoUrl : 'placeholder-logo-url'}
-                    width="100%"
-                    imageWidth={`${width}px`}
-                    imageHeight={`${logoHeight}px`}
-                    description="Nonprofit Logo"
-                />
+                <vstack width="100%" alignment='start middle'>
+                    <image
+                        url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
+                        width="100%"
+                        imageWidth={"45px"}
+                        imageHeight={`${logoHeight}px`}
+                        description="Nonprofit Logo"
+                    />
+                </vstack>
             </vstack>
             <vstack width='100%' padding="medium" alignment='start middle'>
               <text size="xlarge">
@@ -84,13 +87,13 @@ export function FundraiserView(
               <hstack width='100%'>
                 <hstack width='50%' alignment='start'>
                     <vstack>
-                        <text weight='bold'>${raised / 100}</text>  {/* comes in as cents */}
+                        <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
                         <text color='#706E6E'>Raised</text>
                     </vstack>
                 </hstack>
                 <hstack width='50%' alignment='end'>
                     <vstack alignment='end'>
-                        <text weight='bold'>${goal ? goal / 100 : raised / 100}</text> {/* comes in as cents */}
+                        <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text> {/* comes in as cents, formatted with commas */}
                         {goalType && (
                           <text color='#706E6E'>
                             {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
@@ -148,24 +151,34 @@ export const FundraiserPost: CustomPostType = {
     const publicKey = await getEveryPublicKey(context);
 
     let coverImageUrl: string | null = null;
+    let logoImageUrl: string | null = null;
     if (nonprofitInfo && initialFundraiserInfo) {
       const existingFundraiserDetails = await fetchExistingFundraiserDetails(
         nonprofitInfo.nonprofitID,
         initialFundraiserInfo.id,
         publicKey
       );
-      const imagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
-      console.log(imagePath)
+      const coverImagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
+      const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoUrl ?? null;
+      console.log("cloudinary coverImagePath: ", coverImagePath);
+      console.log("cloudinary logoImagePath: ", logoImagePath);
       const imageManager = new ImageManager(context);
-      if (imagePath !== null) { 
-        coverImageUrl = await imageManager.getImageUrl(imagePath, width);
+      if (coverImagePath !== null) { 
+        coverImageUrl = await imageManager.getImageUrl(coverImagePath, width);
         console.log(`cover image url: ${coverImageUrl}`)
       } else {
         coverImageUrl = null;
       }
+      if (logoImagePath !== null) {
+        logoImageUrl = await imageManager.getLogoUrl(logoImagePath);
+        console.log(`logo image url: ${logoImageUrl}`)
+      } else {
+        logoImageUrl = null;
+      }
     }
 
     const [coverImageUrlState, setCoverImageUrl] = useState<string | null>(coverImageUrl);
+    const [logoImageUrlState, setLogoImageUrl] = useState<string | null>(logoImageUrl);
 
     // Initialize fundraiserURL state
     const fundraiserUrl = generateFundraiserURL(fundraiserInfo, nonprofitInfo);
@@ -196,7 +209,7 @@ export const FundraiserPost: CustomPostType = {
 
     return (
       <blocks>
-        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, charWidth, coverImageUrlState, fundraiserURL)}
+        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, charWidth, coverImageUrlState, logoImageUrlState, fundraiserURL)}
       </blocks>
     );
   }
