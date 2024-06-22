@@ -30,20 +30,20 @@ export function FundraiserView(
   fundraiserURL: string
 ): JSX.Element {
     const { ui } = context;
-    const descriptionMaxHeight = totalHeight - 195;
+    const descriptionMaxHeight = totalHeight - 190;
     const lineHeight = 16;
     const lineWidth = width + 60;
     const imageHeight = 150; // Height of the cover image
-    const logoHeight = 45; // Height of the logo image
+    const logoHeight = 35; // Height of the logo image
     const descriptionContainerMaxHeight = descriptionMaxHeight - imageHeight - logoHeight;
     const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
+        ? paginateText(fundraiserInfo.description, descriptionMaxHeight-10, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : ['Loading description...'];
 
     const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
 
     return (
-        <vstack width={`${width}px`} gap='small'>
+        <vstack width={`${width}px`}>
             <vstack width="100%" alignment='center middle'>
                 <image
                     url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
@@ -54,75 +54,78 @@ export function FundraiserView(
                     description="Fundraiser Image"
                 />
             </vstack>
-            <vstack width="100%" alignment='start middle'>
-                <hstack>
-                  <image
-                      url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
-                      width="100%"
-                      imageWidth={"45px"}
-                      imageHeight={`${logoHeight}px`}
-                      resizeMode="cover"
-                      description="Nonprofit Logo"
-                  />
-                </hstack>
-                <hstack>
-                  <text weight='bold' onPress={() => {
-                    if (nonprofitInfo?.profileUrl) {
-                      ui.navigateTo(nonprofitInfo.profileUrl);
-                    }
-                  }}>
-                    {nonprofitInfo?.name}
-                  </text>
-                </hstack>
-            </vstack>
-            <vstack width='100%' padding="medium" alignment='start middle'>
-              <text size="xlarge">
-                {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
+            <spacer size='small' />
+            <hstack>
+              <spacer size='medium' />
+              <image
+                  url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
+                  imageWidth={"35px"}
+                  imageHeight={`${logoHeight}px`}
+                  description="Nonprofit Logo"
+              />
+              <text weight='bold' onPress={() => {
+                if (nonprofitInfo?.profileUrl) {
+                  ui.navigateTo(nonprofitInfo.profileUrl);
+                }
+              }}>
+                {nonprofitInfo?.name}
               </text>
-              <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight}px`}>
-                {currentItems.map((page, index) => (
-                    <text key={index.toString()} size='small' wrap overflow="ellipsis">
-                        {page}
-                    </text>
-                ))}
+              <spacer size='medium' />
+            </hstack>
+            <hstack>
+              <spacer size='medium' />
+              <vstack width='100%' alignment='start middle'>
+                  <text size="xlarge">
+                    {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
+                  </text>
               </vstack>
-              <hstack alignment="middle center" gap="small">
-                <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} />
-                <text>{currentPage + 1}</text>
-                <button onPress={toNextPage} icon="right" disabled={descriptionPages.length <= 1 || currentPage === descriptionPages.length - 1} />
+            </hstack>
+            <hstack>
+              <spacer size='medium' />
+              <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight}px`} padding="xsmall">
+                  {currentItems.map((page, index) => (
+                      <text key={index.toString()} size='small' wrap overflow="ellipsis">
+                          {page}
+                      </text>
+                  ))}
+              </vstack>
+            </hstack>
+            <hstack alignment="start middle" gap="small">
+              <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} />
+              <text>{currentPage + 1}</text>
+              <button onPress={toNextPage} icon="right" disabled={descriptionPages.length <= 1 || currentPage === descriptionPages.length - 1} />
+            </hstack>
+            <spacer size='small' />
+            <hstack width='100%'>
+              <hstack width='50%' alignment='start'>
+                  <vstack>
+                      <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
+                      <text color='#706E6E'>Raised</text>
+                  </vstack>
               </hstack>
-              <spacer size='small' />
-              <hstack width='100%'>
-                <hstack width='50%' alignment='start'>
-                    <vstack>
-                        <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
-                        <text color='#706E6E'>Raised</text>
-                    </vstack>
-                </hstack>
-                <hstack width='50%' alignment='end'>
-                    <vstack alignment='end'>
-                        <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text> {/* comes in as cents, formatted with commas */}
-                        {goalType && (
-                          <text color='#706E6E'>
-                            {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
-                          </text>
-                        )}
-                    </vstack>
-                </hstack>
+              <hstack width='50%' alignment='end'>
+                  <vstack alignment='end'>
+                      <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text> {/* comes in as cents, formatted with commas */}
+                      {goalType && (
+                        <text color='#706E6E'>
+                          {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
+                        </text>
+                      )}
+                  </vstack>
               </hstack>
-              <vstack backgroundColor='#f3f7f7' cornerRadius='full' width='100%'>
+            </hstack>
+            <vstack backgroundColor='#f3f7f7' cornerRadius='full' width='100%'>
                 <hstack backgroundColor='#008A10' width={`${goal ? (raised / goal) * 100 : 0}%`}>
                   <spacer size='medium' shape='square' />
                 </hstack>
-              </vstack>
-              <spacer size='small' />
-              <vstack alignment='center middle' width='100%'>
+            </vstack>
+            <spacer size='small' />
+            <vstack alignment='center middle' width='100%'>
                 <button appearance='success' width='100%' maxWidth={30} onPress={() => {
                   if (fundraiserInfo) {
                     context.ui.navigateTo(fundraiserURL);
                   }
                 }}>Donate</button>
-              </vstack>
             </vstack>
         </vstack>
     )
