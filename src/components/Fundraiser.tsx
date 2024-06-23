@@ -31,13 +31,13 @@ export function FundraiserView(
 ): JSX.Element {
     const { ui } = context;
     const descriptionMaxHeight = totalHeight - 190;
-    const lineHeight = 16;
+    const lineHeight = 17;
     const lineWidth = width + 60;
     const imageHeight = 150; // Height of the cover image
     const logoHeight = 35; // Height of the logo image
     const descriptionContainerMaxHeight = descriptionMaxHeight - imageHeight - logoHeight;
     const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, descriptionMaxHeight-10, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
+        ? paginateText(fundraiserInfo.description, descriptionMaxHeight-20, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : ['Loading description...'];
 
     const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
@@ -145,7 +145,13 @@ export const FundraiserPost: CustomPostType = {
       throw new Error('postId is undefined');
     }
 
-    const cachedPostData = await getCachedForm(context, postId);
+    const cachedPostData = await getCachedForm(context, postId).catch(error => {
+      console.error(`Failed to retrieve cached form for postId: ${postId}`, error);
+      return null; 
+    });
+    if (!cachedPostData) {
+      console.error(`No cached form found for postId: ${postId}`);
+    }
     const initialFundraiserInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyExistingFundraiserInfo) : null;
     const fundraiserRaisedDetails = cachedPostData ? cachedPostData.getAllProps(TypeKeys.fundraiserDetails) : null;
     const initialNonprofitInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyNonprofitInfo) : null;

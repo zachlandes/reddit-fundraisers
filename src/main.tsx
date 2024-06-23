@@ -39,9 +39,7 @@ const searchTermForm = Devvit.createForm(
   () => {
     return {
       fields: [
-        { label: 'Search for a nonprofit by name',
-        type: 'string',
-        name: 'searchTerm'}
+        { label: 'Search for a nonprofit by name', type: 'string', name: 'searchTerm'}
       ],
       title: 'Create a fundraiser',
       acceptLabel: 'Search',
@@ -49,22 +47,27 @@ const searchTermForm = Devvit.createForm(
     };
   },
   async ({ values }, ctx) => {
-    const term = values.searchTerm
+    const term = values.searchTerm;
     let everyPublicKey: string | undefined;
     try {
       everyPublicKey = await ctx.settings.get('every-public-api-key');
+      if (typeof everyPublicKey === 'string') {
+        try {
+          const searchResults = await fetchNonprofits(term, everyPublicKey);
+          console.log(":::searchResults: \n" + JSON.stringify(searchResults));
+          if (searchResults != null) {
+            return ctx.ui.showForm(searchSelectForm, convertToFormData(searchResults));
+          }
+        } catch (error) {
+          console.error('Error fetching nonprofits:', error);
+          ctx.ui.showToast('Failed to fetch nonprofits. Please try again later.');
+        }
+      } else {
+        throw new Error('The "every-public-api-key" setting is undefined.');
+      }
     } catch (e) {
-      console.error(`Error getting public key: ${e}`)
-      ctx.ui.showToast('There was an error searching for your term. Please try again later!')
-    }
-    if (typeof everyPublicKey === 'string') {
-      const searchResults = await fetchNonprofits(term, everyPublicKey) //TODO: catch null returns
-      console.log(":::searchResults: \n" + JSON.stringify(searchResults));
-      if (typeof searchResults != null) {return ctx.ui.showForm(searchSelectForm, convertToFormData(searchResults));}
-    }
-    else {
-      console.error('The "every-public-api-key" setting is undefined. Unable to fetch nonprofits.');
-      ctx.ui.showToast('There was an error searching for your term. Please try again later!')
+      console.error(`Error getting public key or processing search: ${e}`);
+      ctx.ui.showToast('There was an error searching for your term. Please try again later!');
     }
   }
 );
@@ -157,49 +160,54 @@ const submitForm = Devvit.createForm(
       return;
     }
 
-    const post: Post = await reddit.submitPost({
-      title: postTitle && postTitle.length > 0 ? postTitle : `${fundraiserCreatedInfo.title} Fundraiser`,
-      subredditName: currentSubreddit.name,
-      preview: LoadingState()
-    });
-
-    const postId = post.id;
-    console.log('postId in submit post: ', postId);
-
-    const partialFormToCache = new CachedForm();
-    partialFormToCache.initialize(TypeKeys.fundraiserFormFields, {
-      formDescription: values.formDescription,
-      formTitle: values.postTitle,
-      formImageUrl: null
-    });
-    partialFormToCache.initialize(TypeKeys.everyNonprofitInfo, nonprofitInfo);
-    partialFormToCache.initialize(TypeKeys.fundraiserCreationResponse, fundraiserCreatedInfo);
-    console.log('Form to be cached:', partialFormToCache.serializeForRedis());
     try {
-      await setCachedForm(ctx, postId, partialFormToCache);
-      await addOrUpdatePostInRedis(ctx.redis, post.id, new Date(values.endDate));
+      const post: Post = await reddit.submitPost({
+        title: postTitle && postTitle.length > 0 ? postTitle : `${fundraiserCreatedInfo.title} Fundraiser`,
+        subredditName: currentSubreddit.name,
+        preview: LoadingState()
+      });
+
+      const postId = post.id;
+      console.log('postId in submit post: ', postId);
+
+      const partialFormToCache = new CachedForm();
+      partialFormToCache.initialize(TypeKeys.fundraiserFormFields, {
+        formDescription: values.formDescription,
+        formTitle: values.postTitle,
+        formImageUrl: null
+      });
+      partialFormToCache.initialize(TypeKeys.everyNonprofitInfo, nonprofitInfo);
+      partialFormToCache.initialize(TypeKeys.fundraiserCreationResponse, fundraiserCreatedInfo);
+      console.log('Form to be cached:', partialFormToCache.serializeForRedis());
+      try {
+        await setCachedForm(ctx, postId, partialFormToCache);
+        await addOrUpdatePostInRedis(ctx.redis, post.id, new Date(values.endDate));
+      } catch (error) {
+        console.error('Error during Redis operations:', error);
+        ctx.ui.showToast('Failed to save the post. Please try again.');
+
+        // Attempt to clean up by removing any potentially partially written data
+        try {
+          await removePostAndFormFromRedis(ctx.redis, postId);
+        } catch (cleanupError) {
+          console.error('cleanupError: Failed to clean up Redis data:', cleanupError);
+        }
+
+        // Attempt to delete the Reddit post to avoid orphaned posts
+        try {
+          await ctx.reddit.remove(postId, false);
+        } catch (removePostError) {
+          console.error('removePostError: Failed to remove the Reddit post:', removePostError);
+          ctx.ui.showToast('There was an issue creating your fundraiser post. Please delete the post manually and try again.');
+        }
+
+        return; 
+      }
+      ctx.ui.navigateTo(post)
     } catch (error) {
-      console.error('Error during Redis operations:', error);
-      ctx.ui.showToast('Failed to save the post. Please try again.');
-
-      // Attempt to clean up by removing any potentially partially written data
-      try {
-        await removePostAndFormFromRedis(ctx.redis, postId);
-      } catch (cleanupError) {
-        console.error('cleanupError: Failed to clean up Redis data:', cleanupError);
-      }
-
-      // Attempt to delete the Reddit post to avoid orphaned posts
-      try {
-        await ctx.reddit.remove(postId, false);
-      } catch (removePostError) {
-        console.error('removePostError: Failed to remove the Reddit post:', removePostError);
-        ctx.ui.showToast('There was an issue creating your fundraiser post. Please delete the post manually and try again.');
-      }
-
-      return; 
+      console.error('Error during post submission:', error);
+      ctx.ui.showToast('Failed to submit the post. Please try again later.');
     }
-    ctx.ui.navigateTo(post)
   }
 )
 
@@ -244,26 +252,56 @@ Devvit.addSchedulerJob({
   name: 'update_fundraiser_posts',
   onRun: async (_, context) => {
     const redis = context.redis;
-    const postsToUpdate = await fetchPostsToUpdate(redis);
+    let postsToUpdate;
+    try {
+      postsToUpdate = await fetchPostsToUpdate(redis);
+    } catch (error) {
+      console.error('Error fetching posts to update:', error);
+      return;
+    }
+
     for (const postId of postsToUpdate) {
-      const postExists = await context.reddit.getPostById(postId);
+      let postExists;
+      try {
+        postExists = await context.reddit.getPostById(postId);
+      } catch (error) {
+        console.error(`Error retrieving post by ID ${postId}:`, error);
+        continue;
+      }
+
       if (!postExists) {
         console.log(`Post with ID ${postId} not found, skipping update.`);
         continue;
       }
-      const cachedForm = await getCachedForm(context, postId);
+
+      let cachedForm;
+      try {
+        cachedForm = await getCachedForm(context, postId);
+      } catch (error) {
+        console.error(`Error retrieving cached form for postId: ${postId}`, error);
+        continue;
+      }
+
       if (!cachedForm) {
         console.error(`No cached form found for postId: ${postId}`);
         continue;
       }
-      const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
-      const fundraiserRaisedDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
-      const updatedDetails = await fetchFundraiserRaisedDetails(
-        fundraiserInfo.nonprofitId,
-        fundraiserInfo.id,
-        await getEveryPublicKey(context),
-        context
-      );
+
+      let fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
+      let fundraiserRaisedDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
+      let updatedDetails;
+      try {
+        updatedDetails = await fetchFundraiserRaisedDetails(
+          fundraiserInfo.nonprofitId,
+          fundraiserInfo.id,
+          await getEveryPublicKey(context),
+          context
+        );
+      } catch (error) {
+        console.error(`Error fetching fundraiser raised details for postId: ${postId}`, error);
+        continue;
+      }
+
       if (updatedDetails) {
         let changes = [];
         if (updatedDetails.raised !== fundraiserRaisedDetails.raised) {
@@ -273,9 +311,13 @@ Devvit.addSchedulerJob({
           changes.push(`Goal: ${updatedDetails.goalAmount}`);
         }
         if (changes.length > 0) {
-          await updateCachedFundraiserDetails(context, postId, updatedDetails, fundraiserRaisedDetails);
-          await sendFundraiserUpdates(context, postId, updatedDetails);
-          console.log(`Updated Details for post: ${postId}, ${changes.join(', ')}`);
+          try {
+            await updateCachedFundraiserDetails(context, postId, updatedDetails, fundraiserRaisedDetails);
+            await sendFundraiserUpdates(context, postId, updatedDetails);
+            console.log(`Updated Details for post: ${postId}, ${changes.join(', ')}`);
+          } catch (error) {
+            console.error(`Error updating cached details or sending updates for postId: ${postId}`, error);
+          }
         }
       }
     }
@@ -339,6 +381,7 @@ Devvit.addTrigger({
 });
 
 export default Devvit;
+
 
 
 

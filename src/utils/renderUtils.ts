@@ -5,7 +5,7 @@ import { EveryFundraiserRaisedDetails } from "../types/index.js";
 
 export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number, imageHeight: number, logoHeight: number): string[] {
     // Calculate the maximum number of lines per page considering the heights of images and logos
-    const maxLinesPerPage = Math.floor((totalHeight - imageHeight - logoHeight) / lineHeight);
+    const maxLinesPerPage = Math.floor((totalHeight - imageHeight - logoHeight) / lineHeight) - 1;
     console.log(`Total height available: ${totalHeight}px, Max lines per page: ${maxLinesPerPage}`);
 
     const maxCharsPerLine = Math.floor(lineWidth / charWidth);
@@ -49,7 +49,14 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
 }
 
 export async function updateCachedFundraiserDetails(context: Context, postId: string, updatedDetails: EveryFundraiserRaisedDetails, fundraiserRaisedDetails: EveryFundraiserRaisedDetails) {
-    const cachedForm = await getCachedForm(context, postId);
+    let cachedForm;
+    try {
+        cachedForm = await getCachedForm(context, postId);
+    } catch (error) {
+        console.error(`Error retrieving cached form for postId: ${postId}`, error);
+        return; // Exit if we cannot retrieve the form
+    }
+
     if (!cachedForm) {
         console.error(`No cached form found for postId: ${postId}`);
         return;
@@ -65,7 +72,11 @@ export async function updateCachedFundraiserDetails(context: Context, postId: st
         cachedForm.setProp(TypeKeys.fundraiserDetails, 'goalAmount', updatedDetails.goalAmount);
     }
 
-    await setCachedForm(context, postId, cachedForm);
+    try {
+        await setCachedForm(context, postId, cachedForm);
+    } catch (error) {
+        console.error(`Failed to update cached form for postId: ${postId}`, error);
+    }
 }
 
 export async function sendFundraiserUpdates(context: Context, postId: string, updatedDetails: EveryFundraiserRaisedDetails) {
