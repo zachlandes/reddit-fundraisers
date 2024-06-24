@@ -1,5 +1,13 @@
 import { EveryNonprofitInfo } from "../types/index.js";
 
+/**
+ * Converts an array of EveryNonprofitInfo objects into a format suitable for forms in the Devvit API.
+ * This function ensures that the data structure is consistent for form operations, even if the input is null.
+ * 
+ * @param {EveryNonprofitInfo[] | null} nonprofits - An array of nonprofit information objects or null.
+ * @returns {{ nonprofits: EveryNonprofitInfo[] }} An object with a key 'nonprofits' containing an array of 
+ * EveryNonprofitInfo objects, compatible with the data parameter of a submitForm call.
+ */
 export function convertToFormData(
     nonprofits: EveryNonprofitInfo[] | null
   ): { nonprofits: EveryNonprofitInfo[] } {

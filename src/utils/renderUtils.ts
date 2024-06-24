@@ -3,6 +3,17 @@ import { getCachedForm, setCachedForm } from "./Redis.js";
 import { TypeKeys } from "./typeHelpers.js";
 import { EveryFundraiserRaisedDetails } from "../types/index.js";
 
+/**
+ * Splits a long text into pages based on the given dimensions and formatting constraints.
+ * @param description The text to paginate.
+ * @param totalHeight Total available height for the text.
+ * @param lineHeight Height of each line of text.
+ * @param lineWidth Width available for text on each line.
+ * @param charWidth Average character width.
+ * @param imageHeight Height of any images above the text.
+ * @param logoHeight Height of any logos above the text.
+ * @returns An array of strings, each representing a page of text.
+ */
 export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number, imageHeight: number, logoHeight: number): string[] {
     // Calculate the maximum number of lines per page considering the heights of images and logos
     const maxLinesPerPage = Math.floor((totalHeight - imageHeight - logoHeight) / lineHeight) - 1;
@@ -48,6 +59,13 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
     return pages;
 }
 
+/**
+ * Updates the cached details of a fundraiser and logs the changes.
+ * @param context The execution context.
+ * @param postId The ID of the post associated with the fundraiser.
+ * @param updatedDetails The updated details of the fundraiser.
+ * @param fundraiserRaisedDetails The current cached fundraiser details.
+ */
 export async function updateCachedFundraiserDetails(context: Context, postId: string, updatedDetails: EveryFundraiserRaisedDetails, fundraiserRaisedDetails: EveryFundraiserRaisedDetails) {
     let cachedForm;
     try {
@@ -79,6 +97,12 @@ export async function updateCachedFundraiserDetails(context: Context, postId: st
     }
 }
 
+/**
+ * Sends real-time updates about a fundraiser to subscribers.
+ * @param context The execution context.
+ * @param postId The ID of the post associated with the fundraiser.
+ * @param updatedDetails The updated details to be sent.
+ */
 export async function sendFundraiserUpdates(context: Context, postId: string, updatedDetails: EveryFundraiserRaisedDetails) {
     await context.realtime.send('fundraiser_updates', {
         postId: postId,

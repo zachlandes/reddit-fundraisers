@@ -9,6 +9,13 @@ export enum APIService {
     EVERY = `partners.every.org`
 }
 
+/**
+ * Creates a new fundraiser using the Every.org API.
+ * @param fundraiserInfo - Information about the fundraiser to be created.
+ * @param publicKey - Public API key for authentication.
+ * @param privateKey - Private API key for authentication.
+ * @returns A promise that resolves to the creation response of the fundraiser.
+ */
 export async function createFundraiser(
     fundraiserInfo: EveryFundraiserInfo,
     publicKey: string,
@@ -67,8 +74,12 @@ export async function createFundraiser(
     }
 }
 
-
-
+/**
+ * Fetches a list of nonprofits based on a search query.
+ * @param query - The search term used to find nonprofits.
+ * @param publicKey - Public API key for authentication.
+ * @returns A promise that resolves to an array of nonprofit information or null if an error occurs.
+ */
 export async function fetchNonprofits(
     query: string,
     publicKey: string
@@ -96,6 +107,14 @@ export async function fetchNonprofits(
     }
 }
 
+/**
+ * Parses the raw nonprofit data from the API into a structured EveryNonprofitInfo object.
+ * This function takes the JSON object representing a nonprofit and converts it into a 
+ * structured format that is easier to work with within the application.
+ *
+ * @param nonprofit - The raw JSON object representing a nonprofit from the API.
+ * @returns A structured EveryNonprofitInfo object containing the nonprofit's details.
+ */
 export function parseNonprofitResult(
     nonprofit: any
 ): EveryNonprofitInfo {
@@ -113,20 +132,37 @@ export function parseNonprofitResult(
     };
 }
 
+/**
+ * Generates a profile URL for a nonprofit based on its primary slug.
+ * @param primarySlug - The primary slug of the nonprofit.
+ * @returns The full URL to the nonprofit's profile on Every.org.
+ */
 function generateProfileUrl(primarySlug: string): string {
     return `https://every.org/${primarySlug}`;
 }
 
+/**
+ * Generates a donation link for a nonprofit on Every.org.
+ * @param nonprofit - The nonprofit information object.
+ * @param numberOfResults - The number of results to display, defaults to 5.
+ * @param optionalParams - Additional parameters as key-value pairs.
+ * @returns A formatted URL string for donations.
+ */
 export function generateEveryDonationLink(
     //webhookToken: string,
     nonprofit: EveryNonprofitInfo,
     numberOfResults: number = 5,
     ...optionalParams: [string, string][]
-    ): string {
-        const queryParams = new URLSearchParams(optionalParams)
-        return `${nonprofit.profileUrl}#donate?take=${numberOfResults.toString()}${queryParams.toString()}`; //webhookToken=
+): string {
+    const queryParams = new URLSearchParams(optionalParams)
+    return `${nonprofit.profileUrl}#donate?take=${numberOfResults.toString()}${queryParams.toString()}`;
 }
 
+/**
+ * Converts search results into a selectable format for UI field dropdowns.
+ * @param searchResults - The JSON string of search results.
+ * @returns An array of objects with label and value properties for use in select components.
+ */
 export function populateNonprofitSelect(
     searchResults: string,
 ): { label: string, value: string }[] {
@@ -146,6 +182,14 @@ export function populateNonprofitSelect(
     return [];
 }
 
+/**
+ * Fetches the raised details for a specific fundraiser.
+ * @param nonprofitIdentifier - The identifier of the nonprofit associated with the fundraiser.
+ * @param fundraiserIdentifier - The identifier of the fundraiser.
+ * @param publicKey - Public API key for authentication.
+ * @param context - The context object.
+ * @returns A promise that resolves to the raised details of the fundraiser or null if an error occurs.
+ */
 export async function fetchFundraiserRaisedDetails(
     nonprofitIdentifier: string,
     fundraiserIdentifier: string,
@@ -182,6 +226,13 @@ export async function fetchFundraiserRaisedDetails(
     }
 }
 
+/**
+ * Fetches the details of an existing fundraiser.
+ * @param nonprofitIdentifier - The identifier of the nonprofit associated with the fundraiser.
+ * @param fundraiserIdentifier - The identifier of the fundraiser.
+ * @param publicKey - Public API key for authentication.
+ * @returns A promise that resolves to an object containing the fundraiser information and associated nonprofit information, or null if an error occurs.
+ */
 export async function fetchExistingFundraiserDetails(
     nonprofitIdentifier: string,
     fundraiserIdentifier: string,
