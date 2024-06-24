@@ -211,14 +211,15 @@ const submitForm = Devvit.createForm(
   }
 )
 
-Devvit.addMenuItem({
-  label: 'Create a new fundraiser',
-  location: 'subreddit',
-  forUserType: 'moderator',
-  onPress: async (_event, { ui }) => {
-    return ui.showForm(searchTermForm);
-  },
-});
+// TODO: Uncomment this when we are ready to launch creating fundraisers with forms
+// Devvit.addMenuItem({
+//   label: 'Create a new fundraiser',
+//   location: 'subreddit',
+//   forUserType: 'moderator',
+//   onPress: async (_event, { ui }) => {
+//     return ui.showForm(searchTermForm);
+//   },
+// });
 
 Devvit.addMenuItem({
   label: 'Create a post from an existing fundraiser',
