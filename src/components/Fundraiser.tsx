@@ -42,20 +42,24 @@ export function FundraiserView(
 
     const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
 
+    const magicWidthPercentageProgressBar = 97;
+
     return (
         <vstack width={`${width}px`}>
             <vstack width="100%" alignment='center middle'>
-                <image
-                    url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
-                    width="100%"
-                    imageWidth={`${width}px`}
-                    imageHeight={`${imageHeight}px`}
-                    resizeMode="cover"
-                    description="Fundraiser Image"
-                />
+              {/* COVER IMAGE */}
+              <image
+                  url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
+                  width="100%"
+                  imageWidth={`${width}px`}
+                  imageHeight={`${imageHeight}px`}
+                  resizeMode="cover"
+                  description="Fundraiser Image"
+              />
             </vstack>
             <spacer size='small' />
             <hstack>
+              {/* LOGO, NONPROFIT NAME */}
               <spacer size='medium' />
               <image
                   url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
@@ -73,6 +77,7 @@ export function FundraiserView(
               <spacer size='medium' />
             </hstack>
             <hstack>
+              {/* FUNDRAISER TITLE */}
               <spacer size='medium' />
               <vstack width='100%' alignment='start middle'>
                   <text size="xlarge">
@@ -81,6 +86,7 @@ export function FundraiserView(
               </vstack>
             </hstack>
             <hstack>
+              {/* PAGINATED FUNDRAISER DESC */}
               <spacer size='medium' />
               <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight}px`} padding="xsmall">
                   {currentItems.map((page, index) => (
@@ -91,19 +97,25 @@ export function FundraiserView(
               </vstack>
             </hstack>
             <hstack alignment="start middle" gap="small">
+              {/* PAGINATION UI */}
+              <spacer size='medium' />
               <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} />
               <text>{currentPage + 1}</text>
               <button onPress={toNextPage} icon="right" disabled={descriptionPages.length <= 1 || currentPage === descriptionPages.length - 1} />
             </hstack>
             <spacer size='small' />
-            <hstack width='100%'>
-              <hstack width='50%' alignment='start'>
-                  <vstack>
-                      <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
-                      <text color='#706E6E'>Raised</text>
-                  </vstack>
-              </hstack>
-              <hstack width='50%' alignment='end'>
+            <vstack width={`${magicWidthPercentageProgressBar}%`}>
+              <hstack>
+                {/* PROGRESS BAR LABELS */}
+                <spacer size='medium' />
+                <hstack width={`${magicWidthPercentageProgressBar - 50}%`} alignment='start'>
+                    <vstack>
+                        <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
+                        <text color='#706E6E'>Raised</text>
+                    </vstack>
+                </hstack>
+                <hstack width='50%' alignment='end'>
+                  <spacer size='medium' />
                   <vstack alignment='end'>
                       <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text> {/* comes in as cents, formatted with commas */}
                       {goalType && (
@@ -112,15 +124,21 @@ export function FundraiserView(
                         </text>
                       )}
                   </vstack>
-              </hstack>
-            </hstack>
-            <vstack backgroundColor='#f3f7f7' cornerRadius='full' width='100%'>
-                <hstack backgroundColor='#008A10' width={`${goal ? (raised / goal) * 100 : 0}%`}>
-                  <spacer size='medium' shape='square' />
                 </hstack>
+              </hstack>
+              <hstack>
+                <spacer size='medium' />
+                <vstack backgroundColor='#f3f7f7' cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`}>
+                  {/* PROGRESS BAR */}
+                  <hstack backgroundColor='#008A10' width={`${goal ? (raised / goal) * 100 : 0}%`}>
+                    <spacer size='medium' shape='square' />
+                  </hstack>
+                </vstack>
+              </hstack>
             </vstack>
             <spacer size='small' />
             <vstack alignment='center middle' width='100%'>
+              {/* DONATE BUTTON */}
                 <button appearance='success' width='100%' maxWidth={30} onPress={() => {
                   if (fundraiserInfo) {
                     context.ui.navigateTo(fundraiserURL);
@@ -147,7 +165,7 @@ export const FundraiserPost: CustomPostType = {
 
     const cachedPostData = await getCachedForm(context, postId).catch(error => {
       console.error(`Failed to retrieve cached form for postId: ${postId}`, error);
-      return null; 
+      return null;
     });
     if (!cachedPostData) {
       console.error(`No cached form found for postId: ${postId}`);
