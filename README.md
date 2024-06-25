@@ -41,4 +41,4 @@ If you have any comments or suggestions, feel free to get in touch with us on Re
 
 ## License
 
-For now, our code is available for non-commercial use. It cannot be used to make a competing fundraising application on Reddit.
+Our code is available for use under the highly permissive BSD-3 license. We encourage you to reuse whatever elements of the codebase you find useful for your original projects, with appropriate attribution.
