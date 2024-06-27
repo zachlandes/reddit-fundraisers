@@ -20,17 +20,14 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
     const lines = description.split('\n');
     const pages: string[][] = [];
     let currentPage: string[] = [];
-    let consecutiveBlankLines = 0;
 
     lines.forEach(line => {
         if (line.trim().length === 0) {
-            // Preserve empty lines, but limit consecutive blank lines
-            if (consecutiveBlankLines < 2) {
+            // Only add blank line if it's not at the start of a new page
+            if (currentPage.length > 0) {
                 currentPage.push('');
-                consecutiveBlankLines++;
             }
         } else {
-            consecutiveBlankLines = 0;
             let remainingLine = line;
             while (remainingLine.length > 0) {
                 if (remainingLine.length <= maxCharsPerLine) {
@@ -45,14 +42,23 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
             }
         }
 
+        // Check if we need to start a new page
         if (currentPage.length >= maxLinesPerPage) {
-            pages.push(currentPage.slice(0, maxLinesPerPage));
-            currentPage = currentPage.slice(maxLinesPerPage);
+            // Remove trailing blank lines
+            while (currentPage.length > 0 && currentPage[currentPage.length - 1].trim() === '') {
+                currentPage.pop();
+            }
+            pages.push(currentPage);
+            currentPage = [];
         }
     });
 
     // Add any remaining lines to the last page
     if (currentPage.length > 0) {
+        // Remove trailing blank lines
+        while (currentPage.length > 0 && currentPage[currentPage.length - 1].trim() === '') {
+            currentPage.pop();
+        }
         // Pad the last page with empty lines if necessary
         while (currentPage.length < maxLinesPerPage) {
             currentPage.push('');
@@ -115,4 +121,3 @@ export async function sendFundraiserUpdates(context: Context, postId: string, up
     });
     console.log(`Sent real-time update for postId: ${postId}`);
 }
-

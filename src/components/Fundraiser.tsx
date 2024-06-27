@@ -31,7 +31,7 @@ export function FundraiserView(
 ): JSX.Element {
     const { ui } = context;
     const descriptionMaxHeight = totalHeight - 190;
-    const lineHeight = 15;
+    const lineHeight = 16;
     const lineWidth = width + 60;
     const imageHeight = 150; // Height of the cover image
     const logoHeight = 35; // Height of the logo image
