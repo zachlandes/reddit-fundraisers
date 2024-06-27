@@ -40,9 +40,7 @@ export function FundraiserView(
         ? paginateText(fundraiserInfo.description, totalHeight - 150, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : [['Loading description...']];
 
-    const flattenedPages = descriptionPages.map(page => page.join('\n'));
-
-    const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, flattenedPages, 1);
+    const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
 
     const magicWidthPercentageProgressBar = 97;
 
@@ -91,12 +89,12 @@ export function FundraiserView(
               {/* PAGINATED FUNDRAISER DESC */}
               <spacer size='medium' />
               <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight+10}px`} padding="xsmall">
-                {currentItems[0].split('\n').map((line, lineIndex) => (
+                {currentItems[0].map((line, lineIndex) => (
                   <text key={`line-${lineIndex}`} size='small'>
-                    {line}
+                    {line === '' ? '\u00A0' : line}
                   </text>
                 ))}
-              </vstack>
+          </vstack>
             </hstack>
             <hstack alignment="start middle" gap="small">
               {/* PAGINATION UI */}

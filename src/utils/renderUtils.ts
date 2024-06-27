@@ -115,3 +115,4 @@ export async function sendFundraiserUpdates(context: Context, postId: string, up
     });
     console.log(`Sent real-time update for postId: ${postId}`);
 }
+
