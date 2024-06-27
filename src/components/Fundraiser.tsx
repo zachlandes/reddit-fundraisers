@@ -58,7 +58,7 @@ export function FundraiserView(
               />
             </vstack>
             <spacer size='small' />
-            <hstack>
+            <hstack alignment='middle'>
               {/* LOGO, NONPROFIT NAME */}
               <spacer size='medium' />
               <image
