@@ -1,14 +1,15 @@
 import { Context, CustomPostType, Devvit } from '@devvit/public-api';
-import { Currency, FundraiserCreationResponse, EveryFundraiserRaisedDetails, SerializedFundraiserCreationResponse, EveryNonprofitInfo, EveryExistingFundraiserInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
+import { EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
 import { getCachedForm } from '../utils/Redis.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
 import { getEveryPublicKey } from '../utils/keyManagement.js';
-import { serializeFundraiserCreationResponse, serializeExistingFundraiserResponse } from '../utils/dateUtils.js';
+import { serializeExistingFundraiserResponse } from '../utils/dateUtils.js';
 import { usePagination } from '@devvit/kit';
 import { paginateText } from '../utils/renderUtils.js';
 import pixelWidth from 'string-pixel-width';
 import { fetchExistingFundraiserDetails } from '../sources/Every.js';
 import { ImageManager } from '../utils/imageUtils.js';
+import { FancyButton } from './FancyButton.js';
 
 function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
@@ -130,7 +131,7 @@ export function FundraiserView(
                 <spacer size='medium' />
                 <vstack backgroundColor='#f3f7f7' cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`}>
                   {/* PROGRESS BAR */}
-                  <hstack backgroundColor='#008A10' width={`${goal ? (raised / goal) * 100 : 0}%`}>
+                  <hstack backgroundColor='#018669' width={`${goal ? (raised / goal) * 100 : 0}%`}>
                     <spacer size='medium' shape='square' />
                   </hstack>
                 </vstack>
@@ -139,11 +140,18 @@ export function FundraiserView(
             <spacer size='small' />
             <vstack alignment='center middle' width='100%'>
               {/* DONATE BUTTON */}
-                <button appearance='success' width='100%' maxWidth={30} onPress={() => {
+              <FancyButton
+                backgroundColor="#018669"
+                textColor="white"
+                height={40}
+                onPress={() => {
                   if (fundraiserInfo) {
                     context.ui.navigateTo(fundraiserURL);
                   }
-                }}>Donate</button>
+                }}
+              >
+                Donate
+              </FancyButton>
             </vstack>
         </vstack>
     )

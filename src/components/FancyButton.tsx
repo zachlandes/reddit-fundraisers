@@ -1,3 +1,24 @@
+/* FancyButton by u/Block_Parser
+
+How to use:
+Replace button code with
+<vstack alignment='center middle' width='100%'>
+  <FancyButton
+    icon="day"
+    backgroundColor="#008A10"
+    textColor="white"
+    height={40}
+    onPress={() => {
+      if (fundraiserInfo) {
+        context.ui.navigateTo(fundraiserURL);
+      }
+    }}
+  >
+    Donate
+  </FancyButton>
+</vstack>
+
+**/
 import {Devvit} from '@devvit/public-api'
 
 interface FancyButtonProps extends Omit<Devvit.Blocks.StackProps, "onPress"> {
@@ -6,6 +27,7 @@ interface FancyButtonProps extends Omit<Devvit.Blocks.StackProps, "onPress"> {
   onPress: Devvit.Blocks.OnPressEventHandler
   textColor?: Devvit.Blocks.ColorString
   backgroundColor?: `#${string}`
+  icon?: Devvit.Blocks.IconProps["name"]
 }
 
 const sharedProps: Partial<FancyButtonProps> = {
@@ -23,6 +45,7 @@ export const FancyButton: Devvit.BlockComponent<FancyButtonProps> = ({
   textColor = "white",
   children,
   onPress,
+  icon,
   ...elemProps
 }) => {
   function handlePress(e: Devvit.Blocks.OnPressEvent) {
@@ -37,7 +60,8 @@ export const FancyButton: Devvit.BlockComponent<FancyButtonProps> = ({
         <vstack {...sharedProps}>
           <vstack {...sharedProps} height={"1px"} />
           <vstack {...sharedProps} height={`${height - 5}px`} backgroundColor={backgroundColor}>
-            <hstack height="100%" alignment='middle center'>
+            <hstack height="100%" alignment='middle center' gap="small">
+              {icon? <icon name={icon} color={textColor} /> : null}
               <text color={textColor} size="large">
                 {children}
               </text>
@@ -49,24 +73,3 @@ export const FancyButton: Devvit.BlockComponent<FancyButtonProps> = ({
   )
 }
 
-
-/*
-How to use:
-Replace button code with 
-<vstack alignment='center middle' width='100%'>
-  <FancyButton 
-    backgroundColor="#008A10" 
-    textColor="white" 
-    height={40} 
-    onPress={() => {
-      if (fundraiserInfo) {
-        context.ui.navigateTo(fundraiserURL);
-      }
-    }}
-  >
-    Donate
-  </FancyButton>
-</vstack>
-
-
-*/
