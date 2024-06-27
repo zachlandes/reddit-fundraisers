@@ -37,7 +37,7 @@ export function FundraiserView(
     const logoHeight = 35; // Height of the logo image
     const descriptionContainerMaxHeight = descriptionMaxHeight - imageHeight - logoHeight;
     const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
+        ? paginateText(fundraiserInfo.description, totalHeight - 150, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : [['Loading description...']];
 
     const flattenedPages = descriptionPages.map(page => page.join('\n'));
@@ -90,7 +90,7 @@ export function FundraiserView(
             <hstack>
               {/* PAGINATED FUNDRAISER DESC */}
               <spacer size='medium' />
-              <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight}px`} padding="xsmall">
+              <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight+10}px`} padding="xsmall">
                 {currentItems[0].split('\n').map((line, lineIndex) => (
                   <text key={`line-${lineIndex}`} size='small'>
                     {line}
