@@ -31,16 +31,18 @@ export function FundraiserView(
 ): JSX.Element {
     const { ui } = context;
     const descriptionMaxHeight = totalHeight - 190;
-    const lineHeight = 17;
+    const lineHeight = 15;
     const lineWidth = width + 60;
     const imageHeight = 150; // Height of the cover image
     const logoHeight = 35; // Height of the logo image
     const descriptionContainerMaxHeight = descriptionMaxHeight - imageHeight - logoHeight;
     const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, descriptionMaxHeight-20, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
-        : ['Loading description...'];
+        ? paginateText(fundraiserInfo.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
+        : [['Loading description...']];
 
-    const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
+    const flattenedPages = descriptionPages.map(page => page.join('\n'));
+
+    const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, flattenedPages, 1);
 
     const magicWidthPercentageProgressBar = 97;
 
@@ -89,11 +91,11 @@ export function FundraiserView(
               {/* PAGINATED FUNDRAISER DESC */}
               <spacer size='medium' />
               <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight}px`} padding="xsmall">
-                  {currentItems.map((page, index) => (
-                      <text key={index.toString()} size='small' wrap overflow="ellipsis">
-                          {page}
-                      </text>
-                  ))}
+                {currentItems[0].split('\n').map((line, lineIndex) => (
+                  <text key={`line-${lineIndex}`} size='small'>
+                    {line}
+                  </text>
+                ))}
               </vstack>
             </hstack>
             <hstack alignment="start middle" gap="small">

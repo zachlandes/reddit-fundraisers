@@ -12,48 +12,52 @@ import { EveryFundraiserRaisedDetails } from "../types/index.js";
  * @param charWidth Average character width.
  * @param imageHeight Height of any images above the text.
  * @param logoHeight Height of any logos above the text.
- * @returns An array of strings, each representing a page of text.
+ * @returns An array of arrays of strings, where each inner array represents a page of text.
  */
-export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number, imageHeight: number, logoHeight: number): string[] {
-    // Calculate the maximum number of lines per page considering the heights of images and logos
+export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number, imageHeight: number, logoHeight: number): string[][] {
     const maxLinesPerPage = Math.floor((totalHeight - imageHeight - logoHeight) / lineHeight) - 1;
-    console.log(`Total height available: ${totalHeight}px, Max lines per page: ${maxLinesPerPage}`);
-
     const maxCharsPerLine = Math.floor(lineWidth / charWidth);
-    const words = description.split(' ');
-    const pages: string[] = [];
-    let currentPage = '';
-    let currentLine = '';
-    let currentLineCount = 0;
+    const lines = description.split('\n');
+    const pages: string[][] = [];
+    let currentPage: string[] = [];
+    let consecutiveBlankLines = 0;
 
-    words.forEach(word => {
-        // Check if adding this word would exceed the max characters per line
-        if (currentLine.length + word.length + 1 > maxCharsPerLine) {
-            // If adding this word exceeds the line, add the current line to the page
-            currentPage += currentLine + '\n';
-            currentLine = word + ' '; // Start a new line with the current word
-            currentLineCount++;
-
-            // Check if adding this line exceeds the max lines per page
-            if (currentLineCount >= maxLinesPerPage) {
-                pages.push(currentPage.trim());
-                console.log(`Page added with ${currentLineCount} lines.`);
-                currentPage = '';
-                currentLineCount = 0;
+    lines.forEach(line => {
+        if (line.trim().length === 0) {
+            // Preserve empty lines, but limit consecutive blank lines
+            if (consecutiveBlankLines < 2) {
+                currentPage.push('');
+                consecutiveBlankLines++;
             }
         } else {
-            // If not, add the word to the current line
-            currentLine += word + ' ';
+            consecutiveBlankLines = 0;
+            let remainingLine = line;
+            while (remainingLine.length > 0) {
+                if (remainingLine.length <= maxCharsPerLine) {
+                    currentPage.push(remainingLine);
+                    remainingLine = '';
+                } else {
+                    let splitIndex = remainingLine.lastIndexOf(' ', maxCharsPerLine);
+                    if (splitIndex === -1) splitIndex = maxCharsPerLine;
+                    currentPage.push(remainingLine.substring(0, splitIndex).trim());
+                    remainingLine = remainingLine.substring(splitIndex).trim();
+                }
+            }
+        }
+
+        if (currentPage.length >= maxLinesPerPage) {
+            pages.push(currentPage.slice(0, maxLinesPerPage));
+            currentPage = currentPage.slice(maxLinesPerPage);
         }
     });
 
-    // Add the last line and page if not empty
-    if (currentLine) {
-        currentPage += currentLine;
-    }
-    if (currentPage) {
-        pages.push(currentPage.trim());
-        console.log(`Last page added with ${currentLineCount + 1} lines (including the last line).`);
+    // Add any remaining lines to the last page
+    if (currentPage.length > 0) {
+        // Pad the last page with empty lines if necessary
+        while (currentPage.length < maxLinesPerPage) {
+            currentPage.push('');
+        }
+        pages.push(currentPage);
     }
 
     return pages;
