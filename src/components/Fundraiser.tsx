@@ -30,14 +30,14 @@ export function FundraiserView(
   fundraiserURL: string
 ): JSX.Element {
     const { ui } = context;
-    const descriptionMaxHeight = totalHeight - 190;
+    const descriptionMaxHeight = totalHeight - 206;
     const lineHeight = 16;
     const lineWidth = width + 60;
     const imageHeight = 150; // Height of the cover image
     const logoHeight = 35; // Height of the logo image
     const descriptionContainerMaxHeight = descriptionMaxHeight - imageHeight - logoHeight;
     const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, totalHeight - 150, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
+        ? paginateText(fundraiserInfo.description, descriptionMaxHeight +40, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
         : [['Loading description...']];
 
     const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
