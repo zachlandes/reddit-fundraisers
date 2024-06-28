@@ -13,7 +13,7 @@ import { FancyButton } from './FancyButton.js';
 
 function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
-  return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}?viewport=desktop#/donate`; //FIXME: viewport=dynamic value?
+  return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate/pay`; //FIXME: dynamic value?
 }
 
 export function FundraiserView(
@@ -68,6 +68,7 @@ export function FundraiserView(
                   imageHeight={`${logoHeight}px`}
                   description="Nonprofit Logo"
               />
+              <spacer size='xsmall' />
               <text weight='bold' onPress={() => {
                 if (nonprofitInfo?.profileUrl) {
                   ui.navigateTo(nonprofitInfo.profileUrl);
