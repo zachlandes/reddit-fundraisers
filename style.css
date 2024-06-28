@@ -4,7 +4,7 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Reddit Sans', sans-serif;
     font-style: normal;
     font-weight: 400;
     text-decoration: none;
@@ -72,10 +72,31 @@ html {
 /* Content Section Styles */
 .content-section {
     display: flex;
-    align-items: center;
-    padding: 50px;
-    background-color: #FFF;
     flex-wrap: wrap;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.content-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.section-text-right .content-container {
+    flex-direction: row-reverse;
+}
+
+.content-image, .content-text {
+    flex: 1;
+    padding: 10px;
+}
+
+.content-image img {
+    width: 100%;
+    height: auto;
 }
 
 .content-text {
@@ -91,8 +112,8 @@ html {
 }
 
 .content-text p {
-    font-size: 1.2em;
-    margin-bottom: 30px;
+    font-size: 1rem;
+    margin: 0 0 1.4rem;
 }
 
 .content-image {
@@ -131,4 +152,30 @@ html {
         width: 100%;
         box-sizing: border-box;
     }
+}
+
+.reddit-sans-bold {
+    font-family: 'Reddit Sans', sans-serif;
+    font-weight: 700; /* Example for bold text */
+}
+
+.reddit-sans-light {
+    font-family: 'Reddit Sans', sans-serif;
+    font-weight: 300; /* Example for light text */
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Reddit Sans', sans-serif;
+    font-feature-settings: "ss01";
+    font-weight: 800;
+    color: #231f20;
+    text-transform: none;
+}
+
+h3, h4 {
+    margin-bottom: 20px;
+}
+
+h3 {
+    font-size: 40px;
 }
