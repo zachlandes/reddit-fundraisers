@@ -1,0 +1,134 @@
+/* General Styles */
+*, *:after, *:before {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    text-decoration: none;
+    background-color: #F4F6FA;
+    color: #231f20;
+    font-size: 20px;
+    line-height: 1.4;
+    word-break: break-word;
+    -webkit-font-smoothing: antialiased;
+}
+
+html {
+    font-size: 20px;
+    line-height: 1.15;
+    -webkit-text-size-adjust: 100%;
+}
+
+.header {
+    background-color: #FF4500;
+    color: white;
+    padding: 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-content {
+    max-width: 50%;
+}
+
+.header-content h1 {
+    font-size: 3em;
+    line-height: 1;
+}
+
+.header-content p {
+    font-size: 1.5em;
+}
+
+.button {
+    display: inline-block;
+    background-color: white;
+    color: #FF4500;
+    padding: 10px 20px;
+    border: 3px solid #ffffff;
+    text-decoration: none;
+    font-size: 16px;
+    font-family: 'Reddit Sans', sans-serif;
+    font-weight: 600;
+    margin-top: 20px;
+}
+
+.button:hover,
+.button:focus {
+    background-color: rgba(255,69,0,1.0);
+    color: #FFFFFF;
+}
+
+.header-image img {
+    max-width: 100%;
+    height: auto;
+    width: 150px; /* Adjust this to fit your design */
+}
+
+/* Content Section Styles */
+.content-section {
+    display: flex;
+    align-items: center;
+    padding: 50px;
+    background-color: #FFF;
+    flex-wrap: wrap;
+}
+
+.content-text {
+    max-width: 48.936%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 2.128%;
+}
+
+.content-text h2 {
+    font-size: 2em;
+}
+
+.content-text p {
+    font-size: 1.2em;
+    margin-bottom: 30px;
+}
+
+.content-image {
+    max-width: 48.936%;
+    margin-left: 2.128%;
+}
+
+.content-image img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Media Queries */
+@media (min-width: 768px) {
+    .cell_17145157154918-vertical-alignment {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+}
+
+@media (min-width: 1280px) {
+    .row-fluid [class*=span]:first-child {
+        margin-left: 0;
+    }
+
+    .row-fluid .span6 {
+        width: 48.717%;
+    }
+
+    .row-fluid [class*=span] {
+        display: block;
+        float: left;
+        margin-left: 2.564%;
+        min-height: 1px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
