@@ -10,6 +10,7 @@ import pixelWidth from 'string-pixel-width';
 import { fetchExistingFundraiserDetails } from '../sources/Every.js';
 import { ImageManager } from '../utils/imageUtils.js';
 import { FancyButton } from './FancyButton.js';
+import { CircularLogo } from './CircularLogo.js';
 
 function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
@@ -62,11 +63,10 @@ export function FundraiserView(
             <hstack alignment='middle'>
               {/* LOGO, NONPROFIT NAME */}
               <spacer size='medium' />
-              <image
-                  url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
-                  imageWidth={"35px"}
-                  imageHeight={`${logoHeight}px`}
-                  description="Nonprofit Logo"
+              <CircularLogo
+                url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
+                size={35}
+                description="Nonprofit Logo"
               />
               <spacer size='xsmall' />
               <text weight='bold' onPress={() => {
