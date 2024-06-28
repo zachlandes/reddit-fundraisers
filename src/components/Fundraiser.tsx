@@ -29,7 +29,8 @@ export function FundraiserView(
   charWidth: number,
   coverImageUrl: string | null,
   logoImageUrl: string | null,
-  fundraiserURL: string
+  fundraiserURL: string,
+  supporters: number
 ): JSX.Element {
     const { ui } = context;
     const descriptionMaxHeight = totalHeight - 206;
@@ -138,21 +139,32 @@ export function FundraiserView(
                 </vstack>
               </hstack>
             </vstack>
-            <spacer size='small' />
-            <vstack alignment='center middle' width='100%'>
-              {/* DONATE BUTTON */}
-              <FancyButton
-                backgroundColor="#018669"
-                textColor="white"
-                height={40}
-                onPress={() => {
-                  if (fundraiserInfo) {
-                    context.ui.navigateTo(fundraiserURL);
-                  }
-                }}
-              >
-                Donate
-              </FancyButton>
+            <vstack width={`${magicWidthPercentageProgressBar}%`}>
+              <hstack width='100%' alignment='center middle'>
+                <hstack width='33%' alignment='start middle'>
+                  <spacer grow />
+                </hstack>
+                <hstack width='34%' alignment='center middle'>
+                  {/* DONATE BUTTON */}
+                  <FancyButton
+                    backgroundColor="#018669"
+                    textColor="white"
+                    height={40}
+                    onPress={() => {
+                      if (fundraiserInfo) {
+                        context.ui.navigateTo(fundraiserURL);
+                      }
+                    }}
+                  >
+                    Donate
+                  </FancyButton>
+                </hstack>
+                <hstack width='33%' alignment='end middle'>
+                  <text size='small' color='#706E6E'>
+                    {supporters} Supporters{supporters === 0 ? " - Be the first!" : ""}
+                  </text>
+                </hstack>
+              </hstack>
             </vstack>
         </vstack>
     )
@@ -190,6 +202,7 @@ export const FundraiserPost: CustomPostType = {
     const [raised, setRaised] = useState<number>(fundraiserRaisedDetails ? fundraiserRaisedDetails.raised : 0);
     const [goal, setGoal] = useState<number | null>(fundraiserRaisedDetails ? fundraiserRaisedDetails.goalAmount : null);
     const [nonprofitInfo, setNonprofitInfo] = useState<EveryNonprofitInfo | null>(initialNonprofitInfo);
+    const [supporters, setSupporters] = useState<number>(fundraiserRaisedDetails ? fundraiserRaisedDetails.supporters : 0);
 
     const publicKey = await getEveryPublicKey(context);
 
@@ -241,6 +254,10 @@ export const FundraiserPost: CustomPostType = {
             console.log('Received update for goal amount:', data.updatedDetails.goalAmount);
             setGoal(data.updatedDetails.goalAmount);
           }
+          if (data.updatedDetails.supporters !== undefined && data.updatedDetails.supporters !== fundraiserRaisedDetails?.supporters) {
+            console.log('Received update for supporters count:', data.updatedDetails.supporters);
+            setSupporters(data.updatedDetails.supporters);
+          }
         }
       }
     });
@@ -252,7 +269,7 @@ export const FundraiserPost: CustomPostType = {
 
     return (
       <blocks>
-        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, charWidth, coverImageUrlState, logoImageUrlState, fundraiserURL)}
+        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, charWidth, coverImageUrlState, logoImageUrlState, fundraiserURL, supporters)}
       </blocks>
     );
   }
