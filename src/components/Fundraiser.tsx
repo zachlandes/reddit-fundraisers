@@ -102,9 +102,9 @@ export function FundraiserView(
             <hstack alignment="start middle" gap="small">
               {/* PAGINATION UI */}
               <spacer size='medium' />
-              <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} />
+              <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small"/>
               <text>{currentPage + 1}</text>
-              <button onPress={toNextPage} icon="right" disabled={descriptionPages.length <= 1 || currentPage === descriptionPages.length - 1} />
+              <button onPress={toNextPage} icon="right" disabled={descriptionPages.length <= 1 || currentPage === descriptionPages.length - 1} size="small"/>
             </hstack>
             <spacer size='small' />
             <vstack width={`${magicWidthPercentageProgressBar}%`}>
