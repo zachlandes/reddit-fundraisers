@@ -1,4 +1,4 @@
-import { Context, CustomPostType, Devvit } from '@devvit/public-api';
+import { Context, CustomPostType, Devvit} from '@devvit/public-api';
 import { EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
 import { getCachedForm } from '../utils/Redis.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
@@ -17,6 +17,8 @@ function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiser
   return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate/pay`; //FIXME: dynamic value?
 }
 
+const DEBUG_MODE = true;
+
 export function FundraiserView(
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
   raised: number,
@@ -26,30 +28,37 @@ export function FundraiserView(
   width: number,
   totalHeight: number,
   nonprofitInfo: EveryNonprofitInfo | null,
-  charWidth: number,
   coverImageUrl: string | null,
   logoImageUrl: string | null,
   fundraiserURL: string,
   supporters: number
 ): JSX.Element {
     const { ui } = context;
-    const descriptionMaxHeight = totalHeight - 206;
-    const lineHeight = 16;
-    const lineWidth = width + 60;
-    const imageHeight = 150; // Height of the cover image
-    const logoHeight = 35; // Height of the logo image
-    const descriptionContainerMaxHeight = descriptionMaxHeight - imageHeight - logoHeight;
-    const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, descriptionMaxHeight +40, lineHeight, lineWidth, charWidth, imageHeight, logoHeight)
-        : [['Loading description...']];
+    const descriptionHeightPct = 26;
+    const descriptionMaxHeight = totalHeight*(descriptionHeightPct/100);
+    const lineHeight = 17;
+    const lineWidth = 393 * 0.95;
+    const imageHeight = 150;
 
-    const { currentPage, currentItems, toNextPage, toPrevPage } = usePagination(context, descriptionPages, 1);
+    // Calculate charWidth based on the actual description text
+    const fontSize = 12; // Adjust this value based on your text size
+    const fontFamily = "helvetica";
+    const sampleText = fundraiserInfo?.description.slice(0, 100) || 'Sample Text';
+    const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize } ) / sampleText.length;
+    console.log("charWidth: ", charWidth);
+
+    const descriptionPages = fundraiserInfo
+        ? paginateText(fundraiserInfo.description, descriptionMaxHeight, lineHeight, lineWidth, charWidth)
+        : ['Loading description...'];
+
+    const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
 
     const magicWidthPercentageProgressBar = 97;
 
     return (
-        <vstack width={`${width}px`}>
-            <vstack width="100%" alignment='center middle'>
+        <vstack width="100%" height={100} borderColor='red' border='thin' alignment='center' grow>
+          <vstack maxWidth={'393px'} height={100} borderColor='red' border='thin'>
+            <vstack width="100%" height={30} alignment='center middle' borderColor='red' border='thin'>
               {/* COVER IMAGE */}
               <image
                   url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
@@ -60,112 +69,121 @@ export function FundraiserView(
                   description="Fundraiser Image"
               />
             </vstack>
-            <spacer size='small' />
-            <hstack alignment='middle'>
-              {/* LOGO, NONPROFIT NAME */}
-              <spacer size='medium' />
-              <CircularLogo
-                url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
-                size={35}
-                description="Nonprofit Logo"
-              />
-              <spacer size='xsmall' />
-              <text weight='bold' onPress={() => {
-                if (nonprofitInfo?.profileUrl) {
-                  ui.navigateTo(nonprofitInfo.profileUrl);
-                }
-              }}>
-                {nonprofitInfo?.name}
-              </text>
-              <spacer size='medium' />
-            </hstack>
-            <hstack>
-              {/* FUNDRAISER TITLE */}
-              <spacer size='medium' />
-              <vstack width='100%' alignment='start middle'>
-                  <text size="xlarge">
-                    {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
-                  </text>
-              </vstack>
-            </hstack>
-            <hstack>
-              {/* PAGINATED FUNDRAISER DESC */}
-              <spacer size='medium' />
-              <vstack width='100%' minHeight={`${descriptionContainerMaxHeight}px`} maxHeight={`${descriptionContainerMaxHeight+10}px`} padding="xsmall">
-                {currentItems[0].map((line, lineIndex) => (
-                  <text key={`line-${lineIndex}`} size='small'>
-                    {line === '' ? '\u00A0' : line}
-                  </text>
-                ))}
-          </vstack>
-            </hstack>
-            <hstack alignment="start middle" gap="small">
-              {/* PAGINATION UI */}
-              <spacer size='medium' />
-              <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small"/>
-              <text>{currentPage + 1}</text>
-              <button onPress={toNextPage} icon="right" disabled={descriptionPages.length <= 1 || currentPage === descriptionPages.length - 1} size="small"/>
-            </hstack>
-            <spacer size='small' />
-            <vstack width={`${magicWidthPercentageProgressBar}%`}>
-              <hstack>
-                {/* PROGRESS BAR LABELS */}
+            <spacer grow />
+            <vstack width="100%" borderColor='blue' height={46} border='thin'>
+              <hstack alignment='middle' borderColor='red' border='thin'>
+                {/* LOGO, NONPROFIT NAME */}
                 <spacer size='medium' />
-                <hstack width={`${magicWidthPercentageProgressBar - 50}%`} alignment='start'>
-                    <vstack>
-                        <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
-                        <text color='#706E6E'>Raised</text>
-                    </vstack>
-                </hstack>
-                <hstack width='50%' alignment='end'>
-                  <spacer size='medium' />
-                  <vstack alignment='end'>
-                      <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text> {/* comes in as cents, formatted with commas */}
-                      {goalType && (
-                        <text color='#706E6E'>
-                          {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
-                        </text>
-                      )}
-                  </vstack>
-                </hstack>
+                <CircularLogo
+                  url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
+                  size={35}
+                  description="Nonprofit Logo"
+                />
+                <spacer size='xsmall' />
+                <text weight='bold' onPress={() => {
+                  if (nonprofitInfo?.profileUrl) {
+                    ui.navigateTo(nonprofitInfo.profileUrl);
+                  }
+                }}>
+                  {nonprofitInfo?.name}
+                </text>
+                <spacer size='medium' />
               </hstack>
-              <hstack>
-                <spacer size='medium' />
-                <vstack backgroundColor='#f3f7f7' cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`}>
-                  {/* PROGRESS BAR */}
-                  <hstack backgroundColor='#018669' width={`${goal ? (raised / goal) * 100 : 0}%`}>
-                    <spacer size='medium' shape='square' />
-                  </hstack>
+              <hstack borderColor='red' border='thin' width={100}>
+                {/* FUNDRAISER TITLE */}
+                <spacer grow />
+                <vstack width='95%' alignment='start middle' borderColor='red' border='thin'>
+                    <text size="large">
+                      {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
+                    </text>
                 </vstack>
+                <spacer grow />
+              </hstack>
+              <hstack width={100} borderColor='red' border='thin'>
+                {/* PAGINATED FUNDRAISER DESC */}
+                <spacer grow />
+                <vstack width='95%' height={100} minHeight={descriptionMaxHeight} padding="xsmall" borderColor='blue' border='thin'>
+                  <text size='small' wrap={true} overflow='ellipsis'>
+                    {currentItems[0]}
+                  </text>
+                </vstack>
+                <spacer grow />
+              </hstack>
+              <hstack alignment="start middle" gap="small" width={100} borderColor='red' border='thin'>
+                <spacer grow />
+                <hstack borderColor='red' width = {`${magicWidthPercentageProgressBar}%`} border='thin' alignment="start middle">
+                  {/* PAGINATION UI */}
+                  <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small"/>
+                  <text>{currentPage + 1} / {pagesCount}</text>
+                  <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small"/>
+                </hstack>
+                <spacer grow />
               </hstack>
             </vstack>
-            <vstack width={`${magicWidthPercentageProgressBar}%`}>
-              <hstack width='100%' alignment='center middle'>
-                <hstack width='33%' alignment='start middle'>
+            <vstack width={100} height={24} borderColor='red' border='thin'>
+              <vstack width={100} borderColor='red' border='thin'>
+                <hstack borderColor='red' border='thin'>
+                  {/* PROGRESS BAR LABELS */}
+                  <spacer grow />
+                  <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor='red' border='thin'>
+                      <vstack borderColor='red' border='thin'>
+                          <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
+                          <text color='#706E6E'>Raised</text>
+                      </vstack>
+                  </hstack>
+                  <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='end' borderColor='red' border='thin'>
+                    <spacer size='medium' />
+                    <vstack alignment='end' borderColor='red' border='thin'>
+                        <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text> {/* comes in as cents, formatted with commas */}
+                        {goalType && (
+                          <text color='#706E6E'>
+                            {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
+                          </text>
+                        )}
+                    </vstack>
+                  </hstack>
                   <spacer grow />
                 </hstack>
-                <hstack width='34%' alignment='center middle'>
-                  {/* DONATE BUTTON */}
-                  <FancyButton
-                    backgroundColor="#018669"
-                    textColor="white"
-                    height={40}
-                    onPress={() => {
-                      if (fundraiserInfo) {
-                        context.ui.navigateTo(fundraiserURL);
-                      }
-                    }}
-                  >
-                    Donate
-                  </FancyButton>
+                <hstack borderColor='red' border='thin'>
+                  <spacer grow />
+                  <vstack backgroundColor='#f3f7f7' cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} borderColor='red' border='thin'>
+                    {/* PROGRESS BAR */}
+                    <hstack backgroundColor='#018669' width={`${goal ? (raised / goal) * 100 : 0}%`} borderColor='red' border='thin'>
+                      <spacer size='medium' shape='square' />
+                    </hstack>
+                  </vstack>
+                  <spacer grow />
                 </hstack>
-                <hstack width='33%' alignment='end middle'>
-                  <text size='small' color='#706E6E'>
-                    {supporters} Supporters{supporters === 0 ? " - Be the first!" : ""}
-                  </text>
+              </vstack>
+              <vstack width={100} borderColor='red' border='thin'>
+                <hstack width='100%' alignment='center middle' borderColor='red' border='thin'>
+                  <hstack width='33%' alignment='start middle' borderColor='red' border='thin'>
+                    <spacer grow />
+                  </hstack>
+                  <hstack width='34%' alignment='center middle' borderColor='red' border='thin'>
+                    {/* DONATE BUTTON */}
+                    <FancyButton
+                      backgroundColor="#018669"
+                      textColor="white"
+                      height={40}
+                      onPress={() => {
+                        if (fundraiserInfo) {
+                          context.ui.navigateTo(fundraiserURL);
+                        }
+                      }}
+                    >
+                      Donate
+                    </FancyButton>
+                  </hstack>
+                  <hstack width='33%' alignment='end middle' borderColor='red' border='thin'>
+                    <text size='small' color='#706E6E'>
+                      {supporters} Supporters{supporters === 0 ? " - Be the first!" : ""}
+                    </text>
+                  </hstack>
                 </hstack>
-              </hstack>
+              </vstack>
             </vstack>
+          </vstack>
         </vstack>
     )
 }
@@ -263,13 +281,9 @@ export const FundraiserPost: CustomPostType = {
     });
     updateChannel.subscribe();
 
-    // Measure character width using string-pixel-width with a supported font
-    const fontStack = "arial";
-    const charWidth = pixelWidth('0', { font: fontStack, size: 12 });
-
     return (
       <blocks>
-        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, charWidth, coverImageUrlState, logoImageUrlState, fundraiserURL, supporters)}
+        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, coverImageUrlState, logoImageUrlState, fundraiserURL, supporters)}
       </blocks>
     );
   }

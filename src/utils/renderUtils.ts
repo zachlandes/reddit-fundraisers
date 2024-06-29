@@ -14,56 +14,27 @@ import { EveryFundraiserRaisedDetails } from "../types/index.js";
  * @param logoHeight Height of any logos above the text.
  * @returns An array of arrays of strings, where each inner array represents a page of text.
  */
-export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number, imageHeight: number, logoHeight: number): string[][] {
-    const maxLinesPerPage = Math.floor((totalHeight - imageHeight - logoHeight) / lineHeight) - 1;
-    const maxCharsPerLine = Math.floor(lineWidth / charWidth);
-    const lines = description.split('\n');
-    const pages: string[][] = [];
-    let currentPage: string[] = [];
+export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number): string[] {
+    const maxLinesPerPage = Math.floor((totalHeight) / lineHeight) - 1;
+    console.log('maxLinesPerPage', maxLinesPerPage);
+    const approxCharsPerPage = maxLinesPerPage * Math.floor(lineWidth / charWidth);
+    console.log('approxCharsPerPage', approxCharsPerPage);
+    const pages: string[] = [];
+    let currentPage = '';
+    let charCount = 0;
 
-    lines.forEach(line => {
-        if (line.trim().length === 0) {
-            // Only add blank line if it's not at the start of a new page
-            if (currentPage.length > 0) {
-                currentPage.push('');
-            }
-        } else {
-            let remainingLine = line;
-            while (remainingLine.length > 0) {
-                if (remainingLine.length <= maxCharsPerLine) {
-                    currentPage.push(remainingLine);
-                    remainingLine = '';
-                } else {
-                    let splitIndex = remainingLine.lastIndexOf(' ', maxCharsPerLine);
-                    if (splitIndex === -1) splitIndex = maxCharsPerLine;
-                    currentPage.push(remainingLine.substring(0, splitIndex).trim());
-                    remainingLine = remainingLine.substring(splitIndex).trim();
-                }
-            }
+    description.split('\n').forEach(paragraph => {
+        if (charCount + paragraph.length > approxCharsPerPage && currentPage) {
+            pages.push(currentPage.trim());
+            currentPage = '';
+            charCount = 0;
         }
-
-        // Check if we need to start a new page
-        if (currentPage.length >= maxLinesPerPage) {
-            // Remove trailing blank lines
-            while (currentPage.length > 0 && currentPage[currentPage.length - 1].trim() === '') {
-                currentPage.pop();
-            }
-            pages.push(currentPage);
-            currentPage = [];
-        }
+        currentPage += paragraph + '\n';
+        charCount += paragraph.length + 1; // +1 for the newline
     });
 
-    // Add any remaining lines to the last page
-    if (currentPage.length > 0) {
-        // Remove trailing blank lines
-        while (currentPage.length > 0 && currentPage[currentPage.length - 1].trim() === '') {
-            currentPage.pop();
-        }
-        // Pad the last page with empty lines if necessary
-        while (currentPage.length < maxLinesPerPage) {
-            currentPage.push('');
-        }
-        pages.push(currentPage);
+    if (currentPage) {
+        pages.push(currentPage.trim());
     }
 
     return pages;
