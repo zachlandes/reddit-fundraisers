@@ -56,7 +56,7 @@ export function FundraiserView(
 
     return (
         <vstack width="100%" height={100} borderColor='red' border='thin' alignment='center' grow>
-          <vstack maxWidth={'393px'} height={100} borderColor='red' border='thin'>
+          <vstack maxWidth={'393px'} height={100} width={100} borderColor='red' border='thin'>
             <vstack width="100%" height={30} alignment='center middle' borderColor='red' border='thin'>
               {/* COVER IMAGE */}
               <image
