@@ -13,13 +13,13 @@ import { EveryFundraiserRaisedDetails } from "../types/index.js";
  * @returns An array of arrays of strings, where each inner array represents a page of text.
  */
 export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number): string[] {
-    const maxLinesPerPage = Math.floor((totalHeight) / lineHeight) - 1;
+    const maxLinesPerPage = Math.floor((totalHeight) / lineHeight);
     console.log('maxLinesPerPage', maxLinesPerPage);
     const approxCharsPerPage = maxLinesPerPage * Math.floor(lineWidth / charWidth);
     console.log('approxCharsPerPage', approxCharsPerPage);
     const charsPerLine = Math.floor(lineWidth / charWidth);
     console.log('charsPerLine', charsPerLine);
-    const lastLineBuffer = 4; // Buffer for the last line
+    const lastLineBuffer = 9; // Buffer for the last line
     const pages: string[] = [];
     let currentPage = '';
     let charCount = 0;
