@@ -11,13 +11,12 @@ import { fetchExistingFundraiserDetails } from '../sources/Every.js';
 import { ImageManager } from '../utils/imageUtils.js';
 import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
+import { CurvedTopImage } from './CurvedTopImage.js';
 
 function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
   return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate/pay`; //FIXME: dynamic value?
 }
-
-const DEBUG_MODE = true;
 
 export function FundraiserView(
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,

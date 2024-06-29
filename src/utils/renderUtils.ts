@@ -19,6 +19,7 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
     console.log('approxCharsPerPage', approxCharsPerPage);
     const charsPerLine = Math.floor(lineWidth / charWidth);
     console.log('charsPerLine', charsPerLine);
+    const lastLineBuffer = 4; // Buffer for the last line
     const pages: string[] = [];
     let currentPage = '';
     let charCount = 0;
@@ -34,12 +35,13 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
             }
         } else {
             const wordWithSpace = content + ' ';
-            if (charCount + wordWithSpace.length > approxCharsPerPage && currentPage.trim()) {
+            if (charCount + wordWithSpace.length > approxCharsPerPage - lastLineBuffer && currentPage.trim()) {
                 // Check if we can fit more words from the current paragraph
                 let tempCharCount = charCount;
                 let tempContent = '';
                 let i = 0;
-                while (i < currentParagraphWords.length && tempCharCount + currentParagraphWords[i].length + 1 <= approxCharsPerPage) {
+                while (i < currentParagraphWords.length && 
+                       tempCharCount + currentParagraphWords[i].length + 1 <= approxCharsPerPage - lastLineBuffer) {
                     tempContent += currentParagraphWords[i] + ' ';
                     tempCharCount += currentParagraphWords[i].length + 1;
                     i++;
