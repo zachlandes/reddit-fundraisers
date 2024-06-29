@@ -10,8 +10,6 @@ import { EveryFundraiserRaisedDetails } from "../types/index.js";
  * @param lineHeight Height of each line of text.
  * @param lineWidth Width available for text on each line.
  * @param charWidth Average character width.
- * @param imageHeight Height of any images above the text.
- * @param logoHeight Height of any logos above the text.
  * @returns An array of arrays of strings, where each inner array represents a page of text.
  */
 export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number): string[] {
@@ -19,22 +17,85 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
     console.log('maxLinesPerPage', maxLinesPerPage);
     const approxCharsPerPage = maxLinesPerPage * Math.floor(lineWidth / charWidth);
     console.log('approxCharsPerPage', approxCharsPerPage);
+    const charsPerLine = Math.floor(lineWidth / charWidth);
+    console.log('charsPerLine', charsPerLine);
     const pages: string[] = [];
     let currentPage = '';
     let charCount = 0;
+    let currentParagraphWords: string[] = [];
 
-    description.split('\n').forEach(paragraph => {
-        if (charCount + paragraph.length > approxCharsPerPage && currentPage) {
-            pages.push(currentPage.trim());
-            currentPage = '';
-            charCount = 0;
+    function addContentToPage(content: string, isNewline: boolean = false) {
+        if (isNewline) {
+            if (charCount + charsPerLine > approxCharsPerPage && currentPage.trim()) {
+                finalizePage();
+            } else {
+                currentPage += '\n';
+                charCount += charsPerLine;
+            }
+        } else {
+            const wordWithSpace = content + ' ';
+            if (charCount + wordWithSpace.length > approxCharsPerPage && currentPage.trim()) {
+                // Check if we can fit more words from the current paragraph
+                let tempCharCount = charCount;
+                let tempContent = '';
+                let i = 0;
+                while (i < currentParagraphWords.length && tempCharCount + currentParagraphWords[i].length + 1 <= approxCharsPerPage) {
+                    tempContent += currentParagraphWords[i] + ' ';
+                    tempCharCount += currentParagraphWords[i].length + 1;
+                    i++;
+                }
+                if (tempContent) {
+                    currentPage += tempContent;
+                    charCount = tempCharCount;
+                    currentParagraphWords.splice(0, i);
+                    finalizePage();
+                } else {
+                    finalizePage();
+                    currentPage += wordWithSpace;
+                    charCount += wordWithSpace.length;
+                }
+            } else {
+                currentPage += wordWithSpace;
+                charCount += wordWithSpace.length;
+            }
         }
-        currentPage += paragraph + '\n';
-        charCount += paragraph.length + 1; // +1 for the newline
+    }
+
+    function finalizePage() {
+        pages.push(currentPage.trim());
+        console.log(`Page ${pages.length} character count: ${charCount}`);
+        console.log(`Page ${pages.length} content:\n${currentPage.replace(/\n/g, '\\n\n')}`);
+        currentPage = '';
+        charCount = 0;
+    }
+
+    description.split('\n').forEach((paragraph, index) => {
+        const isEmptyParagraph = paragraph.trim().length === 0;
+        
+        // Skip empty paragraphs at the start of a page
+        if (isEmptyParagraph && currentPage.trim().length === 0) {
+            console.log(`Skipping empty paragraph ${index + 1} at start of page`);
+            return;
+        }
+        
+        if (isEmptyParagraph) {
+            addContentToPage('', true);
+            currentParagraphWords = [];
+        } else {
+            currentParagraphWords = paragraph.split(' ');
+            while (currentParagraphWords.length > 0) {
+                addContentToPage(currentParagraphWords.shift()!);
+            }
+            // Only add a newline if it's not the last paragraph
+            if (index < description.split('\n').length - 1) {
+                addContentToPage('', true);
+            }
+        }
+        console.log(`Processed paragraph ${index + 1}: "${paragraph.substring(0, 20)}..." (${isEmptyParagraph ? 'empty' : paragraph.length + ' chars'})`);
     });
 
-    if (currentPage) {
-        pages.push(currentPage.trim());
+    if (currentPage.trim()) {
+        finalizePage();
     }
 
     return pages;
