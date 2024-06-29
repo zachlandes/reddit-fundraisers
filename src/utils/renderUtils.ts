@@ -35,26 +35,32 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
             }
         } else {
             const wordWithSpace = content + ' ';
+            console.log(`Trying to add word: "${content}", Current char count: ${charCount}, Word length: ${wordWithSpace.length}`);
+            
             if (charCount + wordWithSpace.length > approxCharsPerPage - lastLineBuffer && currentPage.trim()) {
-                // Check if we can fit more words from the current paragraph
+                // Try to fit more words from the current paragraph
                 let tempCharCount = charCount;
                 let tempContent = '';
-                let i = 0;
+                let i = currentParagraphWords.indexOf(content);
+                
                 while (i < currentParagraphWords.length && 
-                       tempCharCount + currentParagraphWords[i].length + 1 <= approxCharsPerPage - lastLineBuffer) {
+                       tempCharCount + (currentParagraphWords[i] + ' ').length <= approxCharsPerPage - lastLineBuffer) {
                     tempContent += currentParagraphWords[i] + ' ';
-                    tempCharCount += currentParagraphWords[i].length + 1;
+                    tempCharCount += (currentParagraphWords[i] + ' ').length;
                     i++;
                 }
+                
                 if (tempContent) {
+                    console.log(`Fitting additional words: ${tempContent}`);
                     currentPage += tempContent;
                     charCount = tempCharCount;
                     currentParagraphWords.splice(0, i);
                     finalizePage();
                 } else {
                     finalizePage();
-                    currentPage += wordWithSpace;
-                    charCount += wordWithSpace.length;
+                    console.log(`Starting new page with word: "${content}"`);
+                    currentPage = wordWithSpace;
+                    charCount = wordWithSpace.length;
                 }
             } else {
                 currentPage += wordWithSpace;
