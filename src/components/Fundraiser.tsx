@@ -1,5 +1,5 @@
-import { Context, CustomPostType, Devvit} from '@devvit/public-api';
-import { EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
+import { Context, CustomPostType, Devvit, JSONValue, JSONObject } from '@devvit/public-api';
+import { EveryFundraiserRaisedDetails, EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
 import { getCachedForm } from '../utils/Redis.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
 import { getEveryPublicKey } from '../utils/keyManagement.js';
@@ -11,7 +11,15 @@ import { fetchExistingFundraiserDetails } from '../sources/Every.js';
 import { ImageManager } from '../utils/imageUtils.js';
 import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
-import { CurvedTopImage } from './CurvedTopImage.js';
+
+interface FundraiserState extends JSONObject {
+  fundraiserInfo: SerializedEveryExistingFundraiserInfo | null;
+  goalType: string;
+  raised: number;
+  goal: number | null;
+  nonprofitInfo: EveryNonprofitInfo | null;
+  supporters: number;
+}
 
 function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
@@ -172,7 +180,7 @@ export function FundraiserView(
                   </hstack>
                   <hstack width='33%' alignment='end middle' borderColor='red' border='thin'>
                     <text size='small' color='#706E6E'>
-                      {supporters} Supporters{supporters === 0 ? " - Be the first!" : ""}
+                      {supporters === 0 ? "Be the first to donate!" : `${supporters} Supporters`}
                     </text>
                   </hstack>
                 </hstack>
@@ -188,7 +196,7 @@ export const FundraiserPost: CustomPostType = {
   description: "Post fundraiser",
   height: "tall",
   render: async context => {
-    const { height, width } = context.dimensions ?? { height: 480, width: 320 }; // Default dimensions if not provided
+    const { height, width } = context.dimensions ?? { height: 480, width: 320 };
     console.log("Starting render of FundraiserPost with dimensions:", { height, width });
 
     const { postId, useChannel, useState } = context;
@@ -197,35 +205,56 @@ export const FundraiserPost: CustomPostType = {
       throw new Error('postId is undefined');
     }
 
-    const cachedPostData = await getCachedForm(context, postId).catch(error => {
-      console.error(`Failed to retrieve cached form for postId: ${postId}`, error);
-      return null;
+    const [state, setState] = useState<FundraiserState>(async () => {
+      const initialState: FundraiserState = {
+        fundraiserInfo: null,
+        goalType: '',
+        raised: 0,
+        goal: null,
+        nonprofitInfo: null,
+        supporters: 0
+      };
+
+      try {
+        const cachedData = await getCachedForm(context, postId);
+        console.log("Cached data retrieved:", cachedData);
+        if (cachedData) {
+          const fundraiserRaisedDetails = cachedData.getAllProps(TypeKeys.fundraiserDetails);
+          const everyExistingFundraiserInfo = cachedData.getAllProps(TypeKeys.everyExistingFundraiserInfo);
+          const nonprofitInfo = cachedData.getAllProps(TypeKeys.everyNonprofitInfo);
+          
+          console.log("Parsed cached data:", {
+            fundraiserRaisedDetails,
+            everyExistingFundraiserInfo,
+            nonprofitInfo
+          });
+
+          return {
+            fundraiserInfo: everyExistingFundraiserInfo ? serializeExistingFundraiserResponse(everyExistingFundraiserInfo) : null,
+            goalType: fundraiserRaisedDetails?.goalType ?? '',
+            raised: fundraiserRaisedDetails?.raised ?? 0,
+            goal: fundraiserRaisedDetails?.goalAmount ?? null,
+            nonprofitInfo: nonprofitInfo,
+            supporters: fundraiserRaisedDetails?.supporters ?? 0
+          };
+        }
+      } catch (error) {
+        console.error(`Failed to retrieve cached form for postId: ${postId}`, error);
+      }
+
+      return initialState;
     });
-    if (!cachedPostData) {
-      console.error(`No cached form found for postId: ${postId}`);
-    }
-    const initialFundraiserInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyExistingFundraiserInfo) : null;
-    const fundraiserRaisedDetails = cachedPostData ? cachedPostData.getAllProps(TypeKeys.fundraiserDetails) : null;
-    const initialNonprofitInfo = cachedPostData ? cachedPostData.getAllProps(TypeKeys.everyNonprofitInfo) : null;
 
-    const [fundraiserInfo, setFundraiserInfo] = useState<SerializedEveryExistingFundraiserInfo | null>(
-      initialFundraiserInfo ? serializeExistingFundraiserResponse(initialFundraiserInfo) : null
-    );
-    const [goalType, setGoalType] = useState<string>(fundraiserRaisedDetails ? fundraiserRaisedDetails.goalType : ''); //FIXME: handle null/empty goal type including render
-    const [raised, setRaised] = useState<number>(fundraiserRaisedDetails ? fundraiserRaisedDetails.raised : 0);
-    const [goal, setGoal] = useState<number | null>(fundraiserRaisedDetails ? fundraiserRaisedDetails.goalAmount : null);
-    const [nonprofitInfo, setNonprofitInfo] = useState<EveryNonprofitInfo | null>(initialNonprofitInfo);
-    const [supporters, setSupporters] = useState<number>(fundraiserRaisedDetails ? fundraiserRaisedDetails.supporters : 0);
-
-    const publicKey = await getEveryPublicKey(context);
+    // Destructure state for easier use
+    const { fundraiserInfo, goalType, raised, goal, nonprofitInfo, supporters } = state;
 
     let coverImageUrl: string | null = null;
     let logoImageUrl: string | null = null;
-    if (nonprofitInfo && initialFundraiserInfo) {
+    if (nonprofitInfo && fundraiserInfo) {
       const existingFundraiserDetails = await fetchExistingFundraiserDetails(
         nonprofitInfo.nonprofitID,
-        initialFundraiserInfo.id,
-        publicKey
+        fundraiserInfo.id,
+        await getEveryPublicKey(context)
       );
       const coverImagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
       const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoCloudinaryId ?? null;
@@ -246,40 +275,34 @@ export const FundraiserPost: CustomPostType = {
       }
     }
 
-    const [coverImageUrlState, setCoverImageUrl] = useState<string | null>(coverImageUrl);
-    const [logoImageUrlState, setLogoImageUrl] = useState<string | null>(logoImageUrl);
-
-    // Initialize fundraiserURL state
     const fundraiserUrl = generateFundraiserURL(fundraiserInfo, nonprofitInfo);
-    const [fundraiserURL, setFundraiserURL] = useState<string>(fundraiserUrl);
 
     // Subscribe to real-time updates for live changes to the raised amount
     const updateChannel = useChannel({
       name: 'fundraiser_updates',
-      onMessage: (data) => {
+      onMessage: (data: JSONValue) => {
         console.log("Received message on fundraiser_updates channel:", data);
-        if (data.postId === postId && data.updatedDetails) {
-          if (data.updatedDetails.raised !== undefined && data.updatedDetails.raised !== fundraiserRaisedDetails?.raised) {
-            console.log('Received update for raised amount:', data.updatedDetails.raised);
-            setRaised(data.updatedDetails.raised);
-          }
-          if (data.updatedDetails.goalAmount !== undefined && data.updatedDetails.goalAmount !== fundraiserRaisedDetails?.goalAmount) {
-            console.log('Received update for goal amount:', data.updatedDetails.goalAmount);
-            setGoal(data.updatedDetails.goalAmount);
-          }
-          if (data.updatedDetails.supporters !== undefined && data.updatedDetails.supporters !== fundraiserRaisedDetails?.supporters) {
-            console.log('Received update for supporters count:', data.updatedDetails.supporters);
-            setSupporters(data.updatedDetails.supporters);
-          }
+        if (typeof data === 'object' && data !== null && 'postId' in data && data.postId === postId && 'updatedDetails' in data) {
+          const updatedDetails = data.updatedDetails as Partial<EveryFundraiserRaisedDetails>;
+          setState(prevState => ({
+            ...prevState,
+            raised: typeof updatedDetails.raised === 'number' ? updatedDetails.raised : prevState.raised,
+            goal: typeof updatedDetails.goalAmount === 'number' ? updatedDetails.goalAmount : prevState.goal,
+            supporters: typeof updatedDetails.supporters === 'number' ? updatedDetails.supporters : prevState.supporters,
+            goalType: typeof updatedDetails.goalType === 'string' ? updatedDetails.goalType : prevState.goalType
+          }));
         }
       }
     });
     updateChannel.subscribe();
 
+    console.log("Current state:", state);
+    console.log("Rendering FundraiserView with:", { fundraiserInfo, raised, goal, goalType, nonprofitInfo, supporters });
+
     return (
       <blocks>
-        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, coverImageUrlState, logoImageUrlState, fundraiserURL, supporters)}
+        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, coverImageUrl, logoImageUrl, fundraiserUrl, supporters)}
       </blocks>
     );
   }
-}
+};
