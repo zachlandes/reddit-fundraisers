@@ -98,19 +98,15 @@ export function FundraiserView(
                 </vstack>
                 <spacer grow />
               </hstack>
-              <hstack width={100} borderColor='red' border='thin'>
-                {/* PAGINATED FUNDRAISER DESC */}
-                <spacer grow />
-                <vstack width='95%' height={100} minHeight={descriptionMaxHeight} padding="xsmall" borderColor='blue' border='thin'>
-                  <text size='small' wrap={true} overflow='ellipsis'>
-                    {currentItems[0]}
-                  </text>
-                </vstack>
-                <spacer grow />
-              </hstack>
+              {/* PAGINATED FUNDRAISER DESC */}
+              <vstack width={100} grow padding="xsmall" borderColor='green' border='thin'>
+                <text size='small' wrap={true} overflow='ellipsis'>
+                  {currentItems[0]}
+                </text>
+              </vstack>
               <hstack alignment="start middle" gap="small" width={100} borderColor='red' border='thin'>
                 <spacer grow />
-                <hstack borderColor='red' width = {`${magicWidthPercentageProgressBar}%`} border='thin' alignment="start middle">
+                <hstack borderColor='red' width = {`${magicWidthPercentageProgressBar}%`} border='thin' alignment="center middle">
                   {/* PAGINATION UI */}
                   <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small"/>
                   <text>{currentPage + 1} / {pagesCount}</text>
