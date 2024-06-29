@@ -76,11 +76,10 @@ export function FundraiserView(
                   description="Fundraiser Image"
               />
             </vstack>
-            <spacer grow />
-            <vstack width="100%" borderColor='blue' height={46} border='thin'>
-              <hstack alignment='middle' borderColor='red' border='thin'>
+            <vstack width="100%" borderColor='red' height={46} border='thin'>
+              <hstack alignment='middle' borderColor='red' border='thin' padding="xsmall">
                 {/* LOGO, NONPROFIT NAME */}
-                <spacer size='medium' />
+                <spacer size='small' />
                 <CircularLogo
                   url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
                   size={35}
@@ -98,13 +97,9 @@ export function FundraiserView(
               </hstack>
               <hstack borderColor='red' border='thin' width={100}>
                 {/* FUNDRAISER TITLE */}
-                <spacer grow />
-                <vstack width='95%' alignment='start middle' borderColor='red' border='thin'>
-                    <text size="large">
-                      {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
-                    </text>
-                </vstack>
-                <spacer grow />
+                <text size="large">
+                  {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
+                </text>
               </hstack>
               {/* PAGINATED FUNDRAISER DESC */}
               <vstack width={100} grow padding="xsmall" borderColor='green' border='thin'>
@@ -112,15 +107,11 @@ export function FundraiserView(
                   {currentItems[0]}
                 </text>
               </vstack>
-              <hstack alignment="start middle" gap="small" width={100} borderColor='red' border='thin'>
-                <spacer grow />
-                <hstack borderColor='red' width = {`${magicWidthPercentageProgressBar}%`} border='thin' alignment="center middle">
                   {/* PAGINATION UI */}
+              <hstack alignment="center middle" gap="small" width={100} borderColor='red' border='thin'>
                   <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small"/>
                   <text>{currentPage + 1} / {pagesCount}</text>
                   <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small"/>
-                </hstack>
-                <spacer grow />
               </hstack>
             </vstack>
             <vstack width={100} height={24} borderColor='red' border='thin'>
