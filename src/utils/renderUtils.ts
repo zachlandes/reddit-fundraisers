@@ -14,11 +14,8 @@ import { EveryFundraiserRaisedDetails } from "../types/index.js";
  */
 export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number): string[] {
     const maxLinesPerPage = Math.floor((totalHeight) / lineHeight);
-    console.log('maxLinesPerPage', maxLinesPerPage);
     const approxCharsPerPage = maxLinesPerPage * Math.floor(lineWidth / charWidth);
-    console.log('approxCharsPerPage', approxCharsPerPage);
     const charsPerLine = Math.floor(lineWidth / charWidth);
-    console.log('charsPerLine', charsPerLine);
     const lastLineBuffer = 9; // Buffer for the last line
     const pages: string[] = [];
     let currentPage = '';
@@ -35,7 +32,6 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
             }
         } else {
             const wordWithSpace = content + ' ';
-            console.log(`Trying to add word: "${content}", Current char count: ${charCount}, Word length: ${wordWithSpace.length}`);
             
             if (charCount + wordWithSpace.length > approxCharsPerPage - lastLineBuffer && currentPage.trim()) {
                 // Try to fit more words from the current paragraph
@@ -51,14 +47,12 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
                 }
                 
                 if (tempContent) {
-                    console.log(`Fitting additional words: ${tempContent}`);
                     currentPage += tempContent;
                     charCount = tempCharCount;
                     currentParagraphWords.splice(0, i);
                     finalizePage();
                 } else {
                     finalizePage();
-                    console.log(`Starting new page with word: "${content}"`);
                     currentPage = wordWithSpace;
                     charCount = wordWithSpace.length;
                 }
@@ -71,8 +65,7 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
 
     function finalizePage() {
         pages.push(currentPage.trim());
-        console.log(`Page ${pages.length} character count: ${charCount}`);
-        console.log(`Page ${pages.length} content:\n${currentPage.replace(/\n/g, '\\n\n')}`);
+        console.log(`Page ${pages.length} finalized with ${charCount} characters`);
         currentPage = '';
         charCount = 0;
     }
@@ -82,7 +75,6 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
         
         // Skip empty paragraphs at the start of a page
         if (isEmptyParagraph && currentPage.trim().length === 0) {
-            console.log(`Skipping empty paragraph ${index + 1} at start of page`);
             return;
         }
         
@@ -99,13 +91,13 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
                 addContentToPage('', true);
             }
         }
-        console.log(`Processed paragraph ${index + 1}: "${paragraph.substring(0, 20)}..." (${isEmptyParagraph ? 'empty' : paragraph.length + ' chars'})`);
     });
 
     if (currentPage.trim()) {
         finalizePage();
     }
 
+    console.log(`Pagination complete. Total pages: ${pages.length}`);
     return pages;
 }
 
@@ -116,7 +108,7 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
  * @param updatedDetails The updated details of the fundraiser.
  * @param fundraiserRaisedDetails The current cached fundraiser details.
  */
-export async function updateCachedFundraiserDetails(context: Context, postId: string, updatedDetails: EveryFundraiserRaisedDetails, fundraiserRaisedDetails: EveryFundraiserRaisedDetails) {
+export async function updateCachedFundraiserDetails(context: Pick<Context, "redis">, postId: string, updatedDetails: EveryFundraiserRaisedDetails, fundraiserRaisedDetails: EveryFundraiserRaisedDetails) {
     let cachedForm;
     try {
         cachedForm = await getCachedForm(context, postId);
@@ -153,7 +145,11 @@ export async function updateCachedFundraiserDetails(context: Context, postId: st
  * @param postId The ID of the post associated with the fundraiser.
  * @param updatedDetails The updated details to be sent.
  */
-export async function sendFundraiserUpdates(context: Context, postId: string, updatedDetails: EveryFundraiserRaisedDetails) {
+export async function sendFundraiserUpdates(
+    context: Pick<Context, "realtime">,
+    postId: string,
+    updatedDetails: EveryFundraiserRaisedDetails
+) {
     await context.realtime.send('fundraiser_updates', {
         postId: postId,
         raised: updatedDetails.raised,

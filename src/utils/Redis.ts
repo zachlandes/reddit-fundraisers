@@ -11,7 +11,7 @@ import { RedisKey } from '../types/enums.js'; // Import the enum
  * @returns {Promise<string>} A promise that resolves to the Redis key string.
  * @throws {Error} If the subreddit or username is null.
  */
-export async function createUserSubredditHashKey(context: Context): Promise<string> {
+export async function createUserSubredditHashKey(context: Pick<Context, "reddit">): Promise<string> {
     const { reddit } = context;
     try {
         const currentSubreddit = await reddit.getCurrentSubreddit();
@@ -36,7 +36,7 @@ export async function createUserSubredditHashKey(context: Context): Promise<stri
  * @returns {Promise<void>}
  */
 export async function setCachedForm(
-    context: Context,
+    context: Pick<Context, "redis">,
     key: string,
     form: CachedForm
 ): Promise<void> {
@@ -57,7 +57,7 @@ export async function setCachedForm(
  * @returns {Promise<string | null>} The value of the field, or null if not found or empty.
  * @throws {Error} If there is an error during the retrieval.
  */
-export async function getFormFields(context: Context, key: string, fieldName: string): Promise<string | null> {
+export async function getFormFields(context: Pick<Context, "redis">, key: string, fieldName: string): Promise<string | null> {
     const { redis } = context;
     try {
         const fieldValue = await redis.hget(key, fieldName);
@@ -76,7 +76,7 @@ export async function getFormFields(context: Context, key: string, fieldName: st
  * @returns {Promise<CachedForm | null>} The deserialized form, or null if not found.
  */
 export async function getCachedForm(
-    context: Context,
+    context: Pick<Context, "redis">,
     key: string
 ): Promise<CachedForm | null> {
     const { redis } = context;

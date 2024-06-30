@@ -57,7 +57,8 @@ export const mockNonprofits: EveryNonprofitInfo[] = [
         websiteUrl: "https://mock.nonprofit1.org",
         primarySlug: "mock-nonprofit-1",
         logoUrl: "https://preview.redd.it/jm1soorioazc1.png?width=48&format=png&auto=webp&s=14097ee16c53b905edb4357a724794d166bf51cb",
-        coverImageUrl: "https://i.redd.it/3pwwc5t0pf5d1.jpeg"
+        coverImageUrl: "https://i.redd.it/3pwwc5t0pf5d1.jpeg",
+        logoCloudinaryId: "mock-logo-cloudinary-id-1"
     },
     {
         nonprofitID: "mock-nonprofit-id-2",
@@ -68,28 +69,31 @@ export const mockNonprofits: EveryNonprofitInfo[] = [
         websiteUrl: "https://mock.nonprofit2.org",
         primarySlug: "mock-nonprofit-2",
         logoUrl: "https://preview.redd.it/jm1soorioazc1.png?width=48&format=png&auto=webp&s=14097ee16c53b905edb4357a724794d166bf51cb",
-        coverImageUrl: "https://i.redd.it/3pwwc5t0pf5d1.jpeg"
+        coverImageUrl: "https://i.redd.it/3pwwc5t0pf5d1.jpeg",
+        logoCloudinaryId: "mock-logo-cloudinary-id-2"
     }
 ];
 
-export const getMockFundraiserRaisedDetails = async (context: Context): Promise<EveryFundraiserRaisedDetails> => {
-    const {postId} = context;
+export const getMockFundraiserRaisedDetails = async (
+    context: Pick<Context, "redis" | "postId">
+): Promise<EveryFundraiserRaisedDetails> => {
+    const { postId, redis } = context;
     const key = `fundraiser-raised-amount-${postId}`;
     const initialAmount = 100;
     const incrementAmount = 20;
     const ttl = 600; // TTL in seconds (10 minutes)
 
     // Check if the key exists
-    const exists = await context.redis.get(key);
+    const exists = await redis.get(key);
     if (!exists) {
         // Set initial amount if key does not exist
-        await context.redis.set(key, initialAmount.toString());
-        await context.redis.expire(key, ttl);
+        await redis.set(key, initialAmount.toString());
+        await redis.expire(key, ttl);
         console.log("Key set with initial amount:", initialAmount);
     }
 
     // Increment the raised amount atomically
-    const newRaisedAmount = await context.redis.incrBy(key, incrementAmount);
+    const newRaisedAmount = await redis.incrBy(key, incrementAmount);
     console.log("Incremented raised amount by", incrementAmount, ", new raised amount:", newRaisedAmount);
 
     return {

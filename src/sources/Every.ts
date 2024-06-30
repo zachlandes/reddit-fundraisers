@@ -194,7 +194,7 @@ export async function fetchFundraiserRaisedDetails(
     nonprofitIdentifier: string,
     fundraiserIdentifier: string,
     publicKey: string,
-    context: Context
+    context: Pick<Context, "redis" | "postId">
 ): Promise<EveryFundraiserRaisedDetails | null> {
     if (USE_MOCK) {
         console.log('Using mock data for fetchFundraiserRaisedDetails');
