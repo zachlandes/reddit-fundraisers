@@ -12,6 +12,8 @@ import { ImageManager } from '../utils/imageUtils.js';
 import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
 
+const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
+
 interface FundraiserState extends JSONObject {
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null;
   goalType: string;
@@ -63,9 +65,9 @@ export function FundraiserView(
     const magicWidthPercentageProgressBar = 97;
 
     return (
-        <vstack width="100%" height={100} borderColor='red' border='thin' alignment='center' grow>
-          <vstack maxWidth={'393px'} height={100} width={100} borderColor='red' border='thin'>
-            <vstack width="100%" height={30} alignment='center middle' borderColor='red' border='thin'>
+        <vstack width="100%" height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
+          <vstack maxWidth={'393px'} height={100} width={100} borderColor='black' border='thin'>
+            <vstack width="100%" height={30} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               {/* COVER IMAGE */}
               <image
                   url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
@@ -76,8 +78,8 @@ export function FundraiserView(
                   description="Fundraiser Image"
               />
             </vstack>
-            <vstack width="100%" borderColor='red' height={46} border='thin'>
-              <hstack alignment='middle' borderColor='red' border='thin' padding="xsmall">
+            <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={46} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
                 {/* LOGO, NONPROFIT NAME */}
                 <spacer size='small' />
                 <CircularLogo
@@ -95,39 +97,39 @@ export function FundraiserView(
                 </text>
                 <spacer size='medium' />
               </hstack>
-              <hstack borderColor='red' border='thin' width={100}>
+              <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} width={100}>
                 {/* FUNDRAISER TITLE */}
                 <text size="large">
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
               </hstack>
               {/* PAGINATED FUNDRAISER DESC */}
-              <vstack width={100} grow padding="xsmall" borderColor='green' border='thin'>
+              <vstack width={100} grow padding="xsmall" borderColor={DEBUG_MODE ? 'red' : 'green'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <text size='small' wrap={true} overflow='ellipsis'>
                   {currentItems[0]}
                 </text>
               </vstack>
                   {/* PAGINATION UI */}
-              <hstack alignment="center middle" gap="small" width={100} borderColor='red' border='thin'>
+              <hstack alignment="center middle" gap="small" width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small"/>
                   <text>{currentPage + 1} / {pagesCount}</text>
                   <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small"/>
               </hstack>
             </vstack>
-            <vstack width={100} height={24} borderColor='red' border='thin'>
-              <vstack width={100} borderColor='red' border='thin'>
-                <hstack borderColor='red' border='thin'>
+            <vstack width={100} height={24} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   {/* PROGRESS BAR LABELS */}
                   <spacer grow />
-                  <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor='red' border='thin'>
-                      <vstack borderColor='red' border='thin'>
+                  <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                      <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                           <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
                           <text color='#706E6E'>Raised</text>
                       </vstack>
                   </hstack>
-                  <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='end' borderColor='red' border='thin'>
+                  <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                     <spacer size='medium' />
-                    <vstack alignment='end' borderColor='red' border='thin'>
+                    <vstack alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                         <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text> {/* comes in as cents, formatted with commas */}
                         {goalType && (
                           <text color='#706E6E'>
@@ -138,23 +140,23 @@ export function FundraiserView(
                   </hstack>
                   <spacer grow />
                 </hstack>
-                <hstack borderColor='red' border='thin'>
+                <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer grow />
-                  <vstack backgroundColor='#f3f7f7' cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} borderColor='red' border='thin'>
+                  <vstack backgroundColor='#f3f7f7' cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                     {/* PROGRESS BAR */}
-                    <hstack backgroundColor='#018669' width={`${goal ? (raised / goal) * 100 : 0}%`} borderColor='red' border='thin'>
+                    <hstack backgroundColor='#018669' width={`${goal ? (raised / goal) * 100 : 0}%`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                       <spacer size='medium' shape='square' />
                     </hstack>
                   </vstack>
                   <spacer grow />
                 </hstack>
               </vstack>
-              <vstack width={100} borderColor='red' border='thin'>
-                <hstack width='100%' alignment='center middle' borderColor='red' border='thin'>
-                  <hstack width='33%' alignment='start middle' borderColor='red' border='thin'>
+              <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width='100%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                  <hstack width='33%' alignment='start middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                     <spacer grow />
                   </hstack>
-                  <hstack width='34%' alignment='center middle' borderColor='red' border='thin'>
+                  <hstack width='34%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                     {/* DONATE BUTTON */}
                     <FancyButton
                       backgroundColor="#018669"
@@ -169,10 +171,11 @@ export function FundraiserView(
                       Donate
                     </FancyButton>
                   </hstack>
-                  <hstack width='33%' alignment='end middle' borderColor='red' border='thin'>
+                  <hstack width='33%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                     <text size='small' color='#706E6E'>
                       {supporters === 0 ? "Be the first to donate!" : `${supporters} Supporters`}
                     </text>
+                    <spacer size='xsmall' />
                   </hstack>
                 </hstack>
               </vstack>
