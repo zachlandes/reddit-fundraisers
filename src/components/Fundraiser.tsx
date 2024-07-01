@@ -45,7 +45,7 @@ export function FundraiserView(
     const { ui, useState } = context;
 
     const [isOverlayExpanded, setIsOverlayExpanded] = useState(false);
-    const descriptionHeightPct = 29;
+    const descriptionHeightPct = 26;
     const descriptionMaxHeight = totalHeight * (descriptionHeightPct / 100);
     const lineHeight = 17;
     const lineWidth = 393 * 0.95;
@@ -53,17 +53,14 @@ export function FundraiserView(
     const paginationUIHeight = 30;
     const overlayDescriptionMaxHeight = totalHeight - paginationUIHeight;
   
-    // Calculate charWidth based on the actual description text
-    const fontSize = 12; // Adjust this value based on your text size
+    const fontSize = 12;
     const fontFamily = "helvetica";
     const sampleText = fundraiserInfo?.description.slice(0, 100) || 'Sample Text';
     const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize } ) / sampleText.length;
     console.log("charWidth: ", charWidth);
     
-
-    // Setup pagination for the overlay description
     const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, overlayDescriptionMaxHeight, lineHeight, lineWidth, charWidth)  // Paginate based on dimensions
+        ? paginateText(fundraiserInfo.description, overlayDescriptionMaxHeight, lineHeight, lineWidth, charWidth)
         : ['Loading description...'];
 
     const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
@@ -73,20 +70,53 @@ export function FundraiserView(
     const magicWidthPercentageProgressBar = 97;
 
     const handleExpandOverlay = () => {
-        console.log("Expand button clicked"); // Debugging log
+        console.log("Expand button clicked");
         setIsOverlayExpanded(true);
     };
 
     const handleCloseOverlay = () => {
-        console.log("Close button clicked"); // Debugging log
+        console.log("Close button clicked");
         setIsOverlayExpanded(false);
     };
+
+    function renderProgressBar() {
+        return (
+            <vstack backgroundColor='#f3f7f7' cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack backgroundColor='#018669' width={`${goal ? (raised / goal) * 100 : 0}%`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                    <spacer size='medium' shape='square' />
+                </hstack>
+            </vstack>
+        );
+    }
+
+    function renderDescriptionOverlay() {
+        if (!isOverlayExpanded) return null;
+        return (
+            <vstack maxWidth='393px' width={100} height={100} borderColor={DEBUG_MODE ? 'black' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} backgroundColor="#333">
+                <vstack width={100} height={100} padding="medium">
+                    <hstack width={100} alignment="end">
+                        <button onPress={handleCloseOverlay} icon="close" size='small'/>
+                    </hstack>
+                    <spacer size='xsmall' />
+                    <vstack grow>
+                        <text size='small' wrap={true} color='white'>
+                            {currentItems[0]}
+                        </text>
+                    </vstack>
+                    <hstack alignment="center middle" gap="small" width={100}>
+                        <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
+                        <text color='white'>{currentPage + 1} / {pagesCount}</text>
+                        <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
+                    </hstack>
+                </vstack>
+            </vstack>
+        );
+    }
 
     return (
       <zstack width="100%" height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
         <vstack maxWidth={'393px'} height={100} width={100} borderColor={DEBUG_MODE ? 'red' : 'black'} border='thin'>
           <vstack width="100%" height={30} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-            {/* COVER IMAGE */}
             <image
                 url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
                 width="100%"
@@ -98,7 +128,6 @@ export function FundraiserView(
           </vstack>
           <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={46} border={DEBUG_MODE ? 'thin' : 'none'}>
             <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
-              {/* LOGO, NONPROFIT NAME */}
               <spacer size='small' />
               <CircularLogo
                 url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
@@ -122,7 +151,6 @@ export function FundraiserView(
             </hstack>
             <vstack width={100} grow borderColor='#018669' border='thin'>
               <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} width={100}>
-                {/* FUNDRAISER TITLE */}
                 <text size="large">
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
@@ -137,7 +165,6 @@ export function FundraiserView(
                 <spacer size='xsmall'/>
               </hstack>
               <vstack width={100} grow height={descriptionHeightPct} padding="xsmall" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                {/* DESCRIPTION TEXT */}
                 <text
                     size='small'
                     wrap={true}
@@ -151,18 +178,17 @@ export function FundraiserView(
           <vstack width={100} height={24} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                {/* PROGRESS BAR LABELS */}
                 <spacer grow />
                 <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                     <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                        <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>  {/* comes in as cents, formatted with commas */}
+                        <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>
                         <text color='#706E6E'>Raised</text>
                     </vstack>
                 </hstack>
                 <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer size='medium' />
                   <vstack alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                      <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text> {/* comes in as cents, formatted with commas */}
+                      <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text>
                       {goalType && (
                         <text color='#706E6E'>
                           {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
@@ -174,12 +200,7 @@ export function FundraiserView(
               </hstack>
               <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer grow />
-                <vstack backgroundColor='#f3f7f7' cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  {/* PROGRESS BAR */}
-                  <hstack backgroundColor='#018669' width={`${goal ? (raised / goal) * 100 : 0}%`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                    <spacer size='medium' shape='square' />
-                  </hstack>
-                </vstack>
+                {renderProgressBar()}
                 <spacer grow />
               </hstack>
             </vstack>
@@ -190,7 +211,6 @@ export function FundraiserView(
                   <spacer grow />
                 </hstack>
                 <hstack width='34%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  {/* DONATE BUTTON */}
                   <FancyButton
                     backgroundColor="#018669"
                     textColor="white"
@@ -215,28 +235,9 @@ export function FundraiserView(
             </vstack>
           </vstack>
         </vstack>
-        {isOverlayExpanded && (
-            <vstack maxWidth='393px' width={100} height={100} borderColor={DEBUG_MODE ? 'black' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} backgroundColor="#333">
-                <vstack width={100} height={100} padding="medium">
-                    <hstack width={100} alignment="end">
-                        <button onPress={handleCloseOverlay} icon="close" size='small'/>
-                    </hstack>
-                    <spacer size='xsmall' />
-                    <vstack grow>
-                        <text size='small' wrap={true} color='white'>
-                            {currentItems[0]}
-                        </text>
-                    </vstack>
-                    <hstack alignment="center middle" gap="small" width={100}>
-                        <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
-                        <text color='white'>{currentPage + 1} / {pagesCount}</text>
-                        <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
-                    </hstack>
-                </vstack>
-            </vstack>
-        )}
+        {renderDescriptionOverlay()}
       </zstack>
-    )
+    );
 }
 
 export const FundraiserPost: CustomPostType = {
