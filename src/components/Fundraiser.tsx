@@ -12,7 +12,7 @@ import { ImageManager } from '../utils/imageUtils.js';
 import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
 
-const DEBUG_MODE = true; // Toggle this value manually and re-upload to see changes
+const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
 
 interface FundraiserState extends JSONObject {
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null;
@@ -82,7 +82,7 @@ export function FundraiserView(
 
     return (
       <zstack width="100%" height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
-        <vstack maxWidth={'393px'} height={100} width={100} borderColor={DEBUG_MODE ? 'black' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+        <vstack maxWidth={'393px'} height={100} width={100} borderColor={DEBUG_MODE ? 'red' : 'black'} border='thin'>
           <vstack width="100%" height={30} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             {/* COVER IMAGE */}
             <image
@@ -94,7 +94,7 @@ export function FundraiserView(
                 description="Fundraiser Image"
             />
           </vstack>
-          <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={46} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width="100%" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} height={46} border={DEBUG_MODE ? 'thin' : 'none'}>
             <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
               {/* LOGO, NONPROFIT NAME */}
               <spacer size='small' />
@@ -113,12 +113,19 @@ export function FundraiserView(
               </text>
               <spacer size='medium' />
             </hstack>
+            <vstack width={100} borderColor='#018669' border='thin'>
             <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} width={100}>
               {/* FUNDRAISER TITLE */}
               <text size="large">
                 {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
               </text>
-              <spacer size='medium' />
+              <spacer grow />
+              <icon
+                      name="expand-right-outline"
+                      size="small"
+                      onPress={handleExpandOverlay}
+              />
+              <spacer size='xsmall'/>
             </hstack>
             <vstack width={100} grow padding="xsmall" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               {/* Description Text */}
@@ -131,14 +138,7 @@ export function FundraiserView(
                   {fundraiserInfo ? fundraiserInfo.description : 'Loading description...'}
               </text>
               </vstack>
-              <hstack alignment="end" width={100} borderColor={DEBUG_MODE ? 'green' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  <spacer grow />
-                  <icon
-                      name="expand-right-outline"
-                      size="small"
-                      onPress={handleExpandOverlay}
-                  />
-              </hstack>
+              </vstack>
           </vstack>
           <vstack width={100} height={24} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
