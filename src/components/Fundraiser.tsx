@@ -45,14 +45,20 @@ export function FundraiserView(
     const { ui, useState } = context;
 
     const [isOverlayExpanded, setIsOverlayExpanded] = useState(false);
-    const descriptionHeightPct = 26;
-    const descriptionMaxHeight = totalHeight * (descriptionHeightPct / 100);
+    const fundraiserInfoHeight = Math.floor(totalHeight * 0.46); 
+    const titleHeight = 26; 
     const lineHeight = 17;
     const lineWidth = 393 * 0.95;
     const imageHeight = 150;
     const paginationUIHeight = 30;
+    const coverImageHeight = Math.floor(totalHeight * 0.30);
+    const bottomSectionHeight = totalHeight - fundraiserInfoHeight - coverImageHeight;
     const overlayDescriptionMaxHeight = totalHeight - paginationUIHeight;
-  
+
+    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight;
+    const paddingHeight = 8; // 4px top + 4px bottom for xsmall padding
+    const availableDescriptionHeight = descriptionMaxHeight - paddingHeight;
+
     const fontSize = 12;
     const fontFamily = "helvetica";
     const sampleText = fundraiserInfo?.description.slice(0, 100) || 'Sample Text';
@@ -65,7 +71,7 @@ export function FundraiserView(
 
     const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
 
-    const showExpandButton = paginateText(fundraiserInfo?.description || '', descriptionMaxHeight, lineHeight, lineWidth, charWidth).length > 1;
+    const showExpandButton = paginateText(fundraiserInfo?.description || '', availableDescriptionHeight, lineHeight, lineWidth, charWidth).length > 1;
 
     const magicWidthPercentageProgressBar = 97;
 
@@ -115,8 +121,8 @@ export function FundraiserView(
 
     return (
       <zstack width="100%" height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
-        <vstack maxWidth={'393px'} height={100} width={100} borderColor={DEBUG_MODE ? 'red' : 'black'} border='thin'>
-          <vstack width="100%" height={30} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+        <vstack maxWidth={'393px'} height={100} width={100} borderColor={DEBUG_MODE ? 'red' : '#018669'} border='thin'>
+          <vstack width="100%" maxHeight={`${coverImageHeight}px`} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <image
                 url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
                 width="100%"
@@ -126,7 +132,7 @@ export function FundraiserView(
                 description="Fundraiser Image"
             />
           </vstack>
-          <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={46} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={`${fundraiserInfoHeight}px`} border={DEBUG_MODE ? 'thin' : 'none'}>
             <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
               <spacer size='small' />
               <CircularLogo
@@ -149,8 +155,8 @@ export function FundraiserView(
               </text>
               <spacer size='medium' />
             </hstack>
-            <vstack width={100} grow borderColor='#018669' border='thin'>
-              <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} width={100}>
+            <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor='#018669' border='thin'>
+              <hstack width={100} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <text size="large">
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
@@ -164,18 +170,18 @@ export function FundraiserView(
                 )}
                 <spacer size='xsmall'/>
               </hstack>
-              <vstack width={100} grow height={descriptionHeightPct} padding="xsmall" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="xsmall" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <text
                     size='small'
                     wrap={true}
-                    overflow='ellipsis'  
+                    overflow='ellipsis'
                 >
-                    {fundraiserInfo ? fundraiserInfo.description : 'Loading description...'}
+                  {fundraiserInfo ? fundraiserInfo.description : 'Loading description...'}
                 </text>
               </vstack>
             </vstack>
           </vstack>
-          <vstack width={100} height={24} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width={100} grow borderColor='#018669' border='thin'>
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer grow />
