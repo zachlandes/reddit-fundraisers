@@ -14,8 +14,11 @@ import { EveryFundraiserRaisedDetails } from "../types/index.js";
  */
 export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number): string[] {
     const maxLinesPerPage = Math.floor((totalHeight) / lineHeight);
+    console.log("maxLinesPerPage:", maxLinesPerPage);
     const approxCharsPerPage = maxLinesPerPage * Math.floor(lineWidth / charWidth);
+    console.log("approxCharsPerPage:", approxCharsPerPage);
     const charsPerLine = Math.floor(lineWidth / charWidth);
+    console.log("charsPerLine:", charsPerLine);
     const lastLineBuffer = 9; // Buffer for the last line
     const pages: string[] = [];
     let currentPage = '';
