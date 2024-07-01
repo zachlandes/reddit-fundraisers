@@ -12,6 +12,7 @@ interface CircularLogoProps {
     url: string;
     size?: number;
     description?: string;
+    onPress?: () => void;
 }
 
 /**
@@ -34,10 +35,11 @@ function getCornerRadius(size: number): ContainerCornerRadius {
 export const CircularLogo: Devvit.BlockComponent<CircularLogoProps> = ({
   url,
   size = 35,
-  description = "Logo"
+  description = "Logo",
+  onPress
 }) => {
   return (
-    <zstack width={`${size}px`} height={`${size}px`}>
+    <zstack width={`${size}px`} height={`${size}px`} onPress={onPress}>
       <vstack cornerRadius={getCornerRadius(size)} backgroundColor="white" width={`${size}px`} height={`${size}px`}>
         <image
           url={url}

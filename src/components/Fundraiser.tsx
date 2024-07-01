@@ -1,6 +1,6 @@
 import { Context, CustomPostType, Devvit, JSONValue, JSONObject } from '@devvit/public-api';
 import { EveryFundraiserRaisedDetails, EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
-import { getCachedForm } from '../utils/Redis.js';
+import { getCachedForm, removePostAndFormFromRedis } from '../utils/Redis.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
 import { getEveryPublicKey } from '../utils/keyManagement.js';
 import { serializeExistingFundraiserResponse } from '../utils/dateUtils.js';
@@ -45,13 +45,13 @@ export function FundraiserView(
     const { ui, useState } = context;
 
     const [isOverlayExpanded, setIsOverlayExpanded] = useState(false);
-    const descriptionHeightPct = 25;
+    const descriptionHeightPct = 29;
     const descriptionMaxHeight = totalHeight * (descriptionHeightPct / 100);
     const lineHeight = 17;
     const lineWidth = 393 * 0.95;
     const imageHeight = 150;
     const paginationUIHeight = 30;
-    const maxDescriptionHeight = totalHeight - paginationUIHeight;
+    const overlayDescriptionMaxHeight = totalHeight - paginationUIHeight;
   
     // Calculate charWidth based on the actual description text
     const fontSize = 12; // Adjust this value based on your text size
@@ -63,10 +63,12 @@ export function FundraiserView(
 
     // Setup pagination for the overlay description
     const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, maxDescriptionHeight, lineHeight, lineWidth, charWidth)  // Paginate based on dimensions
+        ? paginateText(fundraiserInfo.description, overlayDescriptionMaxHeight, lineHeight, lineWidth, charWidth)  // Paginate based on dimensions
         : ['Loading description...'];
 
     const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
+
+    const showExpandButton = paginateText(fundraiserInfo?.description || '', descriptionMaxHeight, lineHeight, lineWidth, charWidth).length > 1;
 
     const magicWidthPercentageProgressBar = 97;
 
@@ -94,7 +96,7 @@ export function FundraiserView(
                 description="Fundraiser Image"
             />
           </vstack>
-          <vstack width="100%" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} height={46} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={46} border={DEBUG_MODE ? 'thin' : 'none'}>
             <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
               {/* LOGO, NONPROFIT NAME */}
               <spacer size='small' />
@@ -102,6 +104,11 @@ export function FundraiserView(
                 url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
                 size={35}
                 description="Nonprofit Logo"
+                onPress={() => {
+                  if (nonprofitInfo?.profileUrl) {
+                    ui.navigateTo(nonprofitInfo.profileUrl);
+                  }
+                }}
               />
               <spacer size='xsmall' />
               <text weight='bold' onPress={() => {
@@ -113,32 +120,33 @@ export function FundraiserView(
               </text>
               <spacer size='medium' />
             </hstack>
-            <vstack width={100} borderColor='#018669' border='thin'>
-            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} width={100}>
-              {/* FUNDRAISER TITLE */}
-              <text size="large">
-                {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
-              </text>
-              <spacer grow />
-              <icon
-                      name="expand-right-outline"
-                      size="small"
-                      onPress={handleExpandOverlay}
-              />
-              <spacer size='xsmall'/>
-            </hstack>
-            <vstack width={100} grow padding="xsmall" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-              {/* Description Text */}
-              <text
-                  size='small'
-                  wrap={true}
-                  overflow='ellipsis'  // Ensure ellipsis is used for overflow
-                  maxHeight={`${descriptionMaxHeight}px`}
-              >
-                  {fundraiserInfo ? fundraiserInfo.description : 'Loading description...'}
-              </text>
+            <vstack width={100} grow borderColor='#018669' border='thin'>
+              <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} width={100}>
+                {/* FUNDRAISER TITLE */}
+                <text size="large">
+                  {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
+                </text>
+                <spacer grow />
+                {showExpandButton && (
+                  <icon
+                    name="expand-right-outline"
+                    size="small"
+                    onPress={handleExpandOverlay}
+                  />
+                )}
+                <spacer size='xsmall'/>
+              </hstack>
+              <vstack width={100} grow height={descriptionHeightPct} padding="xsmall" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                {/* DESCRIPTION TEXT */}
+                <text
+                    size='small'
+                    wrap={true}
+                    overflow='ellipsis'  
+                >
+                    {fundraiserInfo ? fundraiserInfo.description : 'Loading description...'}
+                </text>
               </vstack>
-              </vstack>
+            </vstack>
           </vstack>
           <vstack width={100} height={24} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
@@ -176,6 +184,7 @@ export function FundraiserView(
               </hstack>
             </vstack>
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <spacer grow />
               <hstack width='100%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <hstack width='33%' alignment='start middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer grow />
@@ -207,19 +216,20 @@ export function FundraiserView(
           </vstack>
         </vstack>
         {isOverlayExpanded && (
-            <vstack maxWidth='393px' width={100} height={100} borderColor={DEBUG_MODE ? 'black' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} backgroundColor="white">
+            <vstack maxWidth='393px' width={100} height={100} borderColor={DEBUG_MODE ? 'black' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} backgroundColor="#333">
                 <vstack width={100} height={100} padding="medium">
                     <hstack width={100} alignment="end">
-                        <button onPress={handleCloseOverlay} icon="close" />
+                        <button onPress={handleCloseOverlay} icon="close" size='small'/>
                     </hstack>
+                    <spacer size='xsmall' />
                     <vstack grow>
-                        <text size='small' wrap={true}>
+                        <text size='small' wrap={true} color='white'>
                             {currentItems[0]}
                         </text>
                     </vstack>
                     <hstack alignment="center middle" gap="small" width={100}>
                         <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
-                        <text>{currentPage + 1} / {pagesCount}</text>
+                        <text color='white'>{currentPage + 1} / {pagesCount}</text>
                         <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
                     </hstack>
                 </vstack>
@@ -291,18 +301,57 @@ export const FundraiserPost: CustomPostType = {
       const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoCloudinaryId ?? null;
       const imageManager = new ImageManager(context);
       if (coverImagePath !== null) {
-        coverImageUrl = await imageManager.getImageUrl(coverImagePath, width);
-        console.log(`cover image url: ${coverImageUrl}`)
-      } else {
+        try {
+          coverImageUrl = await imageManager.getImageUrl(coverImagePath, width);
+          console.log(`cover image url: ${coverImageUrl}`);
+        } catch (error) {
+          context.ui.showToast("There was an error creating the post. Please try again later.");
+          console.error(`Failed to retrieve cover image for postId: ${postId}`, error);
+
+          // Attempt to delete the Reddit post to avoid orphaned posts
+          try {
+            await context.reddit.remove(postId, false);
+          } catch (removePostError) {
+            console.error('Failed to remove the Reddit post:', removePostError);
+          }
+
+          // Attempt to clean up by removing any potentially partially written data in Redis
+          try {
+            await removePostAndFormFromRedis(context.redis, postId);
+          } catch (cleanupError) {
+            console.error('Failed to clean up Redis data:', cleanupError);
+          }
+      }
+    } else {
         coverImageUrl = null;
-      }
-      if (logoImagePath !== null) {
-        logoImageUrl = await imageManager.getLogoUrl(logoImagePath);
-        console.log(`logo image url: ${logoImageUrl}`)
-      } else {
-        logoImageUrl = null;
-      }
     }
+      
+    if (logoImagePath !== null) {
+      try {
+        logoImageUrl = await imageManager.getLogoUrl(logoImagePath);
+        console.log(`logo image url: ${logoImageUrl}`);
+      } catch (error) {
+        context.ui.showToast("There was an error creating the post. Please try again later.");
+        console.error(`Failed to retrieve logo image for postId: ${postId}`, error);
+
+        // Attempt to delete the Reddit post to avoid orphaned posts
+        try {
+          await context.reddit.remove(postId, false);
+        } catch (removePostError) {
+          console.error('Failed to remove the Reddit post:', removePostError);
+        }
+
+        // Attempt to clean up by removing any potentially partially written data in Redis
+        try {
+          await removePostAndFormFromRedis(context.redis, postId);
+        } catch (cleanupError) {
+          console.error('Failed to clean up Redis data:', cleanupError);
+        }
+      }
+    } else {
+      logoImageUrl = null;
+    }
+  }
 
     const fundraiserUrl = generateFundraiserURL(fundraiserInfo, nonprofitInfo);
 

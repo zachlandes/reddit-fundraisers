@@ -30,7 +30,7 @@ export async function uploadNonprofitImage(ctx: Context, imageUrl: string): Prom
 }
 
 export function generateCloudinaryURL(imagePath: string, width: string): string {
-    const transformations = `f_auto,c_limit,g_auto,${width},q_auto`;
+    const transformations = `f_auto,c_limit,${width},q_auto`;
     return `https://res.cloudinary.com/everydotorg/image/upload/${transformations}/${imagePath}`;
 }
 
