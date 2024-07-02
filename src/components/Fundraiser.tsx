@@ -76,7 +76,7 @@ export function FundraiserView(
 
     const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
 
-    const smallPaginatedDescription = paginateText(fundraiserInfo?.description || '', availableDescriptionHeight+lineHeight, lineHeight, lineWidth, charWidth);
+    const smallPaginatedDescription = paginateText(fundraiserInfo?.description || '', availableDescriptionHeight, lineHeight, lineWidth, charWidth);
 
     const showExpandButton = smallPaginatedDescription.length > 1;
 
@@ -178,7 +178,7 @@ function renderProgressBar() {
               </text>
               <spacer size='medium' />
             </hstack>
-            <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor={borderGray} border='thin'>
+            <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <spacer size='xsmall' />
               <hstack width={100} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer size='small' />
@@ -186,14 +186,6 @@ function renderProgressBar() {
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
                 <spacer grow />
-                {showExpandButton && (
-                  <icon
-                    name="expand-right-outline"
-                    size="small"
-                    onPress={handleExpandOverlay}
-                  />
-                )}
-                <spacer size='xsmall'/>
               </hstack>
               <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <text
@@ -203,6 +195,11 @@ function renderProgressBar() {
                 >
                   {fundraiserInfo ? displayDescription : 'Loading description...'}
                 </text>
+                {showExpandButton &&
+                (<spacer size='xsmall' />)}
+                {showExpandButton && (
+                  <text size='small' weight='bold' color={everyGreen} onPress={handleExpandOverlay}>Read more</text>
+                )}
                 <spacer size='small' />
               </vstack>
             </vstack>
