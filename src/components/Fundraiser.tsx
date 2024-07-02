@@ -52,12 +52,12 @@ export function FundraiserView(
     const lineHeight = 16;
     const lineWidth = 393 - 80;
     const imageHeight = 150;
-    const overlayPaginationControlHeight = 30;
+    const overlayControlsHeight = 50;
     const paddingHeight = 16; // 8px top + 8px bottom for small padding
     const xsmallSpacerHeight = 4
     const coverImageHeight = Math.floor(totalHeight * 0.30);
     const bottomSectionHeight = totalHeight - fundraiserInfoHeight - coverImageHeight;
-    const overlayDescriptionMaxHeight = totalHeight - overlayPaginationControlHeight;
+    const overlayDescriptionMaxHeight = totalHeight - overlayControlsHeight;
 
     const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 34;
     const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2*xsmallSpacerHeight;
