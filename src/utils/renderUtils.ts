@@ -26,19 +26,6 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
     let currentParagraphWords: string[] = [];
 
     function addContentToPage(content: string, isNewline: boolean = false) {
-        // Initialize a counter for newline occurrences
-        let newlineCount = 0;
-
-        // Function to log newline count
-        function logNewlineCount() {
-            console.log(`Newline count: ${newlineCount}`);
-        }
-
-        // Increment newline count and log when isNewline is true
-        if (isNewline) {
-            newlineCount++;
-            logNewlineCount();
-        }
         if (isNewline) {
             if (charCount + charsPerLine > approxCharsPerPage && currentPage.trim()) {
                 finalizePage();

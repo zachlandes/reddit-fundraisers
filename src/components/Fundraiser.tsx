@@ -76,7 +76,7 @@ export function FundraiserView(
 
     const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
 
-    const smallPaginatedDescription = paginateText(fundraiserInfo?.description || '', availableDescriptionHeight, lineHeight, lineWidth, charWidth);
+    const smallPaginatedDescription = paginateText(fundraiserInfo?.description || '', availableDescriptionHeight+lineHeight, lineHeight, lineWidth, charWidth);
 
     const showExpandButton = smallPaginatedDescription.length > 1;
 
@@ -157,7 +157,7 @@ function renderProgressBar() {
           </vstack>
           <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={`${fundraiserInfoHeight}px`} border={DEBUG_MODE ? 'thin' : 'none'}>
             <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
-              <spacer size='small' />
+              <spacer size='xsmall' />
               <CircularLogo
                 url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
                 size={35}
@@ -182,7 +182,7 @@ function renderProgressBar() {
               <spacer size='xsmall' />
               <hstack width={100} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer size='small' />
-                <text size="large">
+                <text size="large" weight='bold'>
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
                 <spacer grow />
@@ -240,7 +240,7 @@ function renderProgressBar() {
                 <hstack width='33%' alignment='start top' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer size='small' />
                   <vstack alignment='start top'>
-                    <text size='small'>
+                    <text size='small' weight='bold'>
                       {supporters === 0 ? "Be the first to donate!" : `${new Intl.NumberFormat('en-US').format(supporters)} Supporters`}
                     </text>
                   </vstack>
