@@ -11,6 +11,7 @@ import { fetchExistingFundraiserDetails } from '../sources/Every.js';
 import { ImageManager } from '../utils/imageUtils.js';
 import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
+import { Watermark } from './Watermark.js';
 
 const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
 
@@ -27,6 +28,7 @@ function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiser
   if (!fundraiserInfo) return ''; // TODO: better default?
   return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate/pay`; //FIXME: dynamic value?
 }
+ 
 
 export function FundraiserView(
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
@@ -45,7 +47,7 @@ export function FundraiserView(
     const { ui, useState } = context;
 
     const [isOverlayExpanded, setIsOverlayExpanded] = useState(false);
-    const fundraiserInfoHeight = Math.floor(totalHeight * 0.46); 
+    const fundraiserInfoHeight = Math.floor(totalHeight * 0.44); 
     const titleHeight = 26; 
     const lineHeight = 16;
     const lineWidth = 393 - 80;
@@ -74,7 +76,7 @@ export function FundraiserView(
 
     const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
 
-    const smallPaginatedDescription = paginateText(fundraiserInfo?.description || '', availableDescriptionHeight, lineHeight, lineWidth, charWidth);
+    const smallPaginatedDescription = paginateText(fundraiserInfo?.description || '', availableDescriptionHeight+lineHeight, lineHeight, lineWidth, charWidth);
 
     const showExpandButton = smallPaginatedDescription.length > 1;
 
@@ -109,7 +111,6 @@ function renderProgressBar() {
                     <hstack backgroundColor={shadowColor} height={`${shadowHeight}px`} />
                     <hstack backgroundColor={backgroundColor} grow />
                 </vstack>
-                
                 {/* Progress bar */}
                 <hstack backgroundColor={everyGreen} width={`${progressPercentage}%`} height="100%" />
             </zstack>
@@ -269,6 +270,7 @@ function renderProgressBar() {
                 </hstack>
               </hstack>
             </vstack>
+            <Watermark />
           </vstack>
         </vstack>
         {renderDescriptionOverlay()}
