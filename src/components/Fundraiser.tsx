@@ -47,18 +47,18 @@ export function FundraiserView(
     const [isOverlayExpanded, setIsOverlayExpanded] = useState(false);
     const fundraiserInfoHeight = Math.floor(totalHeight * 0.46); 
     const titleHeight = 26; 
-    const lineHeight = 17;
-    const lineWidth = 393 * 0.95;
+    const lineHeight = 16;
+    const lineWidth = 393 - 80;
     const imageHeight = 150;
     const overlayPaginationControlHeight = 30;
+    const paddingHeight = 16; // 8px top + 8px bottom for small padding
+    const xsmallSpacerHeight = 4
     const coverImageHeight = Math.floor(totalHeight * 0.30);
     const bottomSectionHeight = totalHeight - fundraiserInfoHeight - coverImageHeight;
     const overlayDescriptionMaxHeight = totalHeight - overlayPaginationControlHeight;
 
-    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight;
-    const paddingHeight = 16; // 8px top + 8px bottom for small padding
-    const xsmallSpacerHeight = 4
-    const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - (2*xsmallSpacerHeight)-20;
+    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 34;
+    const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2*xsmallSpacerHeight;
     const everyGreen = '#018669';
     const borderGray = '#C0C0C0'; //'#A0A0A0'; 
     
@@ -155,7 +155,7 @@ function renderProgressBar() {
             />
           </vstack>
           <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={`${fundraiserInfoHeight}px`} border={DEBUG_MODE ? 'thin' : 'none'}>
-            <hstack alignment='middle' borderColor={borderGray} border='thin' padding="xsmall">
+            <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
               <spacer size='small' />
               <CircularLogo
                 url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
@@ -206,7 +206,7 @@ function renderProgressBar() {
               </vstack>
             </vstack>
           </vstack>
-          <vstack width={100} grow borderColor={borderGray} border='thin'>
+          <vstack width={100} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <spacer size='xsmall' />
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>

@@ -19,7 +19,7 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
     console.log("approxCharsPerPage:", approxCharsPerPage);
     const charsPerLine = Math.floor(lineWidth / charWidth);
     console.log("charsPerLine:", charsPerLine);
-    const lastLineBuffer = 9; // Buffer for the last line
+    const lastLineBuffer = 0; // Buffer for the last line
     const pages: string[] = [];
     let currentPage = '';
     let charCount = 0;
