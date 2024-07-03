@@ -12,6 +12,7 @@ import { ImageManager } from '../utils/imageUtils.js';
 import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
 import { Watermark } from './Watermark.js';
+import { FullScreenOverlay } from './FullScreenOverlay.js';
 
 const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
 
@@ -250,6 +251,8 @@ function renderProgressBar() {
                     backgroundColor={everyGreen}
                     textColor="white"
                     height={40}
+                    icon="external"
+                    iconPosition="right"
                     onPress={() => {
                       if (fundraiserInfo) {
                         console.log("Navigating to fundraiser URL:", fundraiserURL);
