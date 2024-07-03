@@ -11,7 +11,7 @@ export const Watermark: Devvit.BlockComponent = (_, context) => {
           <DevvitLogo />
           <hstack alignment="start middle">
             <text size="small" darkColor="#B8C5C9" lightColor="#000" selectable={false}>
-                           Made with
+                           Powered by
             </text>
             <text selectable={false}>&nbsp;</text>
             <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/snoowy-day-fund')}>
@@ -20,9 +20,20 @@ export const Watermark: Devvit.BlockComponent = (_, context) => {
               </text>
               <hstack height={'1px'} backgroundColor="#B8C5C9"></hstack>
             </vstack>
+            <text selectable={false}>&nbsp;</text>
+            <text size="small" darkColor='#B8C5C9' lightColor='#000' selectable={false}>
+              and
+            </text>
+            <text selectable={false}>&nbsp;</text>
+            <vstack onPress={()=> context.ui.navigateTo("https://every.org")}>
+              <text size="small" darkColor="#B8C5C9" lightColor="#000" selectable={false}>
+                Every.org
+              </text>
+              <hstack height={'1px'} backgroundColor="#B8C5C9"></hstack>
+            </vstack>
           </hstack>
+          <spacer grow />
         </hstack>
-        <spacer size="small" />
       </hstack>
     </vstack>
   );
