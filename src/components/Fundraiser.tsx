@@ -47,11 +47,21 @@ export function FundraiserView(
 ): JSX.Element {
     const { ui, useState } = context;
 
-    const [isOverlayExpanded, setIsOverlayExpanded] = useState(false);
+    enum OverlayType {
+      None,
+      Description,
+      // Add other overlay types as needed, e.g.:
+      // SnoowyDayFund info,
+      // Nonprofit info,
+      // etc.
+    }
+
+    const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
     const fundraiserInfoHeight = Math.floor(totalHeight * 0.44); 
+    const MOBILE_WIDTH = 393;
     const titleHeight = 26; 
     const lineHeight = 16;
-    const lineWidth = 393 - 80;
+    const lineWidth = MOBILE_WIDTH - 80;
     const imageHeight = 150;
     const overlayControlsHeight = 50;
     const paddingHeight = 16; // 8px top + 8px bottom for small padding
@@ -87,14 +97,14 @@ export function FundraiserView(
 
     const magicWidthPercentageProgressBar = 97;
 
-    const handleExpandOverlay = () => {
-        console.log("Expand button clicked");
-        setIsOverlayExpanded(true);
+    const handleExpandOverlay = (overlayType: OverlayType) => {
+        console.log(`Expanding overlay: ${OverlayType[overlayType]}`);
+        setCurrentOverlay(overlayType);
     };
 
     const handleCloseOverlay = () => {
-        console.log("Close button clicked");
-        setIsOverlayExpanded(false);
+        console.log("Closing overlay");
+        setCurrentOverlay(OverlayType.None);
     };
 
 function renderProgressBar() {
@@ -119,33 +129,32 @@ function renderProgressBar() {
     );
 }
 
-    function renderDescriptionOverlay() {
-        if (!isOverlayExpanded) return null;
-        return (
-            <vstack maxWidth='393px' width={100} height={100} borderColor={borderGray} border='thin' backgroundColor="neutral-background">
-                <vstack width={100} height={100} padding="medium">
-                    <hstack width={100} alignment="end">
-                        <button onPress={handleCloseOverlay} icon="close" size='small'/>
-                    </hstack>
-                    <spacer size='xsmall' />
-                    <vstack grow>
-                        <text size='small' wrap={true} color='neutral-content'>
-                            {currentItems[0]}
-                        </text>
-                    </vstack>
-                    <hstack alignment="center middle" gap="small" width={100}>
-                        <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
-                        <text color='white'>{currentPage + 1} / {pagesCount}</text>
-                        <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
-                    </hstack>
-                </vstack>
-            </vstack>
-        );
+    function renderOverlay() {
+        switch (currentOverlay) {
+            case OverlayType.Description:
+                return (
+                    <FullScreenOverlay onClose={handleCloseOverlay} mobileWidth={MOBILE_WIDTH}>
+                        <vstack grow>
+                            <text size='small' wrap={true} color='neutral-content'>
+                                {currentItems[0]}
+                            </text>
+                        </vstack>
+                        <hstack alignment="center middle" gap="small" width={100}>
+                            <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
+                            <text color='white'>{currentPage + 1} / {pagesCount}</text>
+                            <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
+                        </hstack>
+                    </FullScreenOverlay>
+                );
+            // Add cases for other overlay types as needed
+            default:
+                return null;
+        }
     }
 
     return (
       <zstack width="100%" height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
-        <vstack maxWidth={'393px'} height={100} width={100} borderColor={borderGray} border='thin'>
+        <vstack maxWidth={`${MOBILE_WIDTH}px`} height={100} width={100} borderColor={borderGray} border='thin'>
           <vstack width="100%" maxHeight={`${coverImageHeight}px`} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <image
                 url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
@@ -199,7 +208,7 @@ function renderProgressBar() {
                 {showExpandButton &&
                 (<spacer size='xsmall' />)}
                 {showExpandButton && (
-                  <text size='small' weight='bold' color={everyGreen} onPress={handleExpandOverlay}>Read more</text>
+                  <text size='small' weight='bold' color={everyGreen} onPress={() => handleExpandOverlay(OverlayType.Description)}>Read more</text>
                 )}
                 <spacer size='small' />
               </vstack>
@@ -273,7 +282,7 @@ function renderProgressBar() {
             <Watermark />
           </vstack>
         </vstack>
-        {renderDescriptionOverlay()}
+        {renderOverlay()}
       </zstack>
     );
 }
