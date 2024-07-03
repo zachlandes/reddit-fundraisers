@@ -133,7 +133,7 @@ function renderProgressBar() {
         switch (currentOverlay) {
             case OverlayType.Description:
                 return (
-                    <FullScreenOverlay onClose={handleCloseOverlay} mobileWidth={MOBILE_WIDTH}>
+                    <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
                         <vstack grow>
                             <text size='small' wrap={true} color='neutral-content'>
                                 {currentItems[0]}
