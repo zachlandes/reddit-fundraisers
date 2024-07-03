@@ -29,6 +29,7 @@ interface FancyButtonProps extends Omit<Devvit.Blocks.StackProps, "onPress"> {
   backgroundColor?: `#${string}`
   icon?: Devvit.Blocks.IconProps["name"]
   iconPosition?: 'left' | 'right'
+  isExpanded?: boolean
 }
 
 const sharedProps: Partial<FancyButtonProps> = {
@@ -48,20 +49,25 @@ export const FancyButton: Devvit.BlockComponent<FancyButtonProps> = ({
   onPress,
   icon,
   iconPosition = 'left',
+  isExpanded = false, //animate by alternating to true
   ...elemProps
 }) => {
   function handlePress(e: Devvit.Blocks.OnPressEvent) {
     onPress(e)
   }
+
+  const buttonHeight = isExpanded ? height + 2 : height;
+  const buttonBackgroundColor = isExpanded ? adjust(backgroundColor, 20) : backgroundColor;
+
   return (
-    <vstack {...sharedProps} maxWidth="100px" height={`${height}px`} onPress={handlePress} {...elemProps}>
-      <zstack height={`${height}px`}>
-        <vstack {...sharedProps} height={`${height}px`} backgroundColor='black' />
-        <vstack {...sharedProps} height={`${height - 1}px`} backgroundColor={adjust(backgroundColor, -50)} />
-        <vstack {...sharedProps} height={`${height - 4}px`} backgroundColor='white'></vstack>
+    <vstack {...sharedProps} maxWidth="100px" height={`${buttonHeight}px`} onPress={handlePress} {...elemProps}>
+      <zstack height={`${buttonHeight}px`}>
+        <vstack {...sharedProps} height={`${buttonHeight}px`} backgroundColor='black' />
+        <vstack {...sharedProps} height={`${buttonHeight - 1}px`} backgroundColor={adjust(buttonBackgroundColor, -50)} />
+        <vstack {...sharedProps} height={`${buttonHeight - 4}px`} backgroundColor='white'></vstack>
         <vstack {...sharedProps}>
           <vstack {...sharedProps} height={"1px"} />
-          <vstack {...sharedProps} height={`${height - 5}px`} backgroundColor={backgroundColor}>
+          <vstack {...sharedProps} height={`${buttonHeight - 5}px`} backgroundColor={buttonBackgroundColor}>
             <hstack height="100%" alignment='middle center' gap="small">
               {(icon && iconPosition === 'left') ? <icon name={icon} color={textColor} /> : null}
               <text color={textColor} size="large">

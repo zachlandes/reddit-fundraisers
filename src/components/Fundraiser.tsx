@@ -16,6 +16,10 @@ import { FullScreenOverlay } from './FullScreenOverlay.js';
 
 const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
 
+Devvit.configure({
+  realtime: true,
+});
+
 interface FundraiserState extends JSONObject {
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null;
   goalType: string;
@@ -43,7 +47,8 @@ export function FundraiserView(
   coverImageUrl: string | null,
   logoImageUrl: string | null,
   fundraiserURL: string,
-  supporters: number
+  supporters: number,
+  isButtonExpanded: boolean
 ): JSX.Element {
     const { ui, useState } = context;
 
@@ -79,7 +84,6 @@ export function FundraiserView(
     const fontFamily = "helvetica";
     const sampleText = fundraiserInfo?.description.slice(0, 100) || 'Sample Text';
     const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize } ) / sampleText.length;
-    console.log("charWidth: ", charWidth);
     
     const descriptionPages = fundraiserInfo
         ? paginateText(fundraiserInfo.description, overlayDescriptionMaxHeight, lineHeight, lineWidth, charWidth)
@@ -262,6 +266,7 @@ function renderProgressBar() {
                     height={40}
                     icon="external"
                     iconPosition="right"
+                    isExpanded={isButtonExpanded}
                     onPress={() => {
                       if (fundraiserInfo) {
                         console.log("Navigating to fundraiser URL:", fundraiserURL);
@@ -295,10 +300,39 @@ export const FundraiserPost: CustomPostType = {
     const { height, width } = context.dimensions ?? { height: 480, width: 320 };
     console.log("Starting render of FundraiserPost with dimensions:", { height, width });
 
-    const { postId, useChannel, useState } = context;
+    const { postId, useChannel, useState, useInterval } = context;
 
     if (typeof postId !== 'string') {
       throw new Error('postId is undefined');
+    }
+
+    // Create and subscribe to the fundraiser_updates channel
+    const updateChannel = useChannel({
+      name: 'fundraiser_updates',
+      onMessage: (data: JSONValue) => {
+        console.log("Received message on fundraiser_updates channel:", data);
+        if (typeof data === 'object' && data !== null && 'postId' in data && data.postId === postId) {
+          if ('updatedDetails' in data) {
+            const updatedDetails = data.updatedDetails as Partial<EveryFundraiserRaisedDetails>;
+            setState(prevState => ({
+              ...prevState,
+              raised: typeof updatedDetails.raised === 'number' ? updatedDetails.raised : prevState.raised,
+              goal: typeof updatedDetails.goalAmount === 'number' ? updatedDetails.goalAmount : prevState.goal,
+              supporters: typeof updatedDetails.supporters === 'number' ? updatedDetails.supporters : prevState.supporters,
+              goalType: typeof updatedDetails.goalType === 'string' ? updatedDetails.goalType : prevState.goalType
+            }));
+          }
+        }
+      },
+      onSubscribed: () => {
+        console.log("Successfully subscribed to fundraiser_updates channel");
+      }
+    });
+    
+    try {
+      await updateChannel.subscribe();
+    } catch (error) {
+      console.error("Error subscribing to channels:", error);
     }
 
     const [state, setState] = useState<FundraiserState>(async () => {
@@ -336,6 +370,12 @@ export const FundraiserPost: CustomPostType = {
 
     // Destructure state for easier use
     const { fundraiserInfo, goalType, raised, goal, nonprofitInfo, supporters } = state;
+    
+    const [isButtonExpanded, setIsButtonExpanded] = useState(false);
+    // tick animation
+    useInterval(() => {
+      setIsButtonExpanded(prev => !prev);
+    }, 1000).start();
 
     let coverImageUrl: string | null = null;
     let logoImageUrl: string | null = null;
@@ -351,7 +391,7 @@ export const FundraiserPost: CustomPostType = {
       if (coverImagePath !== null) {
         try {
           coverImageUrl = await imageManager.getImageUrl(coverImagePath, width);
-          console.log(`cover image url: ${coverImageUrl}`);
+          //console.log(`cover image url: ${coverImageUrl}`);
         } catch (error) {
           context.ui.showToast("There was an error creating the post. Please try again later.");
           console.error(`Failed to retrieve cover image for postId: ${postId}`, error);
@@ -377,7 +417,7 @@ export const FundraiserPost: CustomPostType = {
     if (logoImagePath !== null) {
       try {
         logoImageUrl = await imageManager.getLogoUrl(logoImagePath);
-        console.log(`logo image url: ${logoImageUrl}`);
+        //console.log(`logo image url: ${logoImageUrl}`);
       } catch (error) {
         context.ui.showToast("There was an error creating the post. Please try again later.");
         console.error(`Failed to retrieve logo image for postId: ${postId}`, error);
@@ -403,28 +443,9 @@ export const FundraiserPost: CustomPostType = {
 
     const fundraiserUrl = generateFundraiserURL(fundraiserInfo, nonprofitInfo);
 
-    // Subscribe to real-time updates for live changes to the raised amount
-    const updateChannel = useChannel({
-      name: 'fundraiser_updates',
-      onMessage: (data: JSONValue) => {
-        console.log("Received message on fundraiser_updates channel:", data);
-        if (typeof data === 'object' && data !== null && 'postId' in data && data.postId === postId && 'updatedDetails' in data) {
-          const updatedDetails = data.updatedDetails as Partial<EveryFundraiserRaisedDetails>;
-          setState(prevState => ({
-            ...prevState,
-            raised: typeof updatedDetails.raised === 'number' ? updatedDetails.raised : prevState.raised,
-            goal: typeof updatedDetails.goalAmount === 'number' ? updatedDetails.goalAmount : prevState.goal,
-            supporters: typeof updatedDetails.supporters === 'number' ? updatedDetails.supporters : prevState.supporters,
-            goalType: typeof updatedDetails.goalType === 'string' ? updatedDetails.goalType : prevState.goalType
-          }));
-        }
-      }
-    });
-    updateChannel.subscribe();
-
     return (
       <blocks>
-        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, coverImageUrl, logoImageUrl, fundraiserUrl, supporters)}
+        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, coverImageUrl, logoImageUrl, fundraiserUrl, supporters, isButtonExpanded)}
       </blocks>
     );
   }

@@ -14,11 +14,11 @@ import { EveryFundraiserRaisedDetails } from "../types/index.js";
  */
 export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number): string[] {
     const maxLinesPerPage = Math.floor((totalHeight) / lineHeight);
-    console.log("maxLinesPerPage:", maxLinesPerPage);
+    //console.log("maxLinesPerPage:", maxLinesPerPage);
     const approxCharsPerPage = maxLinesPerPage * Math.floor(lineWidth / charWidth);
-    console.log("approxCharsPerPage:", approxCharsPerPage);
+    //console.log("approxCharsPerPage:", approxCharsPerPage);
     const charsPerLine = Math.floor(lineWidth / charWidth);
-    console.log("charsPerLine:", charsPerLine);
+    //console.log("charsPerLine:", charsPerLine);
     const lastLineBuffer = 0; // Buffer for the last line
     const pages: string[] = [];
     let currentPage = '';
@@ -68,7 +68,7 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
 
     function finalizePage() {
         pages.push(currentPage.trim());
-        console.log(`Page ${pages.length} finalized with ${charCount} characters`);
+        //console.log(`Page ${pages.length} finalized with ${charCount} characters`);
         currentPage = '';
         charCount = 0;
     }
@@ -100,7 +100,7 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
         finalizePage();
     }
 
-    console.log(`Pagination complete. Total pages: ${pages.length}`);
+    //console.log(`Pagination complete. Total pages: ${pages.length}`);
     return pages;
 }
 
@@ -155,8 +155,12 @@ export async function sendFundraiserUpdates(
 ) {
     await context.realtime.send('fundraiser_updates', {
         postId: postId,
-        raised: updatedDetails.raised,
-        goalAmount: updatedDetails.goalAmount
+        updatedDetails: {
+            raised: updatedDetails.raised,
+            goalAmount: updatedDetails.goalAmount,
+            supporters: updatedDetails.supporters,
+            goalType: updatedDetails.goalType
+        }
     });
     console.log(`Sent real-time update for postId: ${postId}`);
 }

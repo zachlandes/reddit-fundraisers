@@ -11,13 +11,14 @@ export const existingFundraiserForm = Devvit.createForm(
     () => {
         return {
           fields: [
+            { label: 'Give a title to your post',
+            type: 'string',
+            name: 'postTitle',
+            helpText: "Give your Reddit post a clear and engaging title, e.g. [CALL TO ACTION] Pet Lovers - Donate to 'Lil Bub's Big Fund and the r/petlovers mod team will match your donation, up to $5,000 total "},
             { label: 'Enter the url of an existing fundraiser from every.org',
             type: 'string',
             name: 'fundraiserUrl',
-            helpText: "The URL should look like this: https://every.org/nonprofit-name/f/fundraiser-name"},
-            { label: 'Give a title to your post',
-            type: 'string',
-            name: 'postTitle'}
+            helpText: "The URL should look like this: https://every.org/nonprofit-name/f/fundraiser-name. Go to every.org to create or find a fundraiser, first."}
           ],
           title: 'Create a fundraiser',
           acceptLabel: 'Create',

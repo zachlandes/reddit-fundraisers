@@ -332,10 +332,9 @@ Devvit.addTrigger({
       await context.scheduler.runJob({
         cron: '*/10 * * * * *',
         name: 'update_fundraiser_posts',
-        data: {},
       });
     } catch (e) {
-      console.error('Error scheduling job on app install:', e);
+      console.error('Error scheduling update_fundraiser_posts job on app install:', e);
       throw e;
     }
   },
@@ -356,10 +355,9 @@ Devvit.addTrigger({
       await context.scheduler.runJob({
         cron: '*/10 * * * * *',
         name: 'update_fundraiser_posts',
-        data: {},
       });
     } else {
-      console.log('Scheduler job validated.');
+      console.log('Update scheduler job validated.');
     }
   },
 });
@@ -382,7 +380,3 @@ Devvit.addTrigger({
 });
 
 export default Devvit;
-
-
-
-

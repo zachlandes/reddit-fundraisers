@@ -162,6 +162,6 @@ export async function fetchPostsToUpdate(redis: RedisClient): Promise<string[]> 
     const currentTime = Date.now(); //FIXME: We may need to use dates (no hours mins) to be sure we update posts on the last day of their fundraiser
     const postsToUpdate = allMembers.filter((_, index) => scores[index] > currentTime)
                                     .map(member => member.member);
-    console.log(`Fetched ${postsToUpdate.length} posts to update`);
+    //console.log(`Fetched ${postsToUpdate.length} posts to update`);
     return postsToUpdate;
 }
