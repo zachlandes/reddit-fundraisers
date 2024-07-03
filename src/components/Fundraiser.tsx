@@ -306,6 +306,60 @@ export const FundraiserPost: CustomPostType = {
       throw new Error('postId is undefined');
     }
 
+    // State for static data
+    const [staticData, setStaticData] = useState<{
+      fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
+      nonprofitInfo: EveryNonprofitInfo | null,
+      coverImageUrl: string | null,
+      logoImageUrl: string | null
+    }>({
+      fundraiserInfo: null,
+      nonprofitInfo: null,
+      coverImageUrl: null,
+      logoImageUrl: null
+    });
+
+    // State for dynamic data
+    const [dynamicData, setDynamicData] = useState<{
+      goalType: string,
+      raised: number,
+      goal: number | null,
+      supporters: number
+    }>({
+      goalType: '',
+      raised: 0,
+      goal: null,
+      supporters: 0
+    });
+
+    // Fetch static data from Redis
+    if (!staticData.fundraiserInfo) {
+      try {
+        const cachedForm = await getCachedForm(context, postId);
+        if (cachedForm) {
+          const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
+          const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
+          const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
+
+          setStaticData({
+            fundraiserInfo: fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null,
+            nonprofitInfo: nonprofitInfo,
+            coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null,
+            logoImageUrl: nonprofitInfo?.logoCloudinaryId || null
+          });
+
+          setDynamicData({
+            goalType: fundraiserDetails?.goalType || '',
+            raised: fundraiserDetails?.raised || 0,
+            goal: fundraiserDetails?.goalAmount || null,
+            supporters: fundraiserDetails?.supporters || 0
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to retrieve data from Redis for postId: ${postId}`, error);
+      }
+    }
+
     // Create and subscribe to the fundraiser_updates channel
     const updateChannel = useChannel({
       name: 'fundraiser_updates',
@@ -314,7 +368,7 @@ export const FundraiserPost: CustomPostType = {
         if (typeof data === 'object' && data !== null && 'postId' in data && data.postId === postId) {
           if ('updatedDetails' in data) {
             const updatedDetails = data.updatedDetails as Partial<EveryFundraiserRaisedDetails>;
-            setState(prevState => ({
+            setDynamicData(prevState => ({
               ...prevState,
               raised: typeof updatedDetails.raised === 'number' ? updatedDetails.raised : prevState.raised,
               goal: typeof updatedDetails.goalAmount === 'number' ? updatedDetails.goalAmount : prevState.goal,
@@ -328,124 +382,39 @@ export const FundraiserPost: CustomPostType = {
         console.log("Successfully subscribed to fundraiser_updates channel");
       }
     });
-    
+
     try {
       await updateChannel.subscribe();
     } catch (error) {
       console.error("Error subscribing to channels:", error);
     }
 
-    const [state, setState] = useState<FundraiserState>(async () => {
-      const initialState: FundraiserState = {
-        fundraiserInfo: null,
-        goalType: '',
-        raised: 0,
-        goal: null,
-        nonprofitInfo: null,
-        supporters: 0
-      };
-
-      try {
-        const cachedData = await getCachedForm(context, postId);
-        if (cachedData) {
-          const fundraiserRaisedDetails = cachedData.getAllProps(TypeKeys.fundraiserDetails);
-          const everyExistingFundraiserInfo = cachedData.getAllProps(TypeKeys.everyExistingFundraiserInfo);
-          const nonprofitInfo = cachedData.getAllProps(TypeKeys.everyNonprofitInfo);
-
-          return {
-            fundraiserInfo: everyExistingFundraiserInfo ? serializeExistingFundraiserResponse(everyExistingFundraiserInfo) : null,
-            goalType: fundraiserRaisedDetails?.goalType ?? '',
-            raised: fundraiserRaisedDetails?.raised ?? 0,
-            goal: fundraiserRaisedDetails?.goalAmount ?? null,
-            nonprofitInfo: nonprofitInfo,
-            supporters: fundraiserRaisedDetails?.supporters ?? 0
-          };
-        }
-      } catch (error) {
-        console.error(`Failed to retrieve cached form for postId: ${postId}`, error);
-      }
-
-      return initialState;
-    });
-
-    // Destructure state for easier use
-    const { fundraiserInfo, goalType, raised, goal, nonprofitInfo, supporters } = state;
-    
     const [isButtonExpanded, setIsButtonExpanded] = useState(false);
+
+    const fundraiserUrl = generateFundraiserURL(staticData.fundraiserInfo, staticData.nonprofitInfo);
+
     // tick animation
     useInterval(() => {
       setIsButtonExpanded(prev => !prev);
     }, 1000).start();
 
-    let coverImageUrl: string | null = null;
-    let logoImageUrl: string | null = null;
-    if (nonprofitInfo && fundraiserInfo) {
-      const existingFundraiserDetails = await fetchExistingFundraiserDetails(
-        nonprofitInfo.nonprofitID,
-        fundraiserInfo.id,
-        await getEveryPublicKey(context)
-      );
-      const coverImagePath = existingFundraiserDetails?.fundraiserInfo.coverImageCloudinaryId ?? null;
-      const logoImagePath = existingFundraiserDetails?.nonprofitInfo.logoCloudinaryId ?? null;
-      const imageManager = new ImageManager(context);
-      if (coverImagePath !== null) {
-        try {
-          coverImageUrl = await imageManager.getImageUrl(coverImagePath, width);
-          //console.log(`cover image url: ${coverImageUrl}`);
-        } catch (error) {
-          context.ui.showToast("There was an error creating the post. Please try again later.");
-          console.error(`Failed to retrieve cover image for postId: ${postId}`, error);
-
-          // Attempt to delete the Reddit post to avoid orphaned posts
-          try {
-            await context.reddit.remove(postId, false);
-          } catch (removePostError) {
-            console.error('Failed to remove the Reddit post:', removePostError);
-          }
-
-          // Attempt to clean up by removing any potentially partially written data in Redis
-          try {
-            await removePostAndFormFromRedis(context.redis, postId);
-          } catch (cleanupError) {
-            console.error('Failed to clean up Redis data:', cleanupError);
-          }
-      }
-    } else {
-        coverImageUrl = null;
-    }
-      
-    if (logoImagePath !== null) {
-      try {
-        logoImageUrl = await imageManager.getLogoUrl(logoImagePath);
-        //console.log(`logo image url: ${logoImageUrl}`);
-      } catch (error) {
-        context.ui.showToast("There was an error creating the post. Please try again later.");
-        console.error(`Failed to retrieve logo image for postId: ${postId}`, error);
-
-        // Attempt to delete the Reddit post to avoid orphaned posts
-        try {
-          await context.reddit.remove(postId, false);
-        } catch (removePostError) {
-          console.error('Failed to remove the Reddit post:', removePostError);
-        }
-
-        // Attempt to clean up by removing any potentially partially written data in Redis
-        try {
-          await removePostAndFormFromRedis(context.redis, postId);
-        } catch (cleanupError) {
-          console.error('Failed to clean up Redis data:', cleanupError);
-        }
-      }
-    } else {
-      logoImageUrl = null;
-    }
-  }
-
-    const fundraiserUrl = generateFundraiserURL(fundraiserInfo, nonprofitInfo);
-
     return (
       <blocks>
-        {FundraiserView(fundraiserInfo, raised, goal, goalType, context, width, height, nonprofitInfo, coverImageUrl, logoImageUrl, fundraiserUrl, supporters, isButtonExpanded)}
+        {FundraiserView(
+          staticData.fundraiserInfo,
+          dynamicData.raised,
+          dynamicData.goal,
+          dynamicData.goalType,
+          context,
+          width,
+          height,
+          staticData.nonprofitInfo,
+          staticData.coverImageUrl,
+          staticData.logoImageUrl,
+          fundraiserUrl,
+          dynamicData.supporters,
+          isButtonExpanded
+        )}
       </blocks>
     );
   }

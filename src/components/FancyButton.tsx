@@ -56,7 +56,7 @@ export const FancyButton: Devvit.BlockComponent<FancyButtonProps> = ({
     onPress(e)
   }
 
-  const buttonHeight = isExpanded ? height + 2 : height;
+  const buttonHeight = height;//isExpanded ? height + 2 : height;
   const buttonBackgroundColor = isExpanded ? adjust(backgroundColor, 20) : backgroundColor;
 
   return (

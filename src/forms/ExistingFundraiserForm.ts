@@ -1,10 +1,11 @@
 import { Devvit } from "@devvit/public-api";
 import { fetchExistingFundraiserDetails, fetchFundraiserRaisedDetails } from "../sources/Every.js";
 import { CachedForm } from "../utils/CachedForm.js";
-import { addOrUpdatePostInRedis, setCachedForm } from "../utils/Redis.js";
+import { addOrUpdatePostInRedis, setCachedForm, removePostAndFormFromRedis } from "../utils/Redis.js";
 import { LoadingState } from "../main.js";
 import { fundraiserUrlHelper } from "../utils/formUtils.js";
 import { EveryFundraiserRaisedDetails } from '../types/index.js'; // Added import for EveryFundraiserRaisedDetails
+import { ImageManager } from "../utils/imageUtils.js";
 
 // Create a custom post from an existing fundraiser on every.org
 export const existingFundraiserForm = Devvit.createForm(
@@ -96,8 +97,38 @@ export const existingFundraiserForm = Devvit.createForm(
             cachedForm.initialize('everyExistingFundraiserInfo', existingFundraiserDetails.fundraiserInfo);
             cachedForm.initialize('everyNonprofitInfo', existingFundraiserDetails.nonprofitInfo);
             cachedForm.initialize('fundraiserDetails', fundraiserRaisedDetails);
+
+            const imageManager = new ImageManager(ctx);
+            let coverImageUrl: string | null = null;
+            let logoImageUrl: string | null = null;
+
+            const coverImageWidth = 1200; // FIXME: I think we want to create multiple width cover images but responsively serve them based on viewport width
+
+            const coverImagePath = existingFundraiserDetails.fundraiserInfo.coverImageCloudinaryId ?? null;
+            const logoImagePath = existingFundraiserDetails.nonprofitInfo.logoCloudinaryId ?? null;
+
+            if (coverImagePath !== null) {
+                try {
+                    coverImageUrl = await imageManager.getImageUrl(coverImagePath, coverImageWidth);
+                    cachedForm.setProp('everyExistingFundraiserInfo', 'coverImageCloudinaryId', coverImageUrl);
+                } catch (error) {
+                    console.error(`Failed to retrieve cover image for postId: ${postId}`, error);
+                }
+            }
+
+            if (logoImagePath !== null) {
+                try {
+                    logoImageUrl = await imageManager.getLogoUrl(logoImagePath);
+                    cachedForm.setProp('everyNonprofitInfo', 'logoCloudinaryId', logoImageUrl);
+                } catch (error) {
+                    console.error(`Failed to retrieve logo image for postId: ${postId}`, error);
+                }
+            }
+
             try {
                 await setCachedForm(ctx, postId, cachedForm);
+                await addOrUpdatePostInRedis(ctx.redis, post.id, existingFundraiserDetails.fundraiserInfo.endDate ? new Date(existingFundraiserDetails.fundraiserInfo.endDate) : null);
+                ctx.ui.navigateTo(post);
             } catch (error) {
                 console.error('Error setting cached form:', error);
                 ctx.ui.showToast('An error occurred while caching the form. Please try again.');
@@ -110,13 +141,19 @@ export const existingFundraiserForm = Devvit.createForm(
                     console.error('Failed to remove post:', removeError);
                     ctx.ui.showToast('There was an issue creating your fundraiser post. Please delete the post and try again.');
                 }
+
+                // Attempt to clean up by removing any potentially partially written data in Redis
+                try {
+                    await removePostAndFormFromRedis(ctx.redis, postId);
+                } catch (cleanupError) {
+                    console.error('Failed to clean up Redis data:', cleanupError);
+                }
                 return;
             }
-            await addOrUpdatePostInRedis(ctx.redis, post.id, existingFundraiserDetails.fundraiserInfo.endDate ? new Date(existingFundraiserDetails.fundraiserInfo.endDate) : null);
-            ctx.ui.navigateTo(post);
         } catch (error) {
             console.error('Error fetching or caching fundraiser details:', error);
             ctx.ui.showToast('An error occurred while processing your request. Please try again.');
         }
       }
 )
+
