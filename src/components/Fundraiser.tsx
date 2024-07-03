@@ -397,9 +397,9 @@ export const FundraiserPost: CustomPostType = {
     const fundraiserUrl = generateFundraiserURL(staticData.fundraiserInfo, staticData.nonprofitInfo);
 
     // tick animation
-    useInterval(() => {
-      setIsButtonExpanded(prev => !prev);
-    }, 1000).start();
+    // useInterval(() => {
+    //   setIsButtonExpanded(prev => !prev);
+    // }, 1000).start();
 
     return (
       <blocks>
