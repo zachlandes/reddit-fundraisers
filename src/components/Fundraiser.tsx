@@ -55,6 +55,7 @@ export function FundraiserView(
     enum OverlayType {
       None,
       Description,
+      NonprofitInfo
       // Add other overlay types as needed, e.g.:
       // SnoowyDayFund info,
       // Nonprofit info,
@@ -150,6 +151,16 @@ function renderProgressBar() {
                         </hstack>
                     </FullScreenOverlay>
                 );
+              case OverlayType.NonprofitInfo:
+                return (
+                    <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
+                        <vstack grow>
+                            <text size='small' wrap={true} color='neutral-content'>
+                                {nonprofitInfo?.description} 
+                            </text>
+                        </vstack>
+                    </FullScreenOverlay>
+                );
             // Add cases for other overlay types as needed
             default:
                 return null;
@@ -176,18 +187,10 @@ function renderProgressBar() {
                 url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
                 size={35}
                 description="Nonprofit Logo"
-                onPress={() => {
-                  if (nonprofitInfo?.profileUrl) {
-                    ui.navigateTo(nonprofitInfo.profileUrl);
-                  }
-                }}
+                onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}
               />
               <spacer size='xsmall' />
-              <text weight='bold' onPress={() => {
-                if (nonprofitInfo?.profileUrl) {
-                  ui.navigateTo(nonprofitInfo.profileUrl);
-                }
-              }}>
+              <text weight='bold' onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}>
                 {nonprofitInfo?.name}
               </text>
               <spacer size='medium' />
