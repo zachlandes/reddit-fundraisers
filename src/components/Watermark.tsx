@@ -1,7 +1,10 @@
 import { Devvit } from '@devvit/public-api';
 
-// Credit for watermark code to /u/zjz
-export const Watermark: Devvit.BlockComponent = (_, context) => {
+interface WatermarkProps {
+  onInfoClick: () => void;
+}
+
+export const Watermark: Devvit.BlockComponent<WatermarkProps> = ({ onInfoClick }, context) => {
   return (
     <vstack darkBackgroundColor="#04090A" lightBackgroundColor="#0000000A">
       <hstack height={'1px'} grow darkBackgroundColor="#FFFFFF1A"></hstack>
@@ -11,12 +14,12 @@ export const Watermark: Devvit.BlockComponent = (_, context) => {
           <DevvitLogo />
           <hstack alignment="start middle">
             <text size="small" darkColor="#B8C5C9" lightColor="#000" selectable={false}>
-                           Powered by
+              Powered by
             </text>
             <text selectable={false}>&nbsp;</text>
-            <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/snoowy-day-fund')}>
+            <vstack onPress={onInfoClick}>
               <text size="small" darkColor="#B8C5C9" lightColor="#000" selectable={false}>
-                               Snoowy Day Fund
+                Snoowy Day Fund
               </text>
               <hstack height={'1px'} backgroundColor="#B8C5C9"></hstack>
             </vstack>

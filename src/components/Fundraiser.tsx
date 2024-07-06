@@ -55,11 +55,8 @@ export function FundraiserView(
     enum OverlayType {
       None,
       Description,
-      NonprofitInfo
-      // Add other overlay types as needed, e.g.:
-      // SnoowyDayFund info,
-      // Nonprofit info,
-      // etc.
+      NonprofitInfo,
+      SnoowyDayFund
     }
 
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
@@ -146,7 +143,7 @@ function renderProgressBar() {
                         </vstack>
                         <hstack alignment="center middle" gap="small" width={100}>
                             <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
-                            <text color='white'>{currentPage + 1} / {pagesCount}</text>
+                            <text color='neutral-content'>{currentPage + 1} / {pagesCount}</text>
                             <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
                         </hstack>
                     </FullScreenOverlay>
@@ -161,7 +158,45 @@ function renderProgressBar() {
                         </vstack>
                     </FullScreenOverlay>
                 );
-            // Add cases for other overlay types as needed
+            case OverlayType.SnoowyDayFund:
+                return (
+                    <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
+                        <vstack>
+                          <vstack gap="small">
+                            <spacer size="xsmall" />
+                            <text size="large" weight="bold" color='neutral-content-strong'>Snoowy Day Fund: Easy Donations on Reddit</text>
+                            <text size="medium" weight="bold" color='neutral-content-strong'>What is it?</text>
+                            <text wrap={true} size="small" color='neutral-content-strong'>Snoowy Day Fund lets you donate to U.S. nonprofits directly through Reddit posts. No platform fees, just a quick and secure way to support causes you care about.</text>
+                            <text size="medium" weight="bold" color='neutral-content-strong'>How to Donate:</text>
+                            <vstack gap="small">
+                                <text wrap={true} size="small" color='neutral-content-strong'>1. Click Donate: Hit the "Donate" button in this post.</text>
+                                <text wrap={true} size="small" color='neutral-content-strong'>2. Choose Payment Method: Select from popular payment processors like PayPal, Apple Pay, or Venmo.</text>
+                                <text wrap={true} size="small" color='neutral-content-strong'>3. Complete Donation: Your donation goes straight to the nonprofit, minus any payment processing fees. You'll get an email receipt for tax purposes.</text>
+                            </vstack>
+                            <text wrap={true} size="small" color='neutral-content-strong'>Snoowy Day Fund uses Every.org as the nonprofit fundraising platform, ensuring your donations are handled securely.</text>
+                            <hstack alignment="start middle">
+                                <text size="small" color='neutral-content-strong'>
+                                    For more information, visit the
+                                </text>
+                                <text selectable={false}>&nbsp;</text>
+                                <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/snoowy-day-fund')}>
+                                    <text size="small" color="blue" selectable={false}>
+                                        Snoowy Day Fund
+                                    </text>
+                                    <hstack height={'1px'} backgroundColor="blue"></hstack>
+                                </vstack>
+                                <text selectable={false}>&nbsp;</text>
+                                <text size="small" color='neutral-content-strong'>
+                                    page
+                                </text>
+                            </hstack>
+                          </vstack>
+                            <text size="small" color='neutral-content-strong'> on the reddit app directory</text>
+                            <spacer size="small" />
+                            <text wrap={true} size="small" weight="bold" color='neutral-content-strong'>Support your community's charitable goals easily and securely with Snoowy Day Fund on Reddit!</text>
+                        </vstack>
+                    </FullScreenOverlay>
+                );
             default:
                 return null;
         }
@@ -287,7 +322,7 @@ function renderProgressBar() {
                 </hstack>
               </hstack>
             </vstack>
-            <Watermark />
+            <Watermark onInfoClick={() => handleExpandOverlay(OverlayType.SnoowyDayFund)} />
           </vstack>
         </vstack>
         {renderOverlay()}
