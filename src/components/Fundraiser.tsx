@@ -218,13 +218,17 @@ function renderProgressBar() {
           <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={`${fundraiserInfoHeight}px`} border={DEBUG_MODE ? 'thin' : 'none'}>
             <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
               <spacer size='xsmall' />
-              <CircularLogo
-                url={logoImageUrl ? logoImageUrl : 'loading_logo.png'}
-                size={35}
-                description="Nonprofit Logo"
-                onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}
-              />
-              <spacer size='xsmall' />
+              {logoImageUrl && (
+                <>
+                  <CircularLogo
+                    url={logoImageUrl}
+                    size={35}
+                    description="Nonprofit Logo"
+                    onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}
+                  />
+                  <spacer size='xsmall' />
+                </>
+              )}
               <text weight='bold' onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}>
                 {nonprofitInfo?.name}
               </text>
@@ -293,7 +297,7 @@ function renderProgressBar() {
                   <spacer size='small' />
                   <vstack alignment='start top'>
                     <text size='small' weight='bold'>
-                      {supporters === 0 ? "Be the first to donate!" : `${new Intl.NumberFormat('en-US').format(supporters)} Supporters`}
+                      {supporters === 0 ? "" : `${new Intl.NumberFormat('en-US').format(supporters)} Supporters`}
                     </text>
                   </vstack>
                 </hstack>

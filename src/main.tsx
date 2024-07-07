@@ -311,6 +311,9 @@ Devvit.addSchedulerJob({
         if (updatedDetails.goalAmount !== fundraiserRaisedDetails.goalAmount) {
           changes.push(`Goal: ${updatedDetails.goalAmount}`);
         }
+        if (updatedDetails.supporters !== fundraiserRaisedDetails.supporters) {
+          changes.push(`Supporters: ${updatedDetails.supporters}`);
+        }
         if (changes.length > 0) {
           try {
             await updateCachedFundraiserDetails(context, postId, updatedDetails, fundraiserRaisedDetails);
