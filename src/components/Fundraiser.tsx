@@ -48,7 +48,10 @@ export function FundraiserView(
   logoImageUrl: string | null,
   fundraiserURL: string,
   supporters: number,
-  isButtonExpanded: boolean
+  isButtonExpanded: boolean,
+  paginatedDescription: string[],
+  showExpandButton: boolean,
+  displayDescription: string
 ): JSX.Element {
     const { ui, useState } = context;
 
@@ -88,14 +91,6 @@ export function FundraiserView(
         : ['Loading description...'];
 
     const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
-
-    const smallPaginatedDescription = paginateText(fundraiserInfo?.description || '', availableDescriptionHeight+lineHeight, lineHeight, lineWidth, charWidth);
-
-    const showExpandButton = smallPaginatedDescription.length > 1;
-
-    const displayDescription = showExpandButton
-      ? smallPaginatedDescription[0].replace(/\s+$/, '') + '...'
-      : smallPaginatedDescription[0];
 
     const magicWidthPercentageProgressBar = 97;
 
@@ -249,12 +244,13 @@ function renderProgressBar() {
                     wrap={true}
                     maxHeight={`${availableDescriptionHeight}px`}
                 >
-                  {fundraiserInfo ? displayDescription : 'Loading description...'}
+                  {displayDescription}
                 </text>
-                {showExpandButton &&
-                (<spacer size='xsmall' />)}
                 {showExpandButton && (
-                  <text size='small' weight='bold' color={everyGreen} onPress={() => handleExpandOverlay(OverlayType.Description)}>Read more</text>
+                  <>
+                    <spacer size='xsmall' />
+                    <text size='small' weight='bold' color={everyGreen} onPress={() => handleExpandOverlay(OverlayType.Description)}>Read more</text>
+                  </>
                 )}
                 <spacer size='small' />
               </vstack>
@@ -348,6 +344,20 @@ export const FundraiserPost: CustomPostType = {
       throw new Error('postId is undefined');
     }
 
+    // Constants for pagination calculation
+    const MOBILE_WIDTH = 393;
+    const fundraiserInfoHeight = Math.floor(height * 0.44);
+    const titleHeight = 26;
+    const lineHeight = 16;
+    const lineWidth = MOBILE_WIDTH - 80;
+    const paddingHeight = 16;
+    const xsmallSpacerHeight = 4;
+    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 34;
+    const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2 * xsmallSpacerHeight;
+
+    const fontSize = 12;
+    const fontFamily = "helvetica";
+
     // State for static data
     const [staticData, setStaticData] = useState<{
       fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
@@ -366,13 +376,41 @@ export const FundraiserPost: CustomPostType = {
       goalType: string,
       raised: number,
       goal: number | null,
-      supporters: number
+      supporters: number,
+      description: string,
+      paginatedDescription: string[],
+      showExpandButton: boolean,
+      displayDescription: string
     }>({
       goalType: '',
       raised: 0,
       goal: null,
-      supporters: 0
+      supporters: 0,
+      description: '',
+      paginatedDescription: [],
+      showExpandButton: false,
+      displayDescription: ''
     });
+
+    // Function to update paginated description
+    const updatePaginatedDescription = (description: string) => {
+      const sampleText = description.slice(0, 100) || 'Sample Text';
+      const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize }) / sampleText.length;
+
+      const smallPaginatedDescription = paginateText(description, availableDescriptionHeight + lineHeight, lineHeight, lineWidth, charWidth);
+      const showExpandButton = smallPaginatedDescription.length > 1;
+      const displayDescription = showExpandButton
+        ? smallPaginatedDescription[0].replace(/\s+$/, '') + '...'
+        : smallPaginatedDescription[0];
+
+      setDynamicData(prevState => ({
+        ...prevState,
+        description,
+        paginatedDescription: smallPaginatedDescription,
+        showExpandButton,
+        displayDescription
+      }));
+    };
 
     // Fetch static data from Redis
     if (!staticData.fundraiserInfo) {
@@ -390,12 +428,17 @@ export const FundraiserPost: CustomPostType = {
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null
           });
 
-          setDynamicData({
+          setDynamicData(prevState => ({
+            ...prevState,
             goalType: fundraiserDetails?.goalType || '',
             raised: fundraiserDetails?.raised || 0,
             goal: fundraiserDetails?.goalAmount || null,
             supporters: fundraiserDetails?.supporters || 0
-          });
+          }));
+
+          if (fundraiserInfo?.description) {
+            updatePaginatedDescription(fundraiserInfo.description);
+          }
         }
       } catch (error) {
         console.error(`Failed to retrieve data from Redis for postId: ${postId}`, error);
@@ -418,6 +461,10 @@ export const FundraiserPost: CustomPostType = {
               goalType: typeof updatedDetails.goalType === 'string' ? updatedDetails.goalType : prevState.goalType
             }));
           }
+          if ('updatedDescription' in data) {
+            const updatedDescription = data.updatedDescription as { description: string };
+            updatePaginatedDescription(updatedDescription.description);
+          }
         }
       },
       onSubscribed: () => {
@@ -435,7 +482,7 @@ export const FundraiserPost: CustomPostType = {
 
     const fundraiserUrl = generateFundraiserURL(staticData.fundraiserInfo, staticData.nonprofitInfo);
 
-    // tick animation
+    //tick animation
     // useInterval(() => {
     //   setIsButtonExpanded(prev => !prev);
     // }, 1000).start();
@@ -455,7 +502,10 @@ export const FundraiserPost: CustomPostType = {
           staticData.logoImageUrl,
           fundraiserUrl,
           dynamicData.supporters,
-          isButtonExpanded
+          isButtonExpanded,
+          dynamicData.paginatedDescription,
+          dynamicData.showExpandButton,
+          dynamicData.displayDescription
         )}
       </blocks>
     );

@@ -2,7 +2,7 @@
 import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public-api';
 import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
 import { Currency, FundraiserCreationResponse, RedisKey, type EveryNonprofitInfo } from './types/index.js';
-import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundraiserRaisedDetails } from './sources/Every.js';
+import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundraiserRaisedDetails, fetchExistingFundraiserDetails } from './sources/Every.js';
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
@@ -250,6 +250,69 @@ Devvit.addSettings([
 ]);
 
 Devvit.addSchedulerJob({
+  name: 'update_fundraiser_descriptions',
+  onRun: async (_, context) => {
+    const redis = context.redis;
+    let postsToUpdate;
+    try {
+      postsToUpdate = await fetchPostsToUpdate(redis);
+    } catch (error) {
+      console.error('Error fetching posts to update:', error);
+      return;
+    }
+
+    for (const postId of postsToUpdate) {
+      let cachedForm;
+      try {
+        cachedForm = await getCachedForm(context, postId);
+      } catch (error) {
+        console.error(`Error retrieving cached form for postId: ${postId}`, error);
+        continue;
+      }
+
+      if (!cachedForm) {
+        console.error(`No cached form found for postId: ${postId}`);
+        continue;
+      }
+
+      let fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
+      
+      let updatedFundraiserDetails;
+      try {
+        updatedFundraiserDetails = await fetchExistingFundraiserDetails(
+          fundraiserInfo.nonprofitId,
+          fundraiserInfo.id,
+          await getEveryPublicKey(context)
+        );
+      } catch (error) {
+        console.error(`Error fetching updated fundraiser info for postId: ${postId}`, error);
+        continue;
+      }
+
+      if (updatedFundraiserDetails && updatedFundraiserDetails.fundraiserInfo.description !== fundraiserInfo.description) {
+        try {
+          // Update the cached form with the new description
+          cachedForm.initialize(TypeKeys.everyExistingFundraiserInfo, updatedFundraiserDetails.fundraiserInfo);
+          await setCachedForm(context, postId, cachedForm);
+
+          // Send update to the realtime channel
+          await context.realtime.send('fundraiser_updates', {
+            postId: postId,
+            updatedDescription: {
+              description: updatedFundraiserDetails.fundraiserInfo.description
+            }
+          });
+
+          console.log(`Updated description for post: ${postId}`);
+        } catch (error) {
+          console.error(`Error updating cached info or sending updates for postId: ${postId}`, error);
+        }
+      }
+    }
+  },
+});
+
+Devvit.addSchedulerJob({
   name: 'update_fundraiser_posts',
   onRun: async (_, context) => {
     const redis = context.redis;
@@ -336,8 +399,12 @@ Devvit.addTrigger({
         cron: '*/10 * * * * *',
         name: 'update_fundraiser_posts',
       });
+      await context.scheduler.runJob({
+        cron: '* * * * *',
+        name: 'update_fundraiser_descriptions',
+      });
     } catch (e) {
-      console.error('Error scheduling update_fundraiser_posts job on app install:', e);
+      console.error('Error scheduling jobs on app install:', e);
       throw e;
     }
   },
@@ -347,20 +414,39 @@ Devvit.addTrigger({
   event: 'AppUpgrade',
   onEvent: async (_, context) => {
     const jobs = await context.scheduler.listJobs();
-    const updateJobs = jobs.filter((job) => job.name === 'update_fundraiser_posts');
-    if (updateJobs.length > 1) {
-      console.log(`Found ${updateJobs.length} update jobs, canceling all but the first one`);
-      for (let i = 1; i < updateJobs.length; i++) {
-        await context.scheduler.cancelJob(updateJobs[i].id);
+    
+    // Handle update_fundraiser_posts job
+    const updatePostsJobs = jobs.filter((job) => job.name === 'update_fundraiser_posts');
+    if (updatePostsJobs.length > 1) {
+      console.log(`Found ${updatePostsJobs.length} update_fundraiser_posts jobs, canceling all but the first one`);
+      for (let i = 1; i < updatePostsJobs.length; i++) {
+        await context.scheduler.cancelJob(updatePostsJobs[i].id);
       }
-    } else if (updateJobs.length === 0) {
-      console.log('No update job found on app upgrade, scheduling a new one');
+    } else if (updatePostsJobs.length === 0) {
+      console.log('No update_fundraiser_posts job found on app upgrade, scheduling a new one');
       await context.scheduler.runJob({
         cron: '*/10 * * * * *',
         name: 'update_fundraiser_posts',
       });
     } else {
-      console.log('Update scheduler job validated.');
+      console.log('update_fundraiser_posts scheduler job validated.');
+    }
+
+    // Handle update_fundraiser_descriptions job
+    const updateDescriptionsJobs = jobs.filter((job) => job.name === 'update_fundraiser_descriptions');
+    if (updateDescriptionsJobs.length > 1) {
+      console.log(`Found ${updateDescriptionsJobs.length} update_fundraiser_descriptions jobs, canceling all but the first one`);
+      for (let i = 1; i < updateDescriptionsJobs.length; i++) {
+        await context.scheduler.cancelJob(updateDescriptionsJobs[i].id);
+      }
+    } else if (updateDescriptionsJobs.length === 0) {
+      console.log('No update_fundraiser_descriptions job found on app upgrade, scheduling a new one');
+      await context.scheduler.runJob({
+        cron: '* * * * *',
+        name: 'update_fundraiser_descriptions',
+      });
+    } else {
+      console.log('update_fundraiser_descriptions scheduler job validated.');
     }
   },
 });
