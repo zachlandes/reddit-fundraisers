@@ -33,7 +33,7 @@ function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiser
   if (!fundraiserInfo) return ''; // TODO: better default?
   return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate/pay`; //FIXME: dynamic value?
 }
- 
+
 
 export function FundraiserView(
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
@@ -63,9 +63,9 @@ export function FundraiserView(
     }
 
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
-    const fundraiserInfoHeight = Math.floor(totalHeight * 0.44); 
+    const fundraiserInfoHeight = Math.floor(totalHeight * 0.44);
     const MOBILE_WIDTH = 393;
-    const titleHeight = 26; 
+    const titleHeight = 26;
     const lineHeight = 16;
     const lineWidth = MOBILE_WIDTH - 80;
     const imageHeight = 150;
@@ -79,13 +79,13 @@ export function FundraiserView(
     const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 34;
     const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2*xsmallSpacerHeight;
     const everyGreen = '#018669';
-    const borderGray = '#C0C0C0'; //'#A0A0A0'; 
-    
+    const borderGray = '#C0C0C0'; //'#A0A0A0';
+
     const fontSize = 12;
     const fontFamily = "helvetica";
     const sampleText = fundraiserInfo?.description.slice(0, 100) || 'Sample Text';
     const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize } ) / sampleText.length;
-    
+
     const descriptionPages = fundraiserInfo
         ? paginateText(fundraiserInfo.description, overlayDescriptionMaxHeight, lineHeight, lineWidth, charWidth)
         : ['Loading description...'];
@@ -104,27 +104,82 @@ export function FundraiserView(
         setCurrentOverlay(OverlayType.None);
     };
 
-function renderProgressBar() {
-    const barHeight = 12; // Total height of the progress bar
-    const shadowHeight = 2; // Height of the shadow in pixels
-    const progressPercentage = goal ? (raised / goal) * 100 : 0;
-    const backgroundColor = '#f3f7f7';
-    const shadowColor = 'rgba(0,0,0,0.1)';
+    function renderProgressBar() {
+        const barHeight = 12; // Total height of the progress bar
+        const shadowHeight = 2; // Height of the shadow in pixels
+        const progressPercentage = goal ? (raised / goal) * 100 : 0;
+        const backgroundColor = '#f3f7f7';
+        const shadowColor = 'rgba(0,0,0,0.1)';
 
-    return (
-        <vstack backgroundColor={backgroundColor} cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} height={`${barHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-            <zstack width="100%" height="100%">
-                {/* Background with shadow */}
-                <vstack width="100%" height="100%">
-                    <hstack backgroundColor={shadowColor} height={`${shadowHeight}px`} />
-                    <hstack backgroundColor={backgroundColor} grow />
+        return (
+          <vstack backgroundColor={backgroundColor} cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} height={`${barHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <zstack width="100%" height="100%">
+                  {/* Background with shadow */}
+                  <vstack width="100%" height="100%">
+                      <hstack backgroundColor={shadowColor} height={`${shadowHeight}px`} />
+                      <hstack backgroundColor={backgroundColor} grow />
+                  </vstack>
+                  {/* Progress bar */}
+                  <hstack backgroundColor={everyGreen} width={`${progressPercentage}%`} height="100%" />
+              </zstack>
+          </vstack>
+        );
+    }
+
+    function renderProgress() {
+      if(goal <= 0){
+        // No Goal on this fundraiser
+        return (
+          <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <hstack
+                width={100}
+                borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'}
+                border={DEBUG_MODE ? 'thin' : 'none'}
+                backgroundColor={everyGreen}
+                alignment='center middle'
+                padding='medium'
+              >
+                <text weight='bold' color='#FFFFFF' size='large'>${new Intl.NumberFormat('en-US').format(raised / 100)} Raised</text>
+              </hstack>
+            </hstack>
+          </vstack>
+        );
+      }
+      else {
+        // Fundraiser has a goal
+        return (
+          <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <spacer grow />
+              <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                  <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                      <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>
+                      <text color='#706E6E'>Raised</text>
+                  </vstack>
+              </hstack>
+              <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <spacer size='medium' />
+                <vstack alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                    <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text>
+                    {goalType && (
+                      <text color='#706E6E'>
+                        {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
+                      </text>
+                    )}
                 </vstack>
-                {/* Progress bar */}
-                <hstack backgroundColor={everyGreen} width={`${progressPercentage}%`} height="100%" />
-            </zstack>
-        </vstack>
-    );
-}
+              </hstack>
+              <spacer grow />
+            </hstack>
+            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <spacer grow />
+              {renderProgressBar()}
+              <spacer grow />
+            </hstack>
+          </vstack>
+        );
+      }
+    }
 
     function renderOverlay() {
         switch (currentOverlay) {
@@ -148,7 +203,7 @@ function renderProgressBar() {
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
                         <vstack grow>
                             <text size='small' wrap={true} color='neutral-content'>
-                                {nonprofitInfo?.description} 
+                                {nonprofitInfo?.description}
                             </text>
                         </vstack>
                     </FullScreenOverlay>
@@ -258,34 +313,7 @@ function renderProgressBar() {
           </vstack>
           <vstack width={100} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <spacer size='xsmall' />
-            <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-              <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                <spacer grow />
-                <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                    <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                        <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>
-                        <text color='#706E6E'>Raised</text>
-                    </vstack>
-                </hstack>
-                <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  <spacer size='medium' />
-                  <vstack alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                      <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text>
-                      {goalType && (
-                        <text color='#706E6E'>
-                          {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
-                        </text>
-                      )}
-                  </vstack>
-                </hstack>
-                <spacer grow />
-              </hstack>
-              <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                <spacer grow />
-                {renderProgressBar()}
-                <spacer grow />
-              </hstack>
-            </vstack>
+            {renderProgress()}
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <spacer grow />
               <hstack width='100%' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
@@ -337,6 +365,8 @@ export const FundraiserPost: CustomPostType = {
   render: async context => {
     const { height, width } = context.dimensions ?? { height: 480, width: 320 };
     console.log("Starting render of FundraiserPost with dimensions:", { height, width });
+
+    // TODO: Based on widths make some logical changes to the layout
 
     const { postId, useChannel, useState, useInterval } = context;
 

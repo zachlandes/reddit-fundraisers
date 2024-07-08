@@ -19,7 +19,7 @@ export enum APIService {
 export async function createFundraiser(
     fundraiserInfo: EveryFundraiserInfo,
     publicKey: string,
-    privateKey: string 
+    privateKey: string
 ): Promise<FundraiserCreationResponse> {
     if (USE_MOCK) {
         console.log('Using mock data for createFundraiser');
@@ -45,7 +45,7 @@ export async function createFundraiser(
 
         const request = new Request(apiUrl, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Authorization': authHeader
             },
@@ -109,7 +109,7 @@ export async function fetchNonprofits(
 
 /**
  * Parses the raw nonprofit data from the API into a structured EveryNonprofitInfo object.
- * This function takes the JSON object representing a nonprofit and converts it into a 
+ * This function takes the JSON object representing a nonprofit and converts it into a
  * structured format that is easier to work with within the application.
  *
  * @param nonprofit - The raw JSON object representing a nonprofit from the API.
@@ -200,7 +200,7 @@ export async function fetchFundraiserRaisedDetails(
         console.log('Using mock data for fetchFundraiserRaisedDetails');
         return getMockFundraiserRaisedDetails(context);
     }
-    
+
     const apiUrl = `https://partners.every.org/v0.2/nonprofit/${nonprofitIdentifier}/fundraiser/${fundraiserIdentifier}/raised?apiKey=${publicKey}`;
 
     try {
@@ -218,7 +218,7 @@ export async function fetchFundraiserRaisedDetails(
             raised: data.raised,
             supporters: data.supporters,
             goalAmount: data.goalAmount,
-            goalType: data.goalType
+            goalType: data.goalCurrency
         };
     } catch (e) {
         console.error('Error fetching fundraiser raised details:', e);
@@ -242,7 +242,7 @@ export async function fetchExistingFundraiserDetails(
         console.log('Using mock data for fetchExistingFundraiserDetails');
         return Promise.resolve({
             fundraiserInfo: mockExistingFundraiserDetails,
-            nonprofitInfo: mockNonprofits[0] 
+            nonprofitInfo: mockNonprofits[0]
         });
     }
 
