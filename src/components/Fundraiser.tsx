@@ -29,9 +29,16 @@ interface FundraiserState extends JSONObject {
   supporters: number;
 }
 
-function generateFundraiserURL(fundraiserInfo: SerializedEveryExistingFundraiserInfo | null, nonprofitInfo: EveryNonprofitInfo | null): string {
+function generateFundraiserURL(
+    fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
+    nonprofitInfo: EveryNonprofitInfo | null,
+    subreddit: string | undefined
+): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
-  return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate/pay`; //FIXME: dynamic value?
+  const utm_content = fundraiserInfo.title ? `&utm_content=${fundraiserInfo.title}` : '';
+  const utm_campaign = subreddit ? `&utm_campaign=${subreddit}`: '';
+  const utm = `?utm_source=reddit&utm_medium=snoowydayfund${utm_content}${utm_campaign}`;
+  return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate${utm}`;
 }
 
 
@@ -384,7 +391,7 @@ export const FundraiserPost: CustomPostType = {
     const xsmallSpacerHeight = 4;
     const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 34;
     const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2 * xsmallSpacerHeight;
-
+    const {reddit} = context;
     const fontSize = 12;
     const fontFamily = "helvetica";
 
@@ -509,8 +516,13 @@ export const FundraiserPost: CustomPostType = {
     }
 
     const [isButtonExpanded, setIsButtonExpanded] = useState(false);
+    const subreddit = await context.reddit.getSubredditById(context.subredditId);
 
-    const fundraiserUrl = generateFundraiserURL(staticData.fundraiserInfo, staticData.nonprofitInfo);
+    const fundraiserUrl = generateFundraiserURL(
+      staticData.fundraiserInfo,
+      staticData.nonprofitInfo,
+      subreddit.title
+    );
 
     //tick animation
     // useInterval(() => {
