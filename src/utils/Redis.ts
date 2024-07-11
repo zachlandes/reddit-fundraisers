@@ -167,3 +167,4 @@ export async function fetchPostsToUpdate(redis: RedisClient): Promise<string[]> 
     //console.log(`Fetched ${postsToUpdate.length} posts to update`);
     return postsToUpdate;
 }
+

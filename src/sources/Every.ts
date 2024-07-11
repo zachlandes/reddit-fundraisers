@@ -196,26 +196,23 @@ export async function fetchFundraiserRaisedDetails(
     fundraiserIdentifier: string,
     publicKey: string,
     context: Pick<Context, "redis" | "postId">
-): Promise<EveryFundraiserRaisedDetails | null> {
+): Promise<EveryFundraiserRaisedDetails | null | 'NOT_FOUND'> {
     if (USE_MOCK) {
         console.log('Using mock data for fetchFundraiserRaisedDetails');
         return getMockFundraiserRaisedDetails(context);
     }
 
-    const apiUrl = `https://partners.every.org/v0.2/nonprofit/${nonprofitIdentifier}/fundraiser/${fundraiserIdentifier}/raised?apiKey=${publicKey}`;
-
+    const apiUrl = `https://${APIService.EVERY}/v0.2/nonprofit/${nonprofitIdentifier}/fundraiser/${fundraiserIdentifier}/raised?apiKey=${publicKey}`;
+    const request = new Request(apiUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+    });
     try {
-        const request = new Request(apiUrl, {
-            method: 'GET',
-            headers: { Accept: 'application/json' },
-        });
         const response = await fetch(request);
+
         if (response.status === 404) {
-            console.error(`Fundraiser or nonprofit not found. Nonprofit ID: ${nonprofitIdentifier}, Fundraiser ID: ${fundraiserIdentifier}`);
-            if (context.postId) {
-                await removePostAndFormFromRedis(context.redis, context.postId);
-            }
-            return null;
+            console.log(`404 - Fundraiser not found for nonprofit: ${nonprofitIdentifier}, fundraiser: ${fundraiserIdentifier}`);
+            return 'NOT_FOUND';
         }
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -230,6 +227,11 @@ export async function fetchFundraiserRaisedDetails(
         };
     } catch (e) {
         console.error('Error fetching fundraiser raised details:', e);
+         // Check if the error message includes a 404 Not Found
+         if (e instanceof Error && e.message.includes('404 Not Found')) {
+            console.log(`404 - Fundraiser not found for nonprofit: ${nonprofitIdentifier}, fundraiser: ${fundraiserIdentifier}`);
+            return 'NOT_FOUND';
+        }
         return null;
     }
 }

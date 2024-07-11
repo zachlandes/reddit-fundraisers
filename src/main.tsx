@@ -6,7 +6,7 @@ import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundra
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
-import { fetchPostsToUpdate, setCachedForm, getCachedForm, addOrUpdatePostInRedis, removePostAndFormFromRedis } from './utils/Redis.js';
+import { fetchPostsToUpdate, setCachedForm, getCachedForm, addOrUpdatePostInRedis, removePostAndFormFromRedis, removePostSubscriptionFromRedis } from './utils/Redis.js';
 import { FundraiserPost } from './components/Fundraiser.js';
 import { getEveryPublicKey, getEveryPrivateKey } from './utils/keyManagement.js';
 import { generateDateOptions } from './utils/dateUtils.js';
@@ -319,12 +319,14 @@ Devvit.addSchedulerJob({
     let postsToUpdate;
     try {
       postsToUpdate = await fetchPostsToUpdate(redis);
+      console.log(`Fetched posts to update: ${JSON.stringify(postsToUpdate)}`);
     } catch (error) {
       console.error('Error fetching posts to update:', error);
       return;
     }
 
     for (const postId of postsToUpdate) {
+      console.log(`Processing postId: ${postId}`);
       let postExists;
       try {
         postExists = await context.reddit.getPostById(postId);
@@ -334,7 +336,8 @@ Devvit.addSchedulerJob({
       }
 
       if (!postExists) {
-        console.log(`Post with ID ${postId} not found, skipping update.`);
+        console.log(`Post with ID ${postId} not found, removing from Redis.`);
+        await removePostAndFormFromRedis(redis, postId);
         continue;
       }
 
@@ -348,6 +351,7 @@ Devvit.addSchedulerJob({
 
       if (!cachedForm) {
         console.error(`No cached form found for postId: ${postId}`);
+        await removePostAndFormFromRedis(redis, postId);
         continue;
       }
 
@@ -361,8 +365,20 @@ Devvit.addSchedulerJob({
           await getEveryPublicKey(context),
           context
         );
+        console.log(`Fetched details for postId ${postId}:`, updatedDetails);
       } catch (error) {
         console.error(`Error fetching fundraiser raised details for postId: ${postId}`, error);
+        continue;
+      }
+
+      if (updatedDetails === 'NOT_FOUND') {
+        console.log(`Fundraiser not found for postId: ${postId}. Removing from update subscriptions.`);
+        try {
+          await removePostSubscriptionFromRedis(context.redis, postId);
+          console.log(`Successfully removed postId ${postId} from Redis`);
+        } catch (error) {
+          console.error(`Failed to remove postId ${postId} from Redis:`, error);
+        }
         continue;
       }
 
