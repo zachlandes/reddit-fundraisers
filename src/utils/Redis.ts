@@ -119,7 +119,9 @@ export async function removePostAndFormFromRedis(redis: RedisClient, postId: str
     await removePostSubscriptionFromRedis(redis, postId);
     // Remove the CachedForm associated with the post
     await redis.del(postId);
-    console.log(`Post and associated form with ID ${postId} removed from Redis`);
+    // Remove the fundraiser-raised-amount key
+    await redis.del(`fundraiser-raised-amount-${postId}`);
+    console.log(`Post, associated form, and fundraiser-raised-amount with ID ${postId} removed from Redis`);
 }
 
 /**

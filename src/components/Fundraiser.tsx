@@ -35,7 +35,7 @@ function generateFundraiserURL(
     subreddit: string | undefined
 ): string {
   if (!fundraiserInfo) return ''; // TODO: better default?
-  const utm_content = fundraiserInfo.title ? `&utm_content=${fundraiserInfo.title}` : '';
+  const utm_content = fundraiserInfo.id ? `&utm_content=${fundraiserInfo.id}` : '';
   const utm_campaign = subreddit ? `&utm_campaign=${subreddit}`: '';
   const utm = `?utm_source=reddit&utm_medium=snoowydayfund${utm_content}${utm_campaign}`;
   return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate${utm}`;
@@ -134,7 +134,7 @@ export function FundraiserView(
     }
 
     function renderProgress() {
-      if(goal <= 0){
+      if((goal ?? 0) <= 0){
         // No Goal on this fundraiser
         return (
           <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>

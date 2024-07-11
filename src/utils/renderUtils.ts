@@ -135,6 +135,11 @@ export async function updateCachedFundraiserDetails(context: Pick<Context, "redi
         cachedForm.setProp(TypeKeys.fundraiserDetails, 'goalAmount', updatedDetails.goalAmount);
     }
 
+    if (updatedDetails.supporters !== fundraiserRaisedDetails.supporters) {
+        console.log("Updating the cached form supporters count for postId: " + postId);
+        cachedForm.setProp(TypeKeys.fundraiserDetails, 'supporters', updatedDetails.supporters);
+    }
+
     try {
         await setCachedForm(context, postId, cachedForm);
     } catch (error) {
@@ -164,3 +169,4 @@ export async function sendFundraiserUpdates(
     });
     console.log(`Sent real-time update for postId: ${postId}`);
 }
+

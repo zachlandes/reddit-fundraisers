@@ -457,14 +457,10 @@ Devvit.addTrigger({
     const { redis } = context;
     const postId = event.postId;
 
-    // Remove the post from Redis
+    // Remove the post and associated data from Redis
     await removePostAndFormFromRedis(redis, postId);
 
-    // Remove the fundraiser-raised-amount key associated with the post (only relevant to mockforms)
-    const fundraiserKey = `fundraiser-raised-amount-${postId}`;
-    await redis.del(fundraiserKey);
-
-    console.log(`Deleted Redis key: ${fundraiserKey} for postId: ${postId}`);
+    console.log(`Removed Redis data for postId: ${postId}`);
   },
 });
 

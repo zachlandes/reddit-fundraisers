@@ -2,6 +2,7 @@ import { Context, Data, Devvit, SettingsClient } from '@devvit/public-api';
 import { Currency, EveryFundraiserInfo, EveryFundraiserRaisedDetails, EveryNonprofitInfo, FundraiserCreationResponse, EveryExistingFundraiserInfo } from '../types/index.js';
 import { mockFundraiserCreationResponse, mockNonprofits, getMockFundraiserRaisedDetails, mockExistingFundraiserDetails } from '../mocks/index.js';
 import { convertToDate } from '../utils/dateUtils.js';
+import { removePostAndFormFromRedis } from '../utils/Redis.js';
 
 const USE_MOCK = false; // Toggle this to false to use real API calls
 
@@ -209,6 +210,13 @@ export async function fetchFundraiserRaisedDetails(
             headers: { Accept: 'application/json' },
         });
         const response = await fetch(request);
+        if (response.status === 404) {
+            console.error(`Fundraiser or nonprofit not found. Nonprofit ID: ${nonprofitIdentifier}, Fundraiser ID: ${fundraiserIdentifier}`);
+            if (context.postId) {
+                await removePostAndFormFromRedis(context.redis, context.postId);
+            }
+            return null;
+        }
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
