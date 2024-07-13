@@ -400,12 +400,14 @@ export const FundraiserPost: CustomPostType = {
       fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
       nonprofitInfo: EveryNonprofitInfo | null,
       coverImageUrl: string | null,
-      logoImageUrl: string | null
+      logoImageUrl: string | null,
+      subreddit: string | null
     }>({
       fundraiserInfo: null,
       nonprofitInfo: null,
       coverImageUrl: null,
-      logoImageUrl: null
+      logoImageUrl: null,
+      subreddit: null
     });
 
     // State for dynamic data
@@ -458,11 +460,21 @@ export const FundraiserPost: CustomPostType = {
           const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
 
+          // Fetch subreddit info
+          let subredditName: string | null = null;
+          try {
+            const sub = await context.reddit.getSubredditById(context.subredditId);
+            subredditName = sub.title || null;
+          } catch (error) {
+            console.error("Error fetching subreddit:", error);
+          }
+
           setStaticData({
             fundraiserInfo: fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null,
             nonprofitInfo: nonprofitInfo,
             coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null,
-            logoImageUrl: nonprofitInfo?.logoCloudinaryId || null
+            logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
+            subreddit: subredditName
           });
 
           setDynamicData(prevState => ({
@@ -516,12 +528,11 @@ export const FundraiserPost: CustomPostType = {
     }
 
     const [isButtonExpanded, setIsButtonExpanded] = useState(false);
-    const subreddit = await context.reddit.getSubredditById(context.subredditId);
 
     const fundraiserUrl = generateFundraiserURL(
       staticData.fundraiserInfo,
       staticData.nonprofitInfo,
-      subreddit.title
+      staticData.subreddit || undefined
     );
 
     //tick animation
