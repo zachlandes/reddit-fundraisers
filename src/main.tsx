@@ -315,6 +315,7 @@ Devvit.addSchedulerJob({
 Devvit.addSchedulerJob({
   name: 'update_fundraiser_posts',
   onRun: async (_, context) => {
+    console.log('Starting update_fundraiser_posts job');
     const redis = context.redis;
     let postsToUpdate;
     try {
@@ -414,10 +415,16 @@ Devvit.addTrigger({
       await context.scheduler.runJob({
         cron: '*/10 * * * * *',
         name: 'update_fundraiser_posts',
+        data: {
+          timestamp: Date.now(),
+        },
       });
       await context.scheduler.runJob({
         cron: '* * * * *',
         name: 'update_fundraiser_descriptions',
+        data: {
+          timestamp: Date.now(),
+        },
       });
     } catch (e) {
       console.error('Error scheduling jobs on app install:', e);
@@ -433,33 +440,57 @@ Devvit.addTrigger({
     
     // Handle update_fundraiser_posts job
     const updatePostsJobs = jobs.filter((job) => job.name === 'update_fundraiser_posts');
-    if (updatePostsJobs.length > 1) {
-      console.log(`Found ${updatePostsJobs.length} update_fundraiser_posts jobs, canceling all but the first one`);
-      for (let i = 1; i < updatePostsJobs.length; i++) {
-        await context.scheduler.cancelJob(updatePostsJobs[i].id);
+    const validUpdatePostsJobs = updatePostsJobs.filter((job) => job.data && job.data.timestamp);
+    const mostRecentUpdatePostsJob = validUpdatePostsJobs.reduce((latest, job) => {
+      if (!latest || (job.data && job.data.timestamp > (latest.data?.timestamp || 0))) {
+        return job;
       }
-    } else if (updatePostsJobs.length === 0) {
-      console.log('No update_fundraiser_posts job found on app upgrade, scheduling a new one');
+      return latest;
+    }, validUpdatePostsJobs[0]);
+
+    for (const job of updatePostsJobs) {
+      if (!job.data || !job.data.timestamp || job.id !== mostRecentUpdatePostsJob.id) {
+        await context.scheduler.cancelJob(job.id);
+      }
+    }
+
+    if (!mostRecentUpdatePostsJob) {
+      console.log('No valid update_fundraiser_posts job found on app upgrade, scheduling a new one');
       await context.scheduler.runJob({
         cron: '*/10 * * * * *',
         name: 'update_fundraiser_posts',
+        data: {
+          timestamp: Date.now(),
+        },
       });
     } else {
       console.log('update_fundraiser_posts scheduler job validated.');
     }
 
-    // Handle update_fundraiser_descriptions job
+    // Handle update_fundraiser_descriptions job (similar to above)
     const updateDescriptionsJobs = jobs.filter((job) => job.name === 'update_fundraiser_descriptions');
-    if (updateDescriptionsJobs.length > 1) {
-      console.log(`Found ${updateDescriptionsJobs.length} update_fundraiser_descriptions jobs, canceling all but the first one`);
-      for (let i = 1; i < updateDescriptionsJobs.length; i++) {
-        await context.scheduler.cancelJob(updateDescriptionsJobs[i].id);
+    const validUpdateDescriptionsJobs = updateDescriptionsJobs.filter((job) => job.data && job.data.timestamp);
+    const mostRecentUpdateDescriptionsJob = validUpdateDescriptionsJobs.reduce((latest, job) => {
+      if (!latest || (job.data && job.data.timestamp > (latest.data?.timestamp || 0))) {
+        return job;
       }
-    } else if (updateDescriptionsJobs.length === 0) {
-      console.log('No update_fundraiser_descriptions job found on app upgrade, scheduling a new one');
+      return latest;
+    }, validUpdateDescriptionsJobs[0]);
+
+    for (const job of updateDescriptionsJobs) {
+      if (!job.data || !job.data.timestamp || job.id !== mostRecentUpdateDescriptionsJob.id) {
+        await context.scheduler.cancelJob(job.id);
+      }
+    }
+
+    if (!mostRecentUpdateDescriptionsJob) {
+      console.log('No valid update_fundraiser_descriptions job found on app upgrade, scheduling a new one');
       await context.scheduler.runJob({
         cron: '* * * * *',
         name: 'update_fundraiser_descriptions',
+        data: {
+          timestamp: Date.now(),
+        },
       });
     } else {
       console.log('update_fundraiser_descriptions scheduler job validated.');
