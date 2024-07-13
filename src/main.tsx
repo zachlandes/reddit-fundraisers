@@ -319,7 +319,6 @@ Devvit.addSchedulerJob({
     let postsToUpdate;
     try {
       postsToUpdate = await fetchPostsToUpdate(redis);
-      console.log(`Fetched posts to update: ${JSON.stringify(postsToUpdate)}`);
     } catch (error) {
       console.error('Error fetching posts to update:', error);
       return;
