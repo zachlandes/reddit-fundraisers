@@ -315,7 +315,6 @@ Devvit.addSchedulerJob({
 Devvit.addSchedulerJob({
   name: 'update_fundraiser_posts',
   onRun: async (_, context) => {
-    console.log('Starting update_fundraiser_posts job');
     const redis = context.redis;
     let postsToUpdate;
     try {
@@ -327,7 +326,6 @@ Devvit.addSchedulerJob({
     }
 
     for (const postId of postsToUpdate) {
-      console.log(`Processing postId: ${postId}`);
       let postExists;
       try {
         postExists = await context.reddit.getPostById(postId);
@@ -366,7 +364,6 @@ Devvit.addSchedulerJob({
           await getEveryPublicKey(context),
           context
         );
-        console.log(`Fetched details for postId ${postId}:`, updatedDetails);
       } catch (error) {
         console.error(`Error fetching fundraiser raised details for postId: ${postId}`, error);
         continue;
