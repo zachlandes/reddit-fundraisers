@@ -223,7 +223,7 @@ export async function fetchFundraiserRaisedDetails(
             raised: data.raised,
             supporters: data.supporters,
             goalAmount: data.goalAmount,
-            goalType: data.goalCurrency
+            goalType: data.goalType
         };
     } catch (e) {
         console.error('Error fetching fundraiser raised details:', e);

@@ -46,7 +46,7 @@ export function FundraiserView(
   fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
   raised: number,
   goal: number | null,
-  goalType: string,
+  goalType: string | null,
   context: Context,
   width: number,
   totalHeight: number,
@@ -161,15 +161,15 @@ export function FundraiserView(
               <spacer grow />
               <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                      <text weight='bold'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>
+                      <text weight='bold' color='neutral-content-strong'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>
                       <text color='#706E6E'>Raised</text>
                   </vstack>
               </hstack>
               <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer size='medium' />
                 <vstack alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                    <text weight='bold'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text>
-                    {goalType && (
+                    <text weight='bold' color='neutral-content-strong'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text>
+                    {goal && goalType && (
                       <text color='#706E6E'>
                         {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
                       </text>
@@ -194,13 +194,13 @@ export function FundraiserView(
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
                         <vstack grow>
-                            <text size='small' wrap={true} color='neutral-content'>
+                            <text size='small' wrap={true} color='neutral-content-strong'>
                                 {currentItems[0]}
                             </text>
                         </vstack>
                         <hstack alignment="center middle" gap="small" width={100}>
                             <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
-                            <text color='neutral-content'>{currentPage + 1} / {pagesCount}</text>
+                            <text color='neutral-content-strong'>{currentPage + 1} / {pagesCount}</text>
                             <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
                         </hstack>
                     </FullScreenOverlay>
@@ -209,7 +209,7 @@ export function FundraiserView(
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
                         <vstack grow>
-                            <text size='small' wrap={true} color='neutral-content'>
+                            <text size='small' wrap={true} color='neutral-content-strong'>
                                 {nonprofitInfo?.description}
                             </text>
                         </vstack>
@@ -286,7 +286,7 @@ export function FundraiserView(
                   <spacer size='xsmall' />
                 </>
               )}
-              <text weight='bold' onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}>
+              <text weight='bold' color='neutral-content-strong' onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}>
                 {nonprofitInfo?.name}
               </text>
               <spacer size='medium' />
@@ -295,7 +295,7 @@ export function FundraiserView(
               <spacer size='xsmall' />
               <hstack width={100} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer size='small' />
-                <text size="large" weight='bold'>
+                <text size="large" weight='bold' color='neutral-content-strong'>
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
                 <spacer grow />
@@ -305,13 +305,14 @@ export function FundraiserView(
                     size='small'
                     wrap={true}
                     maxHeight={`${availableDescriptionHeight}px`}
+                    color='neutral-content-strong'
                 >
                   {displayDescription}
                 </text>
                 {showExpandButton && (
                   <>
                     <spacer size='xsmall' />
-                    <text size='small' weight='bold' color={everyGreen} onPress={() => handleExpandOverlay(OverlayType.Description)}>Read more</text>
+                    <text size='medium' weight='bold' color={everyGreen} onPress={() => handleExpandOverlay(OverlayType.Description)}>Read more</text>
                   </>
                 )}
                 <spacer size='small' />
@@ -327,7 +328,7 @@ export function FundraiserView(
                 <hstack width='33%' alignment='start top' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer size='small' />
                   <vstack alignment='start top'>
-                    <text size='small' weight='bold'>
+                    <text size='small' weight='bold' color='neutral-content-strong'>
                       {supporters === 0 ? "" : `${new Intl.NumberFormat('en-US').format(supporters)} Supporters`}
                     </text>
                   </vstack>
@@ -401,18 +402,19 @@ export const FundraiserPost: CustomPostType = {
       nonprofitInfo: EveryNonprofitInfo | null,
       coverImageUrl: string | null,
       logoImageUrl: string | null,
-      subreddit: string | null
+      subreddit: string | null,
+      goalType: string | null
     }>({
       fundraiserInfo: null,
       nonprofitInfo: null,
       coverImageUrl: null,
       logoImageUrl: null,
-      subreddit: null
+      subreddit: null,
+      goalType: null
     });
 
     // State for dynamic data
     const [dynamicData, setDynamicData] = useState<{
-      goalType: string,
       raised: number,
       goal: number | null,
       supporters: number,
@@ -421,7 +423,6 @@ export const FundraiserPost: CustomPostType = {
       showExpandButton: boolean,
       displayDescription: string
     }>({
-      goalType: '',
       raised: 0,
       goal: null,
       supporters: 0,
@@ -474,12 +475,12 @@ export const FundraiserPost: CustomPostType = {
             nonprofitInfo: nonprofitInfo,
             coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null,
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
-            subreddit: subredditName
+            subreddit: subredditName,
+            goalType: fundraiserDetails?.goalType || null
           });
 
           setDynamicData(prevState => ({
             ...prevState,
-            goalType: fundraiserDetails?.goalType || '',
             raised: fundraiserDetails?.raised || 0,
             goal: fundraiserDetails?.goalAmount || null,
             supporters: fundraiserDetails?.supporters || 0
@@ -506,8 +507,7 @@ export const FundraiserPost: CustomPostType = {
               ...prevState,
               raised: typeof updatedDetails.raised === 'number' ? updatedDetails.raised : prevState.raised,
               goal: typeof updatedDetails.goalAmount === 'number' ? updatedDetails.goalAmount : prevState.goal,
-              supporters: typeof updatedDetails.supporters === 'number' ? updatedDetails.supporters : prevState.supporters,
-              goalType: typeof updatedDetails.goalType === 'string' ? updatedDetails.goalType : prevState.goalType
+              supporters: typeof updatedDetails.supporters === 'number' ? updatedDetails.supporters : prevState.supporters
             }));
           }
           if ('updatedDescription' in data) {
@@ -546,7 +546,7 @@ export const FundraiserPost: CustomPostType = {
           staticData.fundraiserInfo,
           dynamicData.raised,
           dynamicData.goal,
-          dynamicData.goalType,
+          staticData.goalType,
           context,
           width,
           height,
