@@ -147,7 +147,7 @@ export function FundraiserView(
                 alignment='center middle'
                 padding='medium'
               >
-                <text weight='bold' color='#FFFFFF' size='large'>${new Intl.NumberFormat('en-US').format(raised / 100)} Raised</text>
+                <text weight='bold' color='#FFFFFF' size='large'>${new Intl.NumberFormat('en-US').format(Math.round(raised / 100))} Raised</text>
               </hstack>
             </hstack>
           </vstack>
@@ -161,7 +161,7 @@ export function FundraiserView(
               <spacer grow />
               <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                      <text weight='bold' color='neutral-content-strong'>${new Intl.NumberFormat('en-US').format(raised / 100)}</text>
+                      <text weight='bold' color='neutral-content-strong'>${new Intl.NumberFormat('en-US').format(Math.round(raised / 100))}</text>
                       <text color='#706E6E'>Raised</text>
                   </vstack>
               </hstack>
