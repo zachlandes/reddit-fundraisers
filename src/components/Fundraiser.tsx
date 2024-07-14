@@ -208,6 +208,32 @@ export function FundraiserView(
               case OverlayType.NonprofitInfo:
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
+                        <vstack>
+                          <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
+                            <spacer size='xsmall' />
+                            {logoImageUrl && (
+                              <>
+                                <CircularLogo
+                                  url={logoImageUrl}
+                                  size={35}
+                                  description="Nonprofit Logo"
+                                  onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}
+                                />
+                                <spacer size='xsmall' />
+                              </>
+                            )}
+                            <text weight='bold' color='neutral-content-strong' onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}>
+                              {nonprofitInfo?.name}
+                            </text>
+                          </hstack>
+                          <hstack>
+                            <spacer size='small' />
+                            <text size="small" color="neutral-content-weak" alignment="start">
+                                EIN: {nonprofitInfo?.ein ?? 'ein not available'}
+                            </text>
+                          </hstack>
+                          <spacer size='small' />
+                        </vstack>
                         <vstack grow>
                             <text size='small' wrap={true} color='neutral-content-strong'>
                                 {nonprofitInfo?.description}
