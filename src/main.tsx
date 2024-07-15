@@ -392,9 +392,13 @@ Devvit.addSchedulerJob({
         }
         if (changes.length > 0) {
           try {
-            await updateCachedFundraiserDetails(context, postId, updatedDetails, fundraiserRaisedDetails);
-            await sendFundraiserUpdates(context, postId, updatedDetails);
-            console.log(`Updated Details for post: ${postId}, ${changes.join(', ')}`);
+            const updatedCachedForm = await updateCachedFundraiserDetails(context, postId, updatedDetails, fundraiserRaisedDetails);
+            if (updatedCachedForm) {
+              await sendFundraiserUpdates(context, postId, updatedDetails);
+              console.log(`Updated Details for post: ${postId}, ${changes.join(', ')}`);
+              // Update the fundraiserRaisedDetails with the new values
+              fundraiserRaisedDetails = updatedCachedForm.getAllProps(TypeKeys.fundraiserDetails);
+            }
           } catch (error) {
             console.error(`Error updating cached details or sending updates for postId: ${postId}`, error);
           }

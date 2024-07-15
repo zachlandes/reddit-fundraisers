@@ -2,6 +2,7 @@ import { Context } from "@devvit/public-api";
 import { getCachedForm, setCachedForm } from "./Redis.js";
 import { TypeKeys } from "./typeHelpers.js";
 import { EveryFundraiserRaisedDetails } from "../types/index.js";
+import { CachedForm } from "./CachedForm.js";
 
 /**
  * Splits a long text into pages based on the given dimensions and formatting constraints.
@@ -111,40 +112,50 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
  * @param updatedDetails The updated details of the fundraiser.
  * @param fundraiserRaisedDetails The current cached fundraiser details.
  */
-export async function updateCachedFundraiserDetails(context: Pick<Context, "redis">, postId: string, updatedDetails: EveryFundraiserRaisedDetails, fundraiserRaisedDetails: EveryFundraiserRaisedDetails) {
+export async function updateCachedFundraiserDetails(context: Pick<Context, "redis">, postId: string, updatedDetails: EveryFundraiserRaisedDetails, fundraiserRaisedDetails: EveryFundraiserRaisedDetails): Promise<CachedForm | null> {
     let cachedForm;
     try {
         cachedForm = await getCachedForm(context, postId);
     } catch (error) {
         console.error(`Error retrieving cached form for postId: ${postId}`, error);
-        return; // Exit if we cannot retrieve the form
+        return null;
     }
 
     if (!cachedForm) {
         console.error(`No cached form found for postId: ${postId}`);
-        return;
+        return null;
     }
+
+    let hasChanges = false;
 
     if (updatedDetails.raised !== fundraiserRaisedDetails.raised) {
         console.log("Updating the cached form amount raised for postId: " + postId);
         cachedForm.setProp(TypeKeys.fundraiserDetails, 'raised', updatedDetails.raised);
+        hasChanges = true;
     }
 
     if (updatedDetails.goalAmount !== fundraiserRaisedDetails.goalAmount) {
         console.log("Updating the cached form goal amount for postId: " + postId);
         cachedForm.setProp(TypeKeys.fundraiserDetails, 'goalAmount', updatedDetails.goalAmount);
+        hasChanges = true;
     }
 
     if (updatedDetails.supporters !== fundraiserRaisedDetails.supporters) {
         console.log("Updating the cached form supporters count for postId: " + postId);
         cachedForm.setProp(TypeKeys.fundraiserDetails, 'supporters', updatedDetails.supporters);
+        hasChanges = true;
     }
 
-    try {
-        await setCachedForm(context, postId, cachedForm);
-    } catch (error) {
-        console.error(`Failed to update cached form for postId: ${postId}`, error);
+    if (hasChanges) {
+        try {
+            await setCachedForm(context, postId, cachedForm);
+        } catch (error) {
+            console.error(`Failed to update cached form for postId: ${postId}`, error);
+            return null;
+        }
     }
+
+    return hasChanges ? cachedForm : null;
 }
 
 /**
@@ -169,4 +180,3 @@ export async function sendFundraiserUpdates(
     });
     console.log(`Sent real-time update for postId: ${postId}`);
 }
-
