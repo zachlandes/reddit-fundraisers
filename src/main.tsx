@@ -438,63 +438,43 @@ Devvit.addTrigger({
   onEvent: async (_, context) => {
     const jobs = await context.scheduler.listJobs();
     
-    // Handle update_fundraiser_posts job
-    const updatePostsJobs = jobs.filter((job) => job.name === 'update_fundraiser_posts');
-    const validUpdatePostsJobs = updatePostsJobs.filter((job) => job.data && job.data.timestamp);
-    const mostRecentUpdatePostsJob = validUpdatePostsJobs.reduce((latest, job) => {
-      if (!latest || (job.data && job.data.timestamp > (latest.data?.timestamp || 0))) {
-        return job;
-      }
-      return latest;
-    }, validUpdatePostsJobs[0]);
-
-    for (const job of updatePostsJobs) {
-      if (!job.data || !job.data.timestamp || job.id !== mostRecentUpdatePostsJob.id) {
-        await context.scheduler.cancelJob(job.id);
-      }
-    }
-
-    if (!mostRecentUpdatePostsJob) {
-      console.log('No valid update_fundraiser_posts job found on app upgrade, scheduling a new one');
-      await context.scheduler.runJob({
-        cron: '*/10 * * * * *',
-        name: 'update_fundraiser_posts',
-        data: {
-          timestamp: Date.now(),
-        },
-      });
-    } else {
-      console.log('update_fundraiser_posts scheduler job validated.');
-    }
-
-    // Handle update_fundraiser_descriptions job (similar to above)
-    const updateDescriptionsJobs = jobs.filter((job) => job.name === 'update_fundraiser_descriptions');
-    const validUpdateDescriptionsJobs = updateDescriptionsJobs.filter((job) => job.data && job.data.timestamp);
-    const mostRecentUpdateDescriptionsJob = validUpdateDescriptionsJobs.reduce((latest, job) => {
-      if (!latest || (job.data && job.data.timestamp > (latest.data?.timestamp || 0))) {
-        return job;
-      }
-      return latest;
-    }, validUpdateDescriptionsJobs[0]);
-
-    for (const job of updateDescriptionsJobs) {
-      if (!job.data || !job.data.timestamp || job.id !== mostRecentUpdateDescriptionsJob.id) {
-        await context.scheduler.cancelJob(job.id);
+    // Function to handle job validation and creation
+    async function validateAndCreateJob(jobName: string, cronSchedule: string) {
+      const existingJobs = jobs.filter((job) => job.name === jobName);
+      const validJobs = existingJobs.filter((job) => job.data && job.data.timestamp);
+      
+      if (validJobs.length > 0) {
+        console.log(`${jobName} scheduler job validated.`);
+        // Keep only the most recent job
+        const mostRecentJob = validJobs.reduce((latest, job) => {
+          return (!latest || (job.data && job.data.timestamp > (latest.data?.timestamp || 0))) ? job : latest;
+        }, validJobs[0]);
+        
+        for (const job of existingJobs) {
+          if (job.id !== mostRecentJob.id) {
+            await context.scheduler.cancelJob(job.id);
+          }
+        }
+      } else {
+        console.log(`No valid ${jobName} job found on app upgrade, scheduling a new one`);
+        await context.scheduler.runJob({
+          cron: cronSchedule,
+          name: jobName,
+          data: {
+            timestamp: Date.now(),
+          },
+        });
       }
     }
 
-    if (!mostRecentUpdateDescriptionsJob) {
-      console.log('No valid update_fundraiser_descriptions job found on app upgrade, scheduling a new one');
-      await context.scheduler.runJob({
-        cron: '* * * * *',
-        name: 'update_fundraiser_descriptions',
-        data: {
-          timestamp: Date.now(),
-        },
-      });
-    } else {
-      console.log('update_fundraiser_descriptions scheduler job validated.');
-    }
+    // Use a more unique identifier for the upgrade process
+    const upgradeId = Date.now().toString();
+    console.log(`Starting AppUpgrade process: ${upgradeId}`);
+
+    await validateAndCreateJob('update_fundraiser_posts', '*/10 * * * * *');
+    await validateAndCreateJob('update_fundraiser_descriptions', '* * * * *');
+
+    console.log(`Completed AppUpgrade process: ${upgradeId}`);
   },
 });
 
