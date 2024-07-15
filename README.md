@@ -40,8 +40,8 @@ For more details about apps for Reddit, visit the [Reddit Developer Documentatio
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/snoowydayfund.git
-    cd snoowydayfund
+    git clone https://github.com/zachlandes/snoowy-day-fund.git
+    cd snoowy-day-fund
     ```
 
 2. Follow the node and devvit installation instructions provided in the [Reddit Dev Guide](https://developers.reddit.com/docs/next/dev_guide).
@@ -49,6 +49,10 @@ For more details about apps for Reddit, visit the [Reddit Developer Documentatio
 ## Contribution
 
 If you have any comments or suggestions, feel free to get in touch with us on Reddit: [u/thezachlandes](https://www.reddit.com/user/thezachlandes).
+
+## Repository
+
+For the latest updates and to contribute to the project, visit our [GitHub repository](https://github.com/zachlandes/snoowy-day-fund/tree/main).
 
 ## License
 
