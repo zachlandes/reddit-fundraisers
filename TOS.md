@@ -23,6 +23,10 @@ In terms of the Service Provider's responsibility for your use of the applicatio
 
 The Service Provider may wish to update the application at some point. The application is currently available for mobile devices, mobile web, and desktop environments as per the requirements for the respective platforms (and for any additional systems they decide to extend the availability of the application to) may change, and you will need to download the updates if you want to continue using the application. The Service Provider does not guarantee that it will always update the application so that it is relevant to you and/or compatible with the particular version of the platform installed on your device or browser. However, you agree to always accept updates to the application when offered to you. The Service Provider may also wish to cease providing the application and may terminate its use at any time without providing termination notice to you. Unless they inform you otherwise, upon any termination, (a) the rights and licenses granted to you in these terms will end; (b) you must cease using the application, and (if necessary) delete it from your device or stop accessing it through your web browser.
 
+**Fundraiser Content and Moderation**
+
+By posting a fundraiser using our Application, you acknowledge and agree that the Service Provider's involvement in updating or displaying details of your post does not constitute an endorsement of your fundraiser or cause. The Service Provider reserves the right to moderate, remove, or refuse any fundraiser content at their sole discretion, without providing explanation or incurring any liability. This moderation may be performed for any reason deemed appropriate by the Service Provider, including but not limited to violations of these Terms & Conditions, applicable laws, or community guidelines.
+
 **Changes to These Terms and Conditions**
 
 The Service Provider may periodically update their Terms and Conditions. Therefore, you are advised to review this page regularly for any changes. The Service Provider will notify you of any changes by posting the new Terms and Conditions on this page.
