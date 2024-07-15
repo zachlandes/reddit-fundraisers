@@ -1,9 +1,6 @@
 # Snoowy Day Fund
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/zachlandes/snoowy-day-fund/main/
-assets/snoowy_small.png" alt="Snoowy Day Fund Snoo">
-</p>
+![Snoowy Day Fund Snoo](https://raw.githubusercontent.com/zachlandes/snoowy-day-fund/main/assets/snoowy_small.png)
 
 Snoowy Day Fund is an app for Reddit, built on Reddit's devvit platform, that helps Reddit users create fundraisers for nonprofits via every.org and display them as posts. These fundraiser posts stay updated in real-time with the latest tally of funds raised!
 
