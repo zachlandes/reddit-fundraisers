@@ -60,7 +60,7 @@ export function FundraiserView(
   showExpandButton: boolean,
   displayDescription: string
 ): JSX.Element {
-    const { ui, useState } = context;
+    const { ui, useState, dimensions } = context;
 
     enum OverlayType {
       None,
@@ -71,7 +71,7 @@ export function FundraiserView(
 
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
     const fundraiserInfoHeight = Math.floor(totalHeight * 0.44);
-    const MOBILE_WIDTH = 393;
+    const MOBILE_WIDTH = 361;
     const titleHeight = 26;
     const lineHeight = 16;
     const lineWidth = MOBILE_WIDTH - 80;
@@ -109,6 +109,12 @@ export function FundraiserView(
     const handleCloseOverlay = () => {
         console.log("Closing overlay");
         setCurrentOverlay(OverlayType.None);
+    };
+
+    const handleExpandDescription = () => {
+      if (showExpandButton) {
+        handleExpandOverlay(OverlayType.Description);
+      }
     };
 
     function renderProgressBar() {
@@ -229,16 +235,19 @@ export function FundraiserView(
                           <hstack>
                             <spacer size='small' />
                             <text size="small" color="neutral-content-weak" alignment="start">
-                                EIN: {nonprofitInfo?.ein ?? 'ein not available'}
+                                EIN: {nonprofitInfo?.ein ?? 'Not available'}
                             </text>
                           </hstack>
                           <spacer size='small' />
                         </vstack>
-                        <vstack grow>
-                            <text size='small' wrap={true} color='neutral-content-strong'>
-                                {nonprofitInfo?.description}
-                            </text>
-                        </vstack>
+                          <vstack grow>
+                            <hstack grow>
+                              <spacer size='xsmall' />
+                              <text size='small' wrap={true} color='neutral-content-strong'>
+                                  {nonprofitInfo?.description}
+                              </text>
+                            </hstack>
+                          </vstack>
                     </FullScreenOverlay>
                 );
             case OverlayType.SnoowyDayFund:
@@ -285,6 +294,46 @@ export function FundraiserView(
         }
     }
 
+    function renderDescription() {
+      const isSmallViewport = dimensions ? dimensions.width < 640 : true;
+      const descriptionContent = (
+        <text
+          size='small'
+          wrap={true}
+          maxHeight={`${availableDescriptionHeight}px`}
+          color='neutral-content-strong'
+        >
+          {displayDescription}
+        </text>
+      );
+    
+      return (
+        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+          {isSmallViewport && showExpandButton ? (
+            <vstack onPress={handleExpandDescription}>
+              {descriptionContent}
+              <spacer size='xsmall' />
+              <text size='medium' weight='bold' color={everyGreen}>
+                Read more
+              </text>
+            </vstack>
+          ) : (
+            <>
+              {descriptionContent}
+              {showExpandButton && (
+                <>
+                  <spacer size='xsmall' />
+                  <text size='medium' weight='bold' color={everyGreen} onPress={() => handleExpandOverlay(OverlayType.Description)}>
+                    Read more
+                  </text>
+                </>
+              )}
+            </>
+          )}
+        </vstack>
+      );
+    }
+
     return (
       <zstack width="100%" height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
         <vstack maxWidth={`${MOBILE_WIDTH}px`} height={100} width={100} borderColor={borderGray} border='thin'>
@@ -321,28 +370,12 @@ export function FundraiserView(
               <spacer size='xsmall' />
               <hstack width={100} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer size='small' />
-                <text size="large" weight='bold' color='neutral-content-strong'>
+                <text size="large" weight='bold' color='neutral-content-strong' wrap={true}>
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
                 <spacer grow />
               </hstack>
-              <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                <text
-                    size='small'
-                    wrap={true}
-                    maxHeight={`${availableDescriptionHeight}px`}
-                    color='neutral-content-strong'
-                >
-                  {displayDescription}
-                </text>
-                {showExpandButton && (
-                  <>
-                    <spacer size='xsmall' />
-                    <text size='medium' weight='bold' color={everyGreen} onPress={() => handleExpandOverlay(OverlayType.Description)}>Read more</text>
-                  </>
-                )}
-                <spacer size='small' />
-              </vstack>
+              {renderDescription()}
             </vstack>
           </vstack>
           <vstack width={100} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
@@ -409,7 +442,7 @@ export const FundraiserPost: CustomPostType = {
     }
 
     // Constants for pagination calculation
-    const MOBILE_WIDTH = 393;
+    const MOBILE_WIDTH = 361;
     const fundraiserInfoHeight = Math.floor(height * 0.44);
     const titleHeight = 26;
     const lineHeight = 16;
