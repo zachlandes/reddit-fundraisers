@@ -448,16 +448,16 @@ Devvit.addTrigger({
     try {
       async function validateAndCreateJob(jobName: string, cronSchedule: string) {
         try {
-          console.log(`Validating job: ${jobName}`);
+          //console.log(`Validating job: ${jobName}`);
           const allJobs = await context.scheduler.listJobs();
-          console.log('All jobs:', JSON.stringify(allJobs, null, 2));
+          //console.log('All jobs:', JSON.stringify(allJobs, null, 2));
           
           const existingJobs = allJobs.filter((job) => job.name === jobName);
-          console.log(`Existing ${jobName} jobs:`, JSON.stringify(existingJobs, null, 2));
+          //console.log(`Existing ${jobName} jobs:`, JSON.stringify(existingJobs, null, 2));
 
           // If there are existing jobs, keep only the most recent one
           if (existingJobs.length > 0) {
-            console.log(`${jobName} scheduler job(s) found. Cleaning up...`);
+            //console.log(`${jobName} scheduler job(s) found. Cleaning up...`);
             
             // Sort jobs by timestamp, most recent first
             const sortedJobs = existingJobs.sort((a, b) => 
@@ -485,7 +485,7 @@ Devvit.addTrigger({
               }
             }
             
-            console.log(`Kept most recent ${jobName} job:`, JSON.stringify(mostRecentJob));
+            //console.log(`Kept most recent ${jobName} job:`, JSON.stringify(mostRecentJob));
           } else {
             console.log(`No existing ${jobName} job found. Creating a new one.`);
             const newJob = {
@@ -505,7 +505,7 @@ Devvit.addTrigger({
           // Final verification
           const finalJobs = await context.scheduler.listJobs();
           const finalJobsForName = finalJobs.filter(job => job.name === jobName);
-          console.log(`Final ${jobName} jobs after cleanup:`, JSON.stringify(finalJobsForName, null, 2));
+          //console.log(`Final ${jobName} jobs after cleanup:`, JSON.stringify(finalJobsForName, null, 2));
         } catch (error) {
           console.error(`Error in validateAndCreateJob for ${jobName}:`, error);
         }
