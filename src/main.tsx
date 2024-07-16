@@ -436,45 +436,92 @@ Devvit.addTrigger({
 Devvit.addTrigger({
   event: 'AppUpgrade',
   onEvent: async (_, context) => {
-    const jobs = await context.scheduler.listJobs();
-    
-    // Function to handle job validation and creation
-    async function validateAndCreateJob(jobName: string, cronSchedule: string) {
-      const existingJobs = jobs.filter((job) => job.name === jobName);
-      const validJobs = existingJobs.filter((job) => job.data && job.data.timestamp);
-      
-      if (validJobs.length > 0) {
-        console.log(`${jobName} scheduler job validated.`);
-        // Keep only the most recent job
-        const mostRecentJob = validJobs.reduce((latest, job) => {
-          return (!latest || (job.data && job.data.timestamp > (latest.data?.timestamp || 0))) ? job : latest;
-        }, validJobs[0]);
-        
-        for (const job of existingJobs) {
-          if (job.id !== mostRecentJob.id) {
-            await context.scheduler.cancelJob(job.id);
-          }
-        }
-      } else {
-        console.log(`No valid ${jobName} job found on app upgrade, scheduling a new one`);
-        await context.scheduler.runJob({
-          cron: cronSchedule,
-          name: jobName,
-          data: {
-            timestamp: Date.now(),
-          },
-        });
-      }
+    const upgradeInProgress = await context.redis.get('upgrade_in_progress');
+    if (upgradeInProgress) {
+      console.log('An upgrade is already in progress. Skipping this trigger.');
+      return;
     }
+    
+    await context.redis.set('upgrade_in_progress', 'true');
+    await context.redis.expire('upgrade_in_progress', 300);
+    
+    try {
+      async function validateAndCreateJob(jobName: string, cronSchedule: string) {
+        try {
+          console.log(`Validating job: ${jobName}`);
+          const allJobs = await context.scheduler.listJobs();
+          console.log('All jobs:', JSON.stringify(allJobs, null, 2));
+          
+          const existingJobs = allJobs.filter((job) => job.name === jobName);
+          console.log(`Existing ${jobName} jobs:`, JSON.stringify(existingJobs, null, 2));
 
-    // Use a more unique identifier for the upgrade process
-    const upgradeId = Date.now().toString();
-    console.log(`Starting AppUpgrade process: ${upgradeId}`);
+          // If there are existing jobs, keep only the most recent one
+          if (existingJobs.length > 0) {
+            console.log(`${jobName} scheduler job(s) found. Cleaning up...`);
+            
+            // Sort jobs by timestamp, most recent first
+            const sortedJobs = existingJobs.sort((a, b) => 
+              (b.data?.data?.timestamp || 0) - (a.data?.data?.timestamp || 0)
+            );
+            
+            // Keep the most recent job
+            const mostRecentJob = sortedJobs[0];
+            
+            // Cancel all other jobs
+            for (const job of sortedJobs.slice(1)) {
+              try {
+                await context.scheduler.cancelJob(job.id);
+                console.log(`Attempted to delete job: ${JSON.stringify(job)}`);
+                
+                // Verify deletion
+                const jobAfterDeletion = await context.scheduler.listJobs().then(jobs => jobs.find(j => j.id === job.id));
+                if (jobAfterDeletion) {
+                  console.error(`Failed to delete job ${job.id}. It still exists.`);
+                } else {
+                  console.log(`Confirmed deletion of job ${job.id}`);
+                }
+              } catch (deleteError) {
+                console.error(`Error deleting job ${job.id}:`, deleteError);
+              }
+            }
+            
+            console.log(`Kept most recent ${jobName} job:`, JSON.stringify(mostRecentJob));
+          } else {
+            console.log(`No existing ${jobName} job found. Creating a new one.`);
+            const newJob = {
+              cron: cronSchedule,
+              name: jobName,
+              data: {
+                type: jobName,
+                data: {
+                  timestamp: Date.now(),
+                },
+              },
+            };
+            const jobId = await context.scheduler.runJob(newJob);
+            console.log(`Added new job:`, JSON.stringify({ id: jobId, ...newJob }));
+          }
+          
+          // Final verification
+          const finalJobs = await context.scheduler.listJobs();
+          const finalJobsForName = finalJobs.filter(job => job.name === jobName);
+          console.log(`Final ${jobName} jobs after cleanup:`, JSON.stringify(finalJobsForName, null, 2));
+        } catch (error) {
+          console.error(`Error in validateAndCreateJob for ${jobName}:`, error);
+        }
+      }
 
-    await validateAndCreateJob('update_fundraiser_posts', '*/10 * * * * *');
-    await validateAndCreateJob('update_fundraiser_descriptions', '* * * * *');
+      // Use a more unique identifier for the upgrade process
+      const upgradeId = Date.now().toString();
+      console.log(`Starting AppUpgrade process: ${upgradeId}`);
 
-    console.log(`Completed AppUpgrade process: ${upgradeId}`);
+      await validateAndCreateJob('update_fundraiser_posts', '*/10 * * * * *');
+      await validateAndCreateJob('update_fundraiser_descriptions', '* * * * *');
+
+      console.log(`Completed AppUpgrade process: ${upgradeId}`);
+    } finally {
+      await context.redis.del('upgrade_in_progress');
+    }
   },
 });
 
