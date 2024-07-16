@@ -23,7 +23,7 @@ For more details about apps for Reddit, visit the [Reddit Developer Documentatio
 1. Create an account and fundraiser on [every.org](https://every.org). We recommend including a description, cover image, and a goal.
 2. Copy the URL for your every.org fundraiser.
 3. Go to your subreddit, click the subreddit menu button on the right side of your subreddit home "(...)".
-4. Select "Create a post from an existing fundraiser".
+4. Select "Create a fundraiser post with Snoowy Day Fund".
 5. Paste the every.org fundraiser URL, give your post a title, and click submit.
 6. Pin the post as long as the fundraiser is running to maximize donations for your chosen nonprofit!
 
@@ -31,7 +31,7 @@ For more details about apps for Reddit, visit the [Reddit Developer Documentatio
 
 1. Click the "Donate" button on the fundraiser post.
 2. Follow the instructions to donate to the fundraiser.
-3. A receipt will be emailed to you for tax purposes. All donations to the nonprofit are sent once per week.
+3. A receipt will be emailed to you for tax purposes. All donations to the nonprofit are sent once per week every.org.
 
 ## Development Setup
 
