@@ -286,6 +286,8 @@ export function FundraiserView(
                             <text size="small" color='neutral-content-strong'> on the reddit app directory</text>
                             <spacer size="small" />
                             <text wrap={true} size="small" weight="bold" color='neutral-content-strong'>Support your community's charitable goals easily and securely with Snoowy Day Fund on Reddit!</text>
+                            <spacer size="xsmall" />
+                            <text size="xsmall" color='neutral-content-strong' wrap={true}>Every.org is not sponsored by, endorsed by, or associated with Reddit.</text>
                         </vstack>
                     </FullScreenOverlay>
                 );
