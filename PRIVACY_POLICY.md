@@ -1,6 +1,6 @@
 **Privacy Policy**
 
-This privacy policy is applicable to the Snoowy Day Fund app and website (hereinafter referred to as "Application") for mobile devices, mobile web, and desktop environments, which was developed by Zachary Landes and Pratik Pramanik (hereinafter referred to as "Service Provider") as a Free service. This service is provided "AS IS".
+This privacy policy is applicable to the Fundraisers app and website (hereinafter referred to as "Application") for mobile devices, mobile web, and desktop environments, which was developed by Zachary Landes and Pratik Pramanik (hereinafter referred to as "Service Provider") as a Free service. This service is provided "AS IS".
 
 **What information does the Application obtain and how is it used?**  
 **User Provided Information**

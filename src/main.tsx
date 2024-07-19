@@ -222,7 +222,7 @@ const submitForm = Devvit.createForm(
 // });
 
 Devvit.addMenuItem({
-  label: 'Create a fundraiser post with Snoowy Day Fund',
+  label: 'Create a fundraiser post with the Fundraisers app',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (_event, { ui }) => {

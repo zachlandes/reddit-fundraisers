@@ -37,7 +37,7 @@ function generateFundraiserURL(
   if (!fundraiserInfo) return ''; // TODO: better default?
   const utm_content = fundraiserInfo.id ? `&utm_content=${fundraiserInfo.id}` : '';
   const utm_campaign = subreddit ? `&utm_campaign=${subreddit}`: '';
-  const utm = `?utm_source=reddit&utm_medium=snoowydayfund${utm_content}${utm_campaign}`;
+  const utm = `?utm_source=reddit&utm_medium=fundraisers${utm_content}${utm_campaign}`;
   return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate${utm}`;
 }
 
@@ -66,7 +66,7 @@ export function FundraiserView(
       None,
       Description,
       NonprofitInfo,
-      SnoowyDayFund
+      FundraisersApp
     }
 
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
@@ -250,30 +250,30 @@ export function FundraiserView(
                           </vstack>
                     </FullScreenOverlay>
                 );
-            case OverlayType.SnoowyDayFund:
+            case OverlayType.FundraisersApp:
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
                         <vstack>
                           <vstack gap="small">
                             <spacer size="xsmall" />
-                            <text size="large" weight="bold" color='neutral-content-strong'>Snoowy Day Fund: Easy Donations on Reddit</text>
+                            <text size="large" weight="bold" color='neutral-content-strong'>Fundraisers App: Easy Donations on Reddit</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>What is it?</text>
-                            <text wrap={true} size="small" color='neutral-content-strong'>Snoowy Day Fund lets you donate to U.S. nonprofits directly through Reddit posts. No platform fees, just a quick and secure way to support causes you care about.</text>
+                            <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit lets you donate to U.S. nonprofits directly through Reddit posts. No platform fees, just a quick and secure way to support causes you care about.</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>How to Donate:</text>
                             <vstack gap="small">
                                 <text wrap={true} size="small" color='neutral-content-strong'>1. Click Donate: Hit the "Donate" button in this post.</text>
                                 <text wrap={true} size="small" color='neutral-content-strong'>2. Choose Payment Method: Select from popular payment processors like PayPal, Apple Pay, or Venmo.</text>
-                                <text wrap={true} size="small" color='neutral-content-strong'>3. Complete Donation: Your donation goes straight to the nonprofit, minus any payment processing fees. You'll get an email receipt for tax purposes.</text>
+                                <text wrap={true} size="small" color='neutral-content-strong'>3. Complete Donation: Your donation goes to the nonprofit, minus any payment processing fees. You'll get an email receipt for tax purposes.</text>
                             </vstack>
-                            <text wrap={true} size="small" color='neutral-content-strong'>Snoowy Day Fund uses Every.org as the nonprofit fundraising platform, ensuring your donations are handled securely.</text>
+                            <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit uses Every.org as the nonprofit fundraising platform, ensuring your donations are handled securely.</text>
                             <hstack alignment="start middle">
                                 <text size="small" color='neutral-content-strong'>
                                     For more information, visit the
                                 </text>
                                 <text selectable={false}>&nbsp;</text>
-                                <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/snoowy-day-fund')}>
+                                <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/fundraisers-app')}>
                                     <text size="small" color="blue" selectable={false}>
-                                        Snoowy Day Fund
+                                        Fundraisers
                                     </text>
                                     <hstack height={'1px'} backgroundColor="blue"></hstack>
                                 </vstack>
@@ -285,7 +285,7 @@ export function FundraiserView(
                           </vstack>
                             <text size="small" color='neutral-content-strong'> on the reddit app directory</text>
                             <spacer size="small" />
-                            <text wrap={true} size="small" weight="bold" color='neutral-content-strong'>Support your community's charitable goals easily and securely with Snoowy Day Fund on Reddit!</text>
+                            <text wrap={true} size="small" weight="bold" color='neutral-content-strong'>Support your community's charitable goals easily and securely with Fundraisers on Reddit!</text>
                             <spacer size="xsmall" />
                             <text size="xsmall" color='neutral-content-strong' wrap={true}>Every.org is not sponsored by, endorsed by, or associated with Reddit.</text>
                         </vstack>
@@ -419,7 +419,7 @@ export function FundraiserView(
                 </hstack>
               </hstack>
             </vstack>
-            <Watermark onInfoClick={() => handleExpandOverlay(OverlayType.SnoowyDayFund)} />
+            <Watermark onInfoClick={() => handleExpandOverlay(OverlayType.FundraisersApp)} />
           </vstack>
         </vstack>
         {renderOverlay()}

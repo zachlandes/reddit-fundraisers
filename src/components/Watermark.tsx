@@ -19,7 +19,7 @@ export const Watermark: Devvit.BlockComponent<WatermarkProps> = ({ onInfoClick }
             <text selectable={false}>&nbsp;</text>
             <vstack onPress={onInfoClick}>
               <text size="small" darkColor="#B8C5C9" lightColor="#000" selectable={false}>
-                Snoowy Day Fund
+                Fundraisers
               </text>
               <hstack height={'1px'} backgroundColor="#B8C5C9"></hstack>
             </vstack>

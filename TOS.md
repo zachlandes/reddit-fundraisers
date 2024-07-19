@@ -1,6 +1,6 @@
 **Terms & Conditions**  
 
-These terms and conditions apply to the Snoowy Day Fund app and website (hereby referred to as "Application") for mobile devices, mobile web, and desktop environments that was created by Zachary Landes and Pratik Pramanik (hereby referred to as "Service Provider") as a Free service.
+These terms and conditions apply to the Fundraisers app and website (hereby referred to as "Application") for mobile devices, mobile web, and desktop environments that was created by Zachary Landes and Pratik Pramanik (hereby referred to as "Service Provider") as a Free service.
 
 Upon downloading, accessing, or utilizing the Application, you are automatically agreeing to the following terms. It is strongly advised that you thoroughly read and understand these terms prior to using the Application. Unauthorized copying, modification of the Application, any part of the Application, or our trademarks is strictly prohibited. Any attempts to extract the source code of the Application, translate the Application into other languages, or create derivative versions are not permitted. All trademarks, copyrights, database rights, and other intellectual property rights related to the Application remain the property of the Service Provider.
 
