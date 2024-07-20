@@ -1,5 +1,7 @@
 # Fundraisers
 
+[![Mutable.ai Auto Wiki](https://img.shields.io/badge/Auto_Wiki-Mutable.ai-blue)](https://wiki.mutable.ai/zachlandes/reddit-fundraisers)
+
 Fundraisers is an app for Reddit, built on Reddit's devvit platform, that helps Reddit users create fundraisers for nonprofits via every.org and display them as posts. These fundraiser posts stay updated in real-time with the latest tally of funds raised!
 
 ## Features
