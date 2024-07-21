@@ -199,12 +199,12 @@ export function FundraiserView(
             case OverlayType.Description:
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
-                        <vstack grow>
+                        <vstack grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                             <text size='small' wrap={true} color='neutral-content-strong'>
                                 {currentItems[0]}
                             </text>
                         </vstack>
-                        <hstack alignment="center middle" gap="small" width={100}>
+                        <hstack alignment="center middle" gap="small" width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                             <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
                             <text color='neutral-content-strong'>{currentPage + 1} / {pagesCount}</text>
                             <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
@@ -214,7 +214,7 @@ export function FundraiserView(
               case OverlayType.NonprofitInfo:
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
-                        <vstack>
+                        <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                           <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
                             <spacer size='xsmall' />
                             {logoImageUrl && (
@@ -232,7 +232,7 @@ export function FundraiserView(
                               {nonprofitInfo?.name}
                             </text>
                           </hstack>
-                          <hstack>
+                          <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                             <spacer size='small' />
                             <text size="small" color="neutral-content-weak" alignment="start">
                                 EIN: {nonprofitInfo?.ein ?? 'Not available'}
@@ -240,12 +240,12 @@ export function FundraiserView(
                           </hstack>
                           <spacer size='small' />
                         </vstack>
-                          <vstack grow>
-                            <hstack grow>
+                          <vstack grow borderColor={DEBUG_MODE ? 'green' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                               <spacer size='xsmall' />
-                              <text size='small' wrap={true} color='neutral-content-strong'>
-                                  {nonprofitInfo?.description}
-                              </text>
+                                <text width={100} size='small' wrap color='neutral-content-strong'>
+                                    {nonprofitInfo?.description}
+                                </text>
                             </hstack>
                           </vstack>
                     </FullScreenOverlay>
@@ -253,29 +253,29 @@ export function FundraiserView(
             case OverlayType.FundraisersApp:
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
-                        <vstack>
-                          <vstack gap="small">
+                        <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                          <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                             <spacer size="xsmall" />
                             <text size="large" weight="bold" color='neutral-content-strong'>Fundraisers App: Easy Donations on Reddit</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>What is it?</text>
                             <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit lets you donate to U.S. nonprofits directly through Reddit posts. No platform fees, just a quick and secure way to support causes you care about.</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>How to Donate:</text>
-                            <vstack gap="small">
+                            <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                                 <text wrap={true} size="small" color='neutral-content-strong'>1. Click Donate: Hit the "Donate" button in this post.</text>
                                 <text wrap={true} size="small" color='neutral-content-strong'>2. Choose Payment Method: Select from popular payment processors like PayPal, Apple Pay, or Venmo.</text>
                                 <text wrap={true} size="small" color='neutral-content-strong'>3. Complete Donation: Your donation goes to the nonprofit, minus any payment processing fees. You'll get an email receipt for tax purposes.</text>
                             </vstack>
                             <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit uses Every.org as the nonprofit fundraising platform, ensuring your donations are handled securely.</text>
-                            <hstack alignment="start middle">
+                            <hstack alignment="start middle" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                                 <text size="small" color='neutral-content-strong'>
                                     For more information, visit the
                                 </text>
                                 <text selectable={false}>&nbsp;</text>
-                                <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/fundraisers-app')}>
+                                <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/fundraisers-app')} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                                     <text size="small" color="blue" selectable={false}>
                                         Fundraisers
                                     </text>
-                                    <hstack height={'1px'} backgroundColor="blue"></hstack>
+                                    <hstack height={'1px'} backgroundColor="blue" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}></hstack>
                                 </vstack>
                                 <text selectable={false}>&nbsp;</text>
                                 <text size="small" color='neutral-content-strong'>
