@@ -363,16 +363,16 @@ export function FundraiserView(
                   <spacer size='xsmall' />
                 </>
               )}
-              <text weight='bold' color='neutral-content-strong' onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}>
+              <text maxWidth={`${MOBILE_WIDTH-43}px`} weight='bold' color='neutral-content-strong' onPress={() => handleExpandOverlay(OverlayType.NonprofitInfo)}>
                 {nonprofitInfo?.name}
               </text>
               <spacer size='medium' />
             </hstack>
             <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <spacer size='xsmall' />
-              <hstack width={100} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <hstack width={100} maxWidth={`${MOBILE_WIDTH}px`} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'green' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer size='small' />
-                <text size="large" weight='bold' color='neutral-content-strong' wrap={true}>
+                <text maxWidth={`${MOBILE_WIDTH-4}px`} size="large" weight='bold' color='neutral-content-strong' overflow='ellipsis'>
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
                 <spacer grow />
