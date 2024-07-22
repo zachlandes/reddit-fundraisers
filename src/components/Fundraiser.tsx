@@ -71,7 +71,7 @@ export function FundraiserView(
 
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
     const fundraiserInfoHeight = Math.floor(totalHeight * 0.44);
-    const MOBILE_WIDTH = 361;
+    const MOBILE_WIDTH = 320; // 361
     const titleHeight = 26;
     const lineHeight = 16;
     const lineWidth = MOBILE_WIDTH - 80;
@@ -83,7 +83,7 @@ export function FundraiserView(
     const bottomSectionHeight = totalHeight - fundraiserInfoHeight - coverImageHeight;
     const overlayDescriptionMaxHeight = totalHeight - overlayControlsHeight;
 
-    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 34;
+    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 3*lineHeight; //34
     const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2*xsmallSpacerHeight;
     const everyGreen = '#018669';
     const borderGray = '#C0C0C0'; //'#A0A0A0';
@@ -240,7 +240,7 @@ export function FundraiserView(
                           </hstack>
                           <spacer size='small' />
                         </vstack>
-                          <vstack grow borderColor={DEBUG_MODE ? 'green' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                          <vstack grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                             <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                               <spacer size='xsmall' />
                                 <text width={100} size='small' wrap color='neutral-content-strong'>
@@ -310,7 +310,7 @@ export function FundraiserView(
       );
     
       return (
-        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={true ? 'blue' : 'neutral-border-weak'} border={true ? 'thin' : 'none'}>
           {isSmallViewport && showExpandButton ? (
             <vstack onPress={handleExpandDescription}>
               {descriptionContent}
@@ -370,9 +370,9 @@ export function FundraiserView(
             </hstack>
             <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <spacer size='xsmall' />
-              <hstack width={100} maxWidth={`${MOBILE_WIDTH}px`} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'green' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <hstack width={100} maxWidth={`${MOBILE_WIDTH}px`} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer size='small' />
-                <text maxWidth={`${MOBILE_WIDTH-4}px`} size="large" weight='bold' color='neutral-content-strong' overflow='ellipsis'>
+                <text maxWidth={`${MOBILE_WIDTH-8}px`} size="large" weight='bold' color='neutral-content-strong' overflow='ellipsis'>
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
                 </text>
                 <spacer grow />
@@ -444,7 +444,7 @@ export const FundraiserPost: CustomPostType = {
     }
 
     // Constants for pagination calculation
-    const MOBILE_WIDTH = 361;
+    const MOBILE_WIDTH = 320;
     const fundraiserInfoHeight = Math.floor(height * 0.44);
     const titleHeight = 26;
     const lineHeight = 16;
@@ -498,7 +498,7 @@ export const FundraiserPost: CustomPostType = {
       const sampleText = description.slice(0, 100) || 'Sample Text';
       const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize }) / sampleText.length;
 
-      const smallPaginatedDescription = paginateText(description, availableDescriptionHeight + lineHeight, lineHeight, lineWidth, charWidth);
+      const smallPaginatedDescription = paginateText(description, availableDescriptionHeight, lineHeight, lineWidth, charWidth);
       const showExpandButton = smallPaginatedDescription.length > 1;
       const displayDescription = showExpandButton
         ? smallPaginatedDescription[0].replace(/\s+$/, '') + '...'
