@@ -46,6 +46,7 @@ For a high-level overview of donations on every.org, go to [every.org/about-us](
 
 1. We recommend creating fundraisers with nonprofits that have claimed their profile on every.org. This ensures that the funds are disbursed to the nonprofit as quickly as possible.
 3. If the nonprofit you'd like to create a fundraiser for is not registered, you can contact them via their every.org page to request they register.
+4. Sticky your post! It will get a lot more views this way. You can also have your automod comment on posts to your subreddit with a link to the fundraiser post, further increasing the reach of your fundraiser.
 4. If there is no way to disburse funds to a nonprofit, donors will be notified and allowed to donate their funds to any other nonprofit on the every.org site (1 million + nonprofits).
 5. We highly recommend reading the every.org [FAQs](https://support.every.org/hc/en-us/articles/360059359213-How-does-making-a-donation-on-Every-org-work) to understand how donations work.
 6. Long fundraiser titles will be truncated on the reddit post as of version 1.1.0 of the Fundraisers app. We recommend keeping your every.org fundraiser title short. Your Reddit post title can be longer, like any other Reddit post title.
