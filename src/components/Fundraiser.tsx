@@ -13,6 +13,7 @@ import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
 import { Watermark } from './Watermark.js';
 import { FullScreenOverlay } from './FullScreenOverlay.js';
+import { calculateLayout, ViewportType, VIEWPORT_CONFIGS } from '../utils/constants.js';
 
 const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
 
@@ -58,7 +59,8 @@ export function FundraiserView(
   isButtonExpanded: boolean,
   paginatedDescription: string[],
   showExpandButton: boolean,
-  displayDescription: string
+  displayDescription: string,
+  config: typeof VIEWPORT_CONFIGS[ViewportType]
 ): JSX.Element {
     const { ui, useState, dimensions } = context;
 
@@ -70,26 +72,26 @@ export function FundraiserView(
     }
 
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
-    const fundraiserInfoHeight = Math.floor(totalHeight * 0.44);
-    const MOBILE_WIDTH = 320; // 361
-    const titleHeight = 26;
-    const lineHeight = 16;
+    const fundraiserInfoHeight = Math.floor(totalHeight * config.FUNDRAISER_INFO_HEIGHT_RATIO);
+    const MOBILE_WIDTH = config.MOBILE_WIDTH;
+    const titleHeight = config.TITLE_HEIGHT;
+    const lineHeight = config.LINE_HEIGHT;
     const lineWidth = MOBILE_WIDTH - 80;
     const imageHeight = 150;
     const overlayControlsHeight = 50;
-    const paddingHeight = 16; // 8px top + 8px bottom for small padding
-    const xsmallSpacerHeight = 4
+    const paddingHeight = config.PADDING_HEIGHT;
+    const xsmallSpacerHeight = config.XSMALL_SPACER_HEIGHT;
     const coverImageHeight = Math.floor(totalHeight * 0.30);
     const bottomSectionHeight = totalHeight - fundraiserInfoHeight - coverImageHeight;
     const overlayDescriptionMaxHeight = totalHeight - overlayControlsHeight;
 
-    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 3*lineHeight; //34
+    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 3*lineHeight;
     const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2*xsmallSpacerHeight;
     const everyGreen = '#018669';
     const borderGray = '#C0C0C0'; //'#A0A0A0';
 
-    const fontSize = 12;
-    const fontFamily = "helvetica";
+    const fontSize = config.FONT_SIZE;
+    const fontFamily = config.FONT_FAMILY;
     const sampleText = fundraiserInfo?.description.slice(0, 100) || 'Sample Text';
     const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize } ) / sampleText.length;
 
@@ -143,7 +145,7 @@ export function FundraiserView(
       if((goal ?? 0) <= 0){
         // No Goal on this fundraiser
         return (
-          <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width={100} borderColor={DEBUG_MODE ? 're' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <hstack
                 width={100}
@@ -162,27 +164,24 @@ export function FundraiserView(
       else {
         // Fundraiser has a goal
         return (
-          <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-              <spacer grow />
-              <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='start' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                      <text weight='bold' color='neutral-content-strong'>${new Intl.NumberFormat('en-US').format(Math.round(raised / 100))}</text>
-                      <text color='#706E6E'>Raised</text>
-                  </vstack>
-              </hstack>
-              <hstack width={`${magicWidthPercentageProgressBar/2}%`} alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                <spacer size='medium' />
-                <vstack alignment='end' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                    <text weight='bold' color='neutral-content-strong'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text>
-                    {goal && goalType && (
-                      <text color='#706E6E'>
-                        {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
-                      </text>
-                    )}
+          <vstack width={100} minWidth={100} maxWidth={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+            <hstack width={100} minWidth={100} maxWidth={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <hstack width={100} alignment='start middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <spacer grow />
+                <vstack width={48} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                  <text weight='bold' color='neutral-content-strong' overflow='ellipsis'>${new Intl.NumberFormat('en-US').format(Math.round(raised / 100))}</text>
+                  <text color='#706E6E'>Raised</text>
                 </vstack>
+                <vstack width={48} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                  <text alignment='end' weight='bold' color='neutral-content-strong' overflow='ellipsis'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text>
+                  {goal && goalType && (
+                    <text alignment='end' color='#706E6E'>
+                      {goalType === 'AUTOMATIC' ? 'Next milestone' : 'Goal'}
+                    </text>
+                  )}
+                </vstack>
+                <spacer grow />
               </hstack>
-              <spacer grow />
             </hstack>
             <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <spacer grow />
@@ -310,7 +309,7 @@ export function FundraiserView(
       );
     
       return (
-        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={true ? 'blue' : 'neutral-border-weak'} border={true ? 'thin' : 'none'}>
+        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
           {isSmallViewport && showExpandButton ? (
             <vstack onPress={handleExpandDescription}>
               {descriptionContent}
@@ -435,27 +434,20 @@ export const FundraiserPost: CustomPostType = {
     const { height, width } = context.dimensions ?? { height: 480, width: 320 };
     console.log("Starting render of FundraiserPost with dimensions:", { height, width });
 
-    // TODO: Based on widths make some logical changes to the layout
+    const {
+      viewportType,
+      config: viewportConfig,
+      fundraiserInfoHeight,
+      lineWidth,
+      descriptionMaxHeight,
+      availableDescriptionHeight,
+    } = calculateLayout(height, width);
 
-    const { postId, useChannel, useState, useInterval } = context;
+    const { postId, useChannel, useState } = context;
 
     if (typeof postId !== 'string') {
       throw new Error('postId is undefined');
     }
-
-    // Constants for pagination calculation
-    const MOBILE_WIDTH = 320;
-    const fundraiserInfoHeight = Math.floor(height * 0.44);
-    const titleHeight = 26;
-    const lineHeight = 16;
-    const lineWidth = MOBILE_WIDTH - 80;
-    const paddingHeight = 16;
-    const xsmallSpacerHeight = 4;
-    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 34;
-    const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2 * xsmallSpacerHeight;
-    const {reddit} = context;
-    const fontSize = 12;
-    const fontFamily = "helvetica";
 
     // State for static data
     const [staticData, setStaticData] = useState<{
@@ -496,9 +488,9 @@ export const FundraiserPost: CustomPostType = {
     // Function to update paginated description
     const updatePaginatedDescription = (description: string) => {
       const sampleText = description.slice(0, 100) || 'Sample Text';
-      const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize }) / sampleText.length;
+      const charWidth = pixelWidth(sampleText, { font: viewportConfig.FONT_FAMILY, size: viewportConfig.FONT_SIZE }) / sampleText.length;
 
-      const smallPaginatedDescription = paginateText(description, availableDescriptionHeight, lineHeight, lineWidth, charWidth);
+      const smallPaginatedDescription = paginateText(description, availableDescriptionHeight, viewportConfig.LINE_HEIGHT, lineWidth, charWidth);
       const showExpandButton = smallPaginatedDescription.length > 1;
       const displayDescription = showExpandButton
         ? smallPaginatedDescription[0].replace(/\s+$/, '') + '...'
@@ -619,7 +611,8 @@ export const FundraiserPost: CustomPostType = {
           isButtonExpanded,
           dynamicData.paginatedDescription,
           dynamicData.showExpandButton,
-          dynamicData.displayDescription
+          dynamicData.displayDescription,
+          viewportConfig
         )}
       </blocks>
     );
