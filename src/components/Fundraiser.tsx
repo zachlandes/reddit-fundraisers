@@ -449,7 +449,6 @@ export const FundraiserPost: CustomPostType = {
 
     // Add loading state
     const [isLoading, setIsLoading] = useState(true);
-    const [hasAttemptedSubscription, setHasAttemptedSubscription] = useState(false);
 
     const [subreddit, setSubreddit] = useState<string | null>(async () => {
       try {
@@ -570,7 +569,7 @@ export const FundraiserPost: CustomPostType = {
       return initialData;
     });
 
-    // Create and subscribe to the fundraiser_updates channel
+    // Create the channel
     const updateChannel = context.useChannel({
       name: 'fundraiser_updates',
       onMessage: (data: JSONValue) => {
@@ -596,18 +595,17 @@ export const FundraiserPost: CustomPostType = {
       },
     });
 
-    // Self-invoking async function to handle subscription
-    (async () => {
-      if (!hasAttemptedSubscription) {
-        setHasAttemptedSubscription(true);
-        try {
-          await updateChannel.subscribe();
-          console.log("Successfully subscribed to fundraiser_updates channel");
-        } catch (error) {
-          console.error("Error subscribing to channel:", error);
-        }
+    // Handle subscription in a useState
+    const [isSubscribed, setIsSubscribed] = useState(async () => {
+      try {
+        await updateChannel.subscribe();
+        console.log("Successfully subscribed to fundraiser_updates channel");
+        return true;
+      } catch (error) {
+        console.error("Error subscribing to channel:", error);
+        return false;
       }
-    })();
+    });
 
     const [isButtonExpanded, setIsButtonExpanded] = useState(false);
 
