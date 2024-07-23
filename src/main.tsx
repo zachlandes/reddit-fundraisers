@@ -414,11 +414,12 @@ Devvit.addSchedulerJob({
     const summary = await getFundraiserSummary(context);
     if (summary) {
       try {
+        const subredditName = await context.reddit.getCurrentSubreddit().then(subreddit => subreddit.name);
         await context.reddit.modMail.createConversation({
-          to: 'thezachlandes',
-          subject: 'Daily Fundraiser Summary',
+          to: null,
+          subject: `Daily Fundraiser Summary: r/${subredditName}`,
           body: summary,
-          subredditName: 'SnoowyDayFund'
+          subredditName: subredditName
         });
         console.log('Daily fundraiser summary sent successfully');
       } catch (error) {
