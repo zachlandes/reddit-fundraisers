@@ -387,7 +387,7 @@ export function FundraiserView(
                 <hstack width='33%' alignment='start top' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer size='small' />
                   <vstack alignment='start top'>
-                    <text size='small' weight='bold' color='neutral-content-strong'>
+                    <text size='small' wrap={true} weight='bold' color='neutral-content-strong'>
                       {supporters === 0 ? "" : `${new Intl.NumberFormat('en-US').format(supporters)} Supporters`}
                     </text>
                   </vstack>
