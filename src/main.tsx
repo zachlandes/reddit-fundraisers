@@ -1,9 +1,8 @@
 // Learn more at developers.reddit.com/docs
-import { Context, Devvit, RichTextBuilder, SettingsClient } from '@devvit/public-api';
-import type { Data, JSONObject, MediaAsset, Post } from '@devvit/public-api';
-import { Currency, FundraiserCreationResponse, RedisKey, type EveryNonprofitInfo } from './types/index.js';
+import { Devvit } from '@devvit/public-api';
+import type { Post } from '@devvit/public-api';
+import { Currency, FundraiserCreationResponse, type EveryNonprofitInfo } from './types/index.js';
 import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundraiserRaisedDetails, fetchExistingFundraiserDetails } from './sources/Every.js';
-import { StringUtil } from '@devvit/shared-types/StringUtil.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
 import { fetchPostsToUpdate, setCachedForm, getCachedForm, addOrUpdatePostInRedis, removePostAndFormFromRedis, removePostSubscriptionFromRedis } from './utils/Redis.js';
@@ -13,6 +12,7 @@ import { generateDateOptions } from './utils/dateUtils.js';
 import { convertToFormData } from './utils/formUtils.js';
 import { existingFundraiserForm } from './forms/ExistingFundraiserForm.js';
 import { updateCachedFundraiserDetails, sendFundraiserUpdates } from './utils/renderUtils.js';
+import { getFundraiserSummary, validateAndCreateJob } from './utils/jobUtils.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -408,27 +408,48 @@ Devvit.addSchedulerJob({
   },
 });
 
+Devvit.addSchedulerJob({
+  name: 'send_daily_fundraiser_summary',
+  onRun: async (_, context) => {
+    const summary = await getFundraiserSummary(context);
+    if (summary) {
+      try {
+        await context.reddit.modMail.createConversation({
+          to: 'thezachlandes',
+          subject: 'Daily Fundraiser Summary',
+          body: summary,
+          subredditName: 'SnoowyDayFund'
+        });
+        console.log('Daily fundraiser summary sent successfully');
+      } catch (error) {
+        console.error('Error sending daily fundraiser summary:', error);
+      }
+    } else {
+      console.log('No active fundraisers to report');
+    }
+  },
+});
+
 Devvit.addTrigger({
   event: 'AppInstall',
   onEvent: async (_, context) => {
-    try {
-      await context.scheduler.runJob({
-        cron: '*/10 * * * * *',
-        name: 'update_fundraiser_posts',
-        data: {
-          timestamp: Date.now(),
-        },
-      });
-      await context.scheduler.runJob({
-        cron: '* * * * *',
-        name: 'update_fundraiser_descriptions',
-        data: {
-          timestamp: Date.now(),
-        },
-      });
-    } catch (e) {
-      console.error('Error scheduling jobs on app install:', e);
-      throw e;
+    const jobsToSchedule = [
+      { cron: '*/10 * * * * *', name: 'update_fundraiser_posts' },
+      { cron: '* * * * *', name: 'update_fundraiser_descriptions' },
+      { cron: '0 0 * * *', name: 'send_daily_fundraiser_summary' }
+    ];
+
+    for (const job of jobsToSchedule) {
+      try {
+        await context.scheduler.runJob({
+          cron: job.cron,
+          name: job.name,
+          data: { timestamp: Date.now() },
+        });
+        console.log(`Successfully scheduled job: ${job.name}`);
+      } catch (e) {
+        console.error(`Error scheduling job ${job.name}:`, e);
+      }
     }
   },
 });
@@ -443,80 +464,30 @@ Devvit.addTrigger({
     }
     
     await context.redis.set('upgrade_in_progress', 'true');
-    await context.redis.expire('upgrade_in_progress', 300);
+    await context.redis.expire('upgrade_in_progress', 60);
     
     try {
-      async function validateAndCreateJob(jobName: string, cronSchedule: string) {
-        try {
-          //console.log(`Validating job: ${jobName}`);
-          const allJobs = await context.scheduler.listJobs();
-          //console.log('All jobs:', JSON.stringify(allJobs, null, 2));
-          
-          const existingJobs = allJobs.filter((job) => job.name === jobName);
-          //console.log(`Existing ${jobName} jobs:`, JSON.stringify(existingJobs, null, 2));
-
-          // If there are existing jobs, keep only the most recent one
-          if (existingJobs.length > 0) {
-            //console.log(`${jobName} scheduler job(s) found. Cleaning up...`);
-            
-            // Sort jobs by timestamp, most recent first
-            const sortedJobs = existingJobs.sort((a, b) => 
-              (b.data?.data?.timestamp || 0) - (a.data?.data?.timestamp || 0)
-            );
-            
-            // Keep the most recent job
-            const mostRecentJob = sortedJobs[0];
-            
-            // Cancel all other jobs
-            for (const job of sortedJobs.slice(1)) {
-              try {
-                await context.scheduler.cancelJob(job.id);
-                console.log(`Attempted to delete job: ${JSON.stringify(job)}`);
-                
-                // Verify deletion
-                const jobAfterDeletion = await context.scheduler.listJobs().then(jobs => jobs.find(j => j.id === job.id));
-                if (jobAfterDeletion) {
-                  console.error(`Failed to delete job ${job.id}. It still exists.`);
-                } else {
-                  console.log(`Confirmed deletion of job ${job.id}`);
-                }
-              } catch (deleteError) {
-                console.error(`Error deleting job ${job.id}:`, deleteError);
-              }
-            }
-            
-            //console.log(`Kept most recent ${jobName} job:`, JSON.stringify(mostRecentJob));
-          } else {
-            console.log(`No existing ${jobName} job found. Creating a new one.`);
-            const newJob = {
-              cron: cronSchedule,
-              name: jobName,
-              data: {
-                type: jobName,
-                data: {
-                  timestamp: Date.now(),
-                },
-              },
-            };
-            const jobId = await context.scheduler.runJob(newJob);
-            console.log(`Added new job:`, JSON.stringify({ id: jobId, ...newJob }));
-          }
-          
-          // Final verification
-          const finalJobs = await context.scheduler.listJobs();
-          const finalJobsForName = finalJobs.filter(job => job.name === jobName);
-          //console.log(`Final ${jobName} jobs after cleanup:`, JSON.stringify(finalJobsForName, null, 2));
-        } catch (error) {
-          console.error(`Error in validateAndCreateJob for ${jobName}:`, error);
-        }
-      }
-
-      // Use a more unique identifier for the upgrade process
       const upgradeId = Date.now().toString();
       console.log(`Starting AppUpgrade process: ${upgradeId}`);
 
-      await validateAndCreateJob('update_fundraiser_posts', '*/10 * * * * *');
-      await validateAndCreateJob('update_fundraiser_descriptions', '* * * * *');
+      const jobsToSchedule = [
+        { cron: '*/10 * * * * *', name: 'update_fundraiser_posts' },
+        { cron: '* * * * *', name: 'update_fundraiser_descriptions' },
+        { cron: '0 0 * * *', name: 'send_daily_fundraiser_summary' }
+      ];
+
+      for (const job of jobsToSchedule) {
+        try {
+          const success = await validateAndCreateJob(context, job.name, job.cron);
+          if (success) {
+            console.log(`Successfully scheduled/updated job: ${job.name}`);
+          } else {
+            console.error(`Failed to schedule/update job: ${job.name}`);
+          }
+        } catch (e) {
+          console.error(`Error scheduling job ${job.name}:`, e);
+        }
+      }
 
       console.log(`Completed AppUpgrade process: ${upgradeId}`);
     } finally {
