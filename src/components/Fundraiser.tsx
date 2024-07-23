@@ -19,6 +19,7 @@ const DEBUG_MODE = false; // Toggle this value manually and re-upload to see cha
 
 Devvit.configure({
   realtime: true,
+  redditAPI: true
 });
 
 interface FundraiserState extends JSONObject {
@@ -428,10 +429,9 @@ export const FundraiserPost: CustomPostType = {
   name: "FundraiserPost",
   description: "Post fundraiser",
   height: "tall",
-  render: async context => {
+  render: context => {
     const { height, width } = context.dimensions ?? { height: 480, width: 320 };
     console.log("Starting render of FundraiserPost with dimensions:", { height, width });
-
     const {
       viewportType,
       config: viewportConfig,
@@ -441,46 +441,20 @@ export const FundraiserPost: CustomPostType = {
       availableDescriptionHeight,
     } = calculateLayout(height, width);
 
-    const { postId, useChannel, useState } = context;
+    const { postId, useState } = context;
 
     if (typeof postId !== 'string') {
       throw new Error('postId is undefined');
     }
 
-    // State for static data
-    const [staticData, setStaticData] = useState<{
-      fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
-      nonprofitInfo: EveryNonprofitInfo | null,
-      coverImageUrl: string | null,
-      logoImageUrl: string | null,
-      subreddit: string | null,
-      goalType: string | null
-    }>({
-      fundraiserInfo: null,
-      nonprofitInfo: null,
-      coverImageUrl: null,
-      logoImageUrl: null,
-      subreddit: null,
-      goalType: null
-    });
-
-    // State for dynamic data
-    const [dynamicData, setDynamicData] = useState<{
-      raised: number,
-      goal: number | null,
-      supporters: number,
-      description: string,
-      paginatedDescription: string[],
-      showExpandButton: boolean,
-      displayDescription: string
-    }>({
-      raised: 0,
-      goal: null,
-      supporters: 0,
-      description: '',
-      paginatedDescription: [],
-      showExpandButton: false,
-      displayDescription: ''
+    const [subreddit, setSubreddit] = useState<string | null>(async () => {
+      try {
+        const sub = await context.reddit.getSubredditById(context.subredditId);
+        return sub.name;
+      } catch (error) {
+        console.error("Error fetching subreddit:", error);
+        return null;
+      }
     });
 
     // Function to update paginated description
@@ -494,17 +468,32 @@ export const FundraiserPost: CustomPostType = {
         ? smallPaginatedDescription[0].replace(/\s+$/, '') + '...'
         : smallPaginatedDescription[0];
 
-      setDynamicData(prevState => ({
-        ...prevState,
+      return {
         description,
         paginatedDescription: smallPaginatedDescription,
         showExpandButton,
         displayDescription
-      }));
+      };
     };
 
-    // Fetch static data from Redis
-    if (!staticData.fundraiserInfo) {
+    // State for static data
+    const [staticData, setStaticData] = useState<{
+      fundraiserInfo: SerializedEveryExistingFundraiserInfo | null;
+      nonprofitInfo: EveryNonprofitInfo | null;
+      coverImageUrl: string | null;
+      logoImageUrl: string | null;
+      subreddit: string | null;
+      goalType: string | null;
+    }>(async () => {
+      const initialData = {
+        fundraiserInfo: null,
+        nonprofitInfo: null,
+        coverImageUrl: null,
+        logoImageUrl: null,
+        subreddit: null,
+        goalType: null
+      };
+
       try {
         const cachedForm = await getCachedForm(context, postId);
         if (cachedForm) {
@@ -512,42 +501,68 @@ export const FundraiserPost: CustomPostType = {
           const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
 
-          // Fetch subreddit info
-          let subredditName: string | null = null;
-          try {
-            const sub = await context.reddit.getSubredditById(context.subredditId);
-            subredditName = sub.title || null;
-          } catch (error) {
-            console.error("Error fetching subreddit:", error);
-          }
-
-          setStaticData({
+          const updatedData = {
             fundraiserInfo: fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null,
             nonprofitInfo: nonprofitInfo,
             coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null,
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
-            subreddit: subredditName,
+            subreddit: subreddit,
             goalType: fundraiserDetails?.goalType || null
-          });
+          };
 
-          setDynamicData(prevState => ({
-            ...prevState,
-            raised: fundraiserDetails?.raised || 0,
-            goal: fundraiserDetails?.goalAmount || null,
-            supporters: fundraiserDetails?.supporters || 0
-          }));
-
-          if (fundraiserInfo?.description) {
-            updatePaginatedDescription(fundraiserInfo.description);
-          }
+          return updatedData;
         }
       } catch (error) {
         console.error(`Failed to retrieve data from Redis for postId: ${postId}`, error);
       }
-    }
+
+      return initialData;
+    });
+
+    // State for dynamic data
+    const [dynamicData, setDynamicData] = useState<{
+      raised: number;
+      goal: number | null;
+      supporters: number;
+      description: string;
+      paginatedDescription: string[];
+      showExpandButton: boolean;
+      displayDescription: string;
+    }>(async () => {
+      const initialData = {
+        raised: 0,
+        goal: null,
+        supporters: 0,
+        description: '',
+        paginatedDescription: [],
+        showExpandButton: false,
+        displayDescription: ''
+      };
+
+      try {
+        const cachedForm = await getCachedForm(context, postId);
+        if (cachedForm) {
+          const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
+          const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
+          
+          const updatedData = {
+            raised: fundraiserDetails?.raised || 0,
+            goal: fundraiserDetails?.goalAmount || null,
+            supporters: fundraiserDetails?.supporters || 0,
+            ...updatePaginatedDescription(fundraiserInfo?.description || '')
+          };
+
+          return updatedData;
+        }
+      } catch (error) {
+        console.error(`Failed to retrieve dynamic data from Redis for postId: ${postId}`, error);
+      }
+
+      return initialData;
+    });
 
     // Create and subscribe to the fundraiser_updates channel
-    const updateChannel = useChannel({
+    const updateChannel = context.useChannel({
       name: 'fundraiser_updates',
       onMessage: (data: JSONValue) => {
         console.log("Received message on fundraiser_updates channel:", data);
@@ -563,7 +578,10 @@ export const FundraiserPost: CustomPostType = {
           }
           if ('updatedDescription' in data) {
             const updatedDescription = data.updatedDescription as { description: string };
-            updatePaginatedDescription(updatedDescription.description);
+            setDynamicData(prevState => ({
+              ...prevState,
+              ...updatePaginatedDescription(updatedDescription.description)
+            }));
           }
         }
       },
@@ -572,11 +590,7 @@ export const FundraiserPost: CustomPostType = {
       }
     });
 
-    try {
-      await updateChannel.subscribe();
-    } catch (error) {
-      console.error("Error subscribing to channels:", error);
-    }
+    updateChannel.subscribe();
 
     const [isButtonExpanded, setIsButtonExpanded] = useState(false);
 
@@ -585,11 +599,6 @@ export const FundraiserPost: CustomPostType = {
       staticData.nonprofitInfo,
       staticData.subreddit || undefined
     );
-
-    //tick animation
-    // useInterval(() => {
-    //   setIsButtonExpanded(prev => !prev);
-    // }, 1000).start();
 
     return (
       <blocks>
