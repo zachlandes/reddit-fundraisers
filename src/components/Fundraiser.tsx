@@ -254,17 +254,15 @@ export function FundraiserView(
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
                         <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                           <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                            <spacer size="xsmall" />
-                            <text size="large" weight="bold" color='neutral-content-strong'>Fundraisers App: Easy Donations on Reddit</text>
+                            <text size="large" weight="bold" wrap={true} color='neutral-content-strong'>Fundraisers: Easy Donations on Reddit</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>What is it?</text>
-                            <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit lets you donate to U.S. nonprofits directly through Reddit posts. No platform fees, just a quick and secure way to support causes you care about.</text>
+                            <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit lets you donate to nonprofits directly through Reddit posts. A quick and secure way to support causes you care about.</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>How to Donate:</text>
                             <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                                 <text wrap={true} size="small" color='neutral-content-strong'>1. Click Donate: Hit the "Donate" button in this post.</text>
                                 <text wrap={true} size="small" color='neutral-content-strong'>2. Choose Payment Method: Select from popular payment processors like PayPal, Apple Pay, or Venmo.</text>
-                                <text wrap={true} size="small" color='neutral-content-strong'>3. Complete Donation: Your donation goes to the nonprofit, minus any payment processing fees. You'll get an email receipt for tax purposes.</text>
+                                <text wrap={true} size="small" color='neutral-content-strong'>3. Complete Donation: Your donation is disbursed via Every.org, minus any processing fees. You'll get an email receipt for tax purposes.</text>
                             </vstack>
-                            <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit uses Every.org as the nonprofit fundraising platform, ensuring your donations are handled securely.</text>
                             <hstack alignment="start middle" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                                 <text size="small" color='neutral-content-strong'>
                                     For more information, visit the
@@ -286,7 +284,7 @@ export function FundraiserView(
                             <spacer size="small" />
                             <text wrap={true} size="small" weight="bold" color='neutral-content-strong'>Support your community's charitable goals easily and securely with Fundraisers on Reddit!</text>
                             <spacer size="xsmall" />
-                            <text size="xsmall" color='neutral-content-strong' wrap={true}>Every.org is not sponsored by, endorsed by, or associated with Reddit.</text>
+                            <text size="xsmall" color='neutral-content-strong' wrap={true}>Every.org is not sponsored by, endorsed by, or associated with Reddit or the Fundraisers App.</text>
                         </vstack>
                     </FullScreenOverlay>
                 );
