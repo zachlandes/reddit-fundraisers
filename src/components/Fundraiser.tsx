@@ -449,6 +449,7 @@ export const FundraiserPost: CustomPostType = {
 
     // Add loading state
     const [isLoading, setIsLoading] = useState(true);
+    const [hasAttemptedSubscription, setHasAttemptedSubscription] = useState(false);
 
     const [subreddit, setSubreddit] = useState<string | null>(async () => {
       try {
@@ -593,12 +594,20 @@ export const FundraiserPost: CustomPostType = {
           }
         }
       },
-      onSubscribed: () => {
-        console.log("Successfully subscribed to fundraiser_updates channel");
-      }
     });
 
-    updateChannel.subscribe();
+    // Self-invoking async function to handle subscription
+    (async () => {
+      if (!hasAttemptedSubscription) {
+        setHasAttemptedSubscription(true);
+        try {
+          await updateChannel.subscribe();
+          console.log("Successfully subscribed to fundraiser_updates channel");
+        } catch (error) {
+          console.error("Error subscribing to channel:", error);
+        }
+      }
+    })();
 
     const [isButtonExpanded, setIsButtonExpanded] = useState(false);
 
