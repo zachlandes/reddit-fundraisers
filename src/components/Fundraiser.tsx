@@ -447,6 +447,9 @@ export const FundraiserPost: CustomPostType = {
       throw new Error('postId is undefined');
     }
 
+    // Add loading state
+    const [isLoading, setIsLoading] = useState(true);
+
     const [subreddit, setSubreddit] = useState<string | null>(async () => {
       try {
         const sub = await context.reddit.getSubredditById(context.subredditId);
@@ -514,8 +517,11 @@ export const FundraiserPost: CustomPostType = {
         }
       } catch (error) {
         console.error(`Failed to retrieve data from Redis for postId: ${postId}`, error);
+      } finally {
+        setIsLoading(false); // Set loading to false after data fetch attempt
       }
 
+      setIsLoading(false); // Ensure loading is set to false even if there's no cached data
       return initialData;
     });
 
@@ -556,6 +562,8 @@ export const FundraiserPost: CustomPostType = {
         }
       } catch (error) {
         console.error(`Failed to retrieve dynamic data from Redis for postId: ${postId}`, error);
+      } finally {
+        setIsLoading(false); // Ensure loading is set to false after dynamic data fetch
       }
 
       return initialData;
@@ -600,6 +608,21 @@ export const FundraiserPost: CustomPostType = {
       staticData.subreddit || undefined
     );
 
+    // Log cover image URL for debugging
+    console.log("Cover Image URL:", staticData.coverImageUrl);
+
+    // Render loading state if data is still being fetched
+    if (isLoading) {
+      return (
+        <blocks>
+          <vstack alignment="center middle" height={height} width={width}>
+            <text>Loading fundraiser data...</text>
+          </vstack>
+        </blocks>
+      );
+    }
+
+    // Render the main component once data is loaded
     return (
       <blocks>
         {FundraiserView(
