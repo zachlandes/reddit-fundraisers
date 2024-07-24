@@ -240,14 +240,14 @@ export function FundraiserView(
                           </hstack>
                           <spacer size='small' />
                         </vstack>
-                          <vstack grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                              <spacer size='xsmall' />
-                                <text width={100} size='small' wrap color='neutral-content-strong'>
-                                    {nonprofitInfo?.description}
-                                </text>
-                            </hstack>
-                          </vstack>
+                        <vstack width={100} grow minWidth={100} maxWidth={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                          <hstack width={100} grow minWidth={100} maxWidth={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                            <spacer size='xsmall' />
+                            <text width={100} minWidth={100} maxWidth={100} size='small' wrap={true} color='neutral-content-strong'>
+                                {nonprofitInfo?.description}
+                            </text>
+                          </hstack>
+                        </vstack>
                     </FullScreenOverlay>
                 );
             case OverlayType.FundraisersApp:
