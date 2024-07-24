@@ -419,7 +419,7 @@ Devvit.addSchedulerJob({
           to: null,
           subject: `Daily Fundraiser Summary: r/${subredditName}`,
           body: summary,
-          subredditName: subredditName
+          subredditName: 'SnoowyDayFund'
         });
         console.log('Daily fundraiser summary sent successfully');
       } catch (error) {
