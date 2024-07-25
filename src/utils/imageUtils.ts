@@ -118,21 +118,24 @@ export class ImageManager {
 }
 
 export async function isRedditImageValid(imageUrl: string): Promise<boolean> {
-  if (!imageUrl.includes('redd.it') && !imageUrl.includes('redditstatic.com') && !imageUrl.includes('redditmedia.com')) {
-    return false; // Not a Reddit image URL
+    try {
+      const response = await fetch(imageUrl, {
+        method: 'HEAD',
+      });
+  
+      // Check for redirects
+      if (response.redirected) {
+        return false; // Redirect detected
+      }
+  
+      // Check content type
+      const contentType = response.headers.get('content-type');
+      return response.ok && contentType?.startsWith('image/') || false;
+    } catch (error) {
+      console.error('Error checking Reddit image validity:', error);
+      return false;
+    }
   }
-  try {
-    const request = new Request(imageUrl, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
-    const response = await fetch(request);
-    return response.ok && response.headers.get('content-type')?.startsWith('image/') || false;
-  } catch (error) {
-    console.error('Error checking Reddit image validity:', error);
-    return false;
-  }
-}
 
 export async function reuploadCoverImage(ctx: Context, cloudinaryId: string): Promise<string | null> {
   const imageManager = new ImageManager(ctx);
