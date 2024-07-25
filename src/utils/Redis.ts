@@ -180,11 +180,7 @@ export async function fetchPostsToUpdate(redis: RedisClient): Promise<string[]> 
 export async function updateCoverImageUrl(ctx: Pick<Context, "redis">, postId: string, newImageUrl: string): Promise<void> {
     const cachedForm = await getCachedForm(ctx, postId);
     if (cachedForm) {
-        const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
-        if (fundraiserInfo) {
-            fundraiserInfo.coverImageCloudinaryId = newImageUrl;
-            cachedForm.initialize(TypeKeys.everyExistingFundraiserInfo, fundraiserInfo);
-            await setCachedForm(ctx, postId, cachedForm);
-        }
+        cachedForm.setProp('everyExistingFundraiserInfo', 'coverImageCloudinaryId', newImageUrl);
+        await setCachedForm(ctx, postId, cachedForm);
     }
 }
