@@ -4,7 +4,6 @@ import { CachedForm } from "../utils/CachedForm.js";
 import { addOrUpdatePostInRedis, setCachedForm, removePostAndFormFromRedis } from "../utils/Redis.js";
 import { LoadingState } from "../main.js";
 import { fundraiserUrlHelper } from "../utils/formUtils.js";
-import { EveryFundraiserRaisedDetails } from '../types/index.js'; // Added import for EveryFundraiserRaisedDetails
 import { ImageManager } from "../utils/imageUtils.js";
 
 // Create a custom post from an existing fundraiser on every.org

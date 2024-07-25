@@ -483,7 +483,6 @@ export const FundraiserPost: CustomPostType = {
     const [staticData, setStaticData] = useState<{
       fundraiserInfo: SerializedEveryExistingFundraiserInfo | null;
       nonprofitInfo: EveryNonprofitInfo | null;
-      coverImageUrl: string | null;
       logoImageUrl: string | null;
       subreddit: string | null;
       goalType: string | null;
@@ -491,7 +490,6 @@ export const FundraiserPost: CustomPostType = {
       const initialData = {
         fundraiserInfo: null,
         nonprofitInfo: null,
-        coverImageUrl: null,
         logoImageUrl: null,
         subreddit: null,
         goalType: null
@@ -507,7 +505,6 @@ export const FundraiserPost: CustomPostType = {
           const updatedData = {
             fundraiserInfo: fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null,
             nonprofitInfo: nonprofitInfo,
-            coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null,
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
             subreddit: subreddit,
             goalType: fundraiserDetails?.goalType || null
@@ -534,6 +531,7 @@ export const FundraiserPost: CustomPostType = {
       paginatedDescription: string[];
       showExpandButton: boolean;
       displayDescription: string;
+      coverImageUrl: string | null;
     }>(async () => {
       const initialData = {
         raised: 0,
@@ -542,7 +540,8 @@ export const FundraiserPost: CustomPostType = {
         description: '',
         paginatedDescription: [],
         showExpandButton: false,
-        displayDescription: ''
+        displayDescription: '',
+        coverImageUrl: null
       };
 
       try {
@@ -555,7 +554,8 @@ export const FundraiserPost: CustomPostType = {
             raised: fundraiserDetails?.raised || 0,
             goal: fundraiserDetails?.goalAmount || null,
             supporters: fundraiserDetails?.supporters || 0,
-            ...updatePaginatedDescription(fundraiserInfo?.description || '')
+            ...updatePaginatedDescription(fundraiserInfo?.description || ''),
+            coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null
           };
 
           return updatedData;
@@ -591,6 +591,13 @@ export const FundraiserPost: CustomPostType = {
               ...updatePaginatedDescription(updatedDescription.description)
             }));
           }
+          if ('updatedCoverImage' in data) {
+            const updatedCoverImage = data.updatedCoverImage as { coverImageUrl: string };
+            setDynamicData(prevState => ({
+              ...prevState,
+              coverImageUrl: updatedCoverImage.coverImageUrl
+            }));
+          }
         }
       },
     });
@@ -616,7 +623,7 @@ export const FundraiserPost: CustomPostType = {
     );
 
     // Log cover image URL for debugging
-    console.log("Cover Image URL:", staticData.coverImageUrl);
+    console.log("Cover Image URL:", dynamicData.coverImageUrl);
 
     // Render loading state if data is still being fetched
     if (isLoading) {
@@ -641,7 +648,7 @@ export const FundraiserPost: CustomPostType = {
           width,
           height,
           staticData.nonprofitInfo,
-          staticData.coverImageUrl,
+          dynamicData.coverImageUrl,
           staticData.logoImageUrl,
           fundraiserUrl,
           dynamicData.supporters,
