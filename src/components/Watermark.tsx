@@ -14,7 +14,7 @@ export const Watermark: Devvit.BlockComponent<WatermarkProps> = ({ onInfoClick }
           <DevvitLogo />
           <hstack alignment="start middle">
             <text size="small" darkColor="#B8C5C9" lightColor="#000" selectable={false}>
-              Powered by
+              By
             </text>
             <text selectable={false}>&nbsp;</text>
             <vstack onPress={onInfoClick}>
@@ -25,7 +25,7 @@ export const Watermark: Devvit.BlockComponent<WatermarkProps> = ({ onInfoClick }
             </vstack>
             <text selectable={false}>&nbsp;</text>
             <text size="small" darkColor='#B8C5C9' lightColor='#000' selectable={false}>
-              and
+              &
             </text>
             <text selectable={false}>&nbsp;</text>
             <vstack onPress={()=> context.ui.navigateTo("https://every.org")}>
@@ -35,7 +35,14 @@ export const Watermark: Devvit.BlockComponent<WatermarkProps> = ({ onInfoClick }
               <hstack height={'1px'} backgroundColor="#B8C5C9"></hstack>
             </vstack>
           </hstack>
-          <spacer grow />
+        </hstack>
+        <hstack>
+          <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/fundraisers-app')}>
+            <text size="small" darkColor="#B8C5C9" lightColor="#000" selectable={false}>
+              Details
+            </text>
+            <hstack height={'1px'} backgroundColor="#B8C5C9"></hstack>
+          </vstack>
         </hstack>
       </hstack>
     </vstack>
