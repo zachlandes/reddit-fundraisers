@@ -85,7 +85,7 @@ export function FundraiserView(
 
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
     const fundraiserInfoHeight = Math.floor(totalHeight * config.FUNDRAISER_INFO_HEIGHT_RATIO);
-    const MOBILE_WIDTH = config.MOBILE_WIDTH;
+    const MOBILE_WIDTH = context.dimensions?.width > config.MOBILE_WIDTH ? context.dimensions.width : config.MOBILE_WIDTH;
     const titleHeight = config.TITLE_HEIGHT;
     const lineHeight = config.LINE_HEIGHT;
     const lineWidth = MOBILE_WIDTH - 80;
