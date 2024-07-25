@@ -443,16 +443,14 @@ Devvit.addSchedulerJob({
       console.error('Error fetching posts to update:', error);
       return;
     }
-
-    async function sendCoverImageUpdate(postId: string, newImageUrl: string) {
+    async function sendCoverImageUpdate(postId: string, newRedditUrl: string) {
       await context.realtime.send('fundraiser_updates', {
         postId: postId,
         updatedCoverImage: {
-          coverImageUrl: newImageUrl
-        }
-      });
+      coverImageRedditUrl: newRedditUrl
     }
-
+  });
+}
     for (const postId of postsToUpdate) {
       let cachedForm;
       try {
@@ -468,21 +466,42 @@ Devvit.addSchedulerJob({
       }
 
       const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
-      if (!fundraiserInfo || !fundraiserInfo.coverImageCloudinaryId) {
+      const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
+      if (!fundraiserInfo || !nonprofitInfo) {
         continue;
       }
 
-      const isValid = await isRedditImageValid(fundraiserInfo.coverImageCloudinaryId);
-      if (!isValid) {
-        // If the image is invalid, reupload using the existing uploadNonprofitImage function
-        const cloudinaryUrl = generateCloudinaryURL(fundraiserInfo.coverImageCloudinaryId, 'w_1200');
-        const newMediaAsset = await uploadNonprofitImage(context, cloudinaryUrl);
-        if (newMediaAsset && newMediaAsset.mediaUrl) {
-          await updateCoverImageUrl(context, postId, newMediaAsset.mediaUrl);
-          await sendCoverImageUpdate(postId, newMediaAsset.mediaUrl);
-          console.log(`Updated cover image for post: ${postId}`);
-        } else {
-          console.error(`Failed to reupload image for post: ${postId}`);
+      const currentRedditUrl = fundraiserInfo.coverImageCloudinaryId;
+      if (currentRedditUrl) {
+        const isValid = await isRedditImageValid(currentRedditUrl);
+        if (!isValid) {
+          try {
+            const everyPublicKey = await getEveryPublicKey(context);
+            const updatedFundraiserDetails = await fetchExistingFundraiserDetails(
+              nonprofitInfo.nonprofitID,
+              fundraiserInfo.id,
+              everyPublicKey
+            );
+
+            if (updatedFundraiserDetails && updatedFundraiserDetails.fundraiserInfo.coverImageCloudinaryId) {
+              const cloudinaryUrl = generateCloudinaryURL(updatedFundraiserDetails.fundraiserInfo.coverImageCloudinaryId, 'w_1200');
+              const newMediaAsset = await uploadNonprofitImage(context, cloudinaryUrl);
+              
+              if (newMediaAsset && newMediaAsset.mediaUrl) {
+                // Update the cached form with the new Reddit URL
+                cachedForm.setProp('everyExistingFundraiserInfo', 'coverImageCloudinaryId', newMediaAsset.mediaUrl);
+                await setCachedForm(context, postId, cachedForm);
+
+                // Send only the new Reddit URL to update the UI
+                await sendCoverImageUpdate(postId, newMediaAsset.mediaUrl);
+                console.log(`Updated cover image for post: ${postId}`);
+              } else {
+                console.error(`Failed to reupload image for post: ${postId}`);
+              }
+            }
+          } catch (error) {
+            console.error(`Error updating cover image for post: ${postId}`, error);
+          }
         }
       }
     }
