@@ -616,7 +616,7 @@ export const FundraiserPost: CustomPostType = {
     );
 
     // Log cover image URL for debugging
-    console.log("Cover Image URL:", staticData.coverImageUrl);
+    //console.log("Cover Image URL:", staticData.coverImageUrl);
 
     // Render loading state if data is still being fetched
     if (isLoading) {
