@@ -431,7 +431,7 @@ export const FundraiserPost: CustomPostType = {
   height: "tall",
   render: context => {
     const { height, width } = context.dimensions ?? { height: 480, width: 320 };
-    console.log("Starting render of FundraiserPost with dimensions:", { height, width });
+    //console.log("Starting render of FundraiserPost with dimensions:", { height, width });
     const {
       viewportType,
       config: viewportConfig,
