@@ -14,8 +14,10 @@ import { CircularLogo } from './CircularLogo.js';
 import { Watermark } from './Watermark.js';
 import { FullScreenOverlay } from './FullScreenOverlay.js';
 import { calculateLayout, ViewportType, VIEWPORT_CONFIGS } from '../utils/constants.js';
+import { debugLog, DEBUG_AREAS } from '../utils/debug.js';
 
-const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
+// Toggle these value manually and re-upload to see changes
+const DEBUG_BORDERS = false; 
 
 Devvit.configure({
   realtime: true,
@@ -104,6 +106,8 @@ export function FundraiserView(
 
     const magicWidthPercentageProgressBar = 97;
 
+    debugLog(DEBUG_AREAS.IMAGE, context, `[FundraiserView] Received cover image URL: ${coverImageUrl}`);
+
     const handleExpandOverlay = (overlayType: OverlayType) => {
         console.log(`Expanding overlay: ${OverlayType[overlayType]}`);
         setCurrentOverlay(overlayType);
@@ -128,7 +132,7 @@ export function FundraiserView(
         const shadowColor = 'rgba(0,0,0,0.1)';
 
         return (
-          <vstack backgroundColor={backgroundColor} cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} height={`${barHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack backgroundColor={backgroundColor} cornerRadius='full' width={`${magicWidthPercentageProgressBar}%`} height={`${barHeight}px`} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
               <zstack width="100%" height="100%">
                   {/* Background with shadow */}
                   <vstack width="100%" height="100%">
@@ -146,12 +150,12 @@ export function FundraiserView(
       if((goal ?? 0) <= 0){
         // No Goal on this fundraiser
         return (
-          <vstack width={100} borderColor={DEBUG_MODE ? 're' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width={100} borderColor={DEBUG_BORDERS ? 're' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
+            <hstack borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
               <hstack
                 width={100}
-                borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'}
-                border={DEBUG_MODE ? 'thin' : 'none'}
+                borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'}
+                border={DEBUG_BORDERS ? 'thin' : 'none'}
                 backgroundColor={everyGreen}
                 alignment='center middle'
                 padding='medium'
@@ -165,15 +169,15 @@ export function FundraiserView(
       else {
         // Fundraiser has a goal
         return (
-          <vstack width={100} minWidth={100} maxWidth={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-            <hstack width={100} minWidth={100} maxWidth={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-              <hstack width={100} alignment='start middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width={100} minWidth={100} maxWidth={100} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
+            <hstack width={100} minWidth={100} maxWidth={100} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
+              <hstack width={100} alignment='start middle' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                 <spacer grow />
-                <vstack width={48} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <vstack width={48} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                   <text weight='bold' color='neutral-content-strong' overflow='ellipsis'>${new Intl.NumberFormat('en-US').format(Math.round(raised / 100))}</text>
                   <text color='#706E6E'>Raised</text>
                 </vstack>
-                <vstack width={48} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <vstack width={48} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                   <text alignment='end' weight='bold' color='neutral-content-strong' overflow='ellipsis'>${goal ? new Intl.NumberFormat('en-US').format(goal / 100) : new Intl.NumberFormat('en-US').format(raised / 100)}</text>
                   {goal && goalType && (
                     <text alignment='end' color='#706E6E'>
@@ -184,7 +188,7 @@ export function FundraiserView(
                 <spacer grow />
               </hstack>
             </hstack>
-            <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+            <hstack borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
               <spacer grow />
               {renderProgressBar()}
               <spacer grow />
@@ -199,12 +203,12 @@ export function FundraiserView(
             case OverlayType.Description:
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
-                        <vstack grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                        <vstack grow borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                             <text size='small' wrap={true} color='neutral-content-strong'>
                                 {currentItems[0]}
                             </text>
                         </vstack>
-                        <hstack alignment="center middle" gap="small" width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                        <hstack alignment="center middle" gap="small" width={100} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                             <button onPress={toPrevPage} icon="left" disabled={currentPage === 0} size="small" />
                             <text color='neutral-content-strong'>{currentPage + 1} / {pagesCount}</text>
                             <button onPress={toNextPage} icon="right" disabled={currentPage === pagesCount - 1} size="small" />
@@ -214,8 +218,8 @@ export function FundraiserView(
               case OverlayType.NonprofitInfo:
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
-                        <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                          <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
+                        <vstack borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
+                          <hstack alignment='middle' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'} padding="xsmall">
                             <spacer size='xsmall' />
                             {logoImageUrl && (
                               <>
@@ -232,7 +236,7 @@ export function FundraiserView(
                               {nonprofitInfo?.name}
                             </text>
                           </hstack>
-                          <hstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                          <hstack borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                             <spacer size='small' />
                             <text size="small" color="neutral-content-weak" alignment="start">
                                 EIN: {nonprofitInfo?.ein ?? 'Not available'}
@@ -240,8 +244,8 @@ export function FundraiserView(
                           </hstack>
                           <spacer size='small' />
                         </vstack>
-                        <vstack width={100} grow minWidth={100} maxWidth={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                          <hstack width={100} grow minWidth={100} maxWidth={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                        <vstack width={100} grow minWidth={100} maxWidth={100} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
+                          <hstack width={100} grow minWidth={100} maxWidth={100} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                             <spacer size='xsmall' />
                             <text width={100} minWidth={100} maxWidth={100} size='small' wrap={true} color='neutral-content-strong'>
                                 {nonprofitInfo?.description}
@@ -253,27 +257,27 @@ export function FundraiserView(
             case OverlayType.FundraisersApp:
                 return (
                     <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
-                        <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                          <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                        <vstack borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
+                          <vstack gap="small" borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                             <text size="large" weight="bold" wrap={true} color='neutral-content-strong'>Fundraisers: Easy Donations on Reddit</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>What is it?</text>
                             <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit lets you donate to nonprofits directly through Reddit posts. A quick and secure way to support causes you care about.</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>How to Donate:</text>
-                            <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                            <vstack gap="small" borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                                 <text wrap={true} size="small" color='neutral-content-strong'>1. Click Donate: Hit the "Donate" button in this post.</text>
                                 <text wrap={true} size="small" color='neutral-content-strong'>2. Choose Payment Method: Select from popular payment processors like PayPal, Apple Pay, or Venmo.</text>
                                 <text wrap={true} size="small" color='neutral-content-strong'>3. Complete Donation: Your donation is disbursed via Every.org, minus any processing fees. You'll get an email receipt for tax purposes.</text>
                             </vstack>
-                            <hstack alignment="start middle" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                            <hstack alignment="start middle" borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                                 <text size="small" color='neutral-content-strong'>
                                     For more information, visit the
                                 </text>
                                 <text selectable={false}>&nbsp;</text>
-                                <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/fundraisers-app')} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                                <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/fundraisers-app')} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                                     <text size="small" color="blue" selectable={false}>
                                         Fundraisers
                                     </text>
-                                    <hstack height={'1px'} backgroundColor="blue" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}></hstack>
+                                    <hstack height={'1px'} backgroundColor="blue" borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}></hstack>
                                 </vstack>
                                 <text selectable={false}>&nbsp;</text>
                                 <text size="small" color='neutral-content-strong'>
@@ -308,7 +312,7 @@ export function FundraiserView(
       );
     
       return (
-        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
           {isSmallViewport && showExpandButton ? (
             <vstack onPress={handleExpandDescription}>
               {descriptionContent}
@@ -335,9 +339,9 @@ export function FundraiserView(
     }
 
     return (
-      <zstack width="100%" height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
+      <zstack width="100%" height={100} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'} alignment='center' grow>
         <vstack maxWidth={`${MOBILE_WIDTH}px`} height={100} width={100} borderColor={borderGray} border='thin'>
-          <vstack width="100%" maxHeight={`${coverImageHeight}px`} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width="100%" maxHeight={`${coverImageHeight}px`} alignment='center middle' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
             <image
                 url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
                 width="100%"
@@ -347,8 +351,8 @@ export function FundraiserView(
                 description="Fundraiser Image"
             />
           </vstack>
-          <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={`${fundraiserInfoHeight}px`} border={DEBUG_MODE ? 'thin' : 'none'}>
-            <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
+          <vstack width="100%" borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} height={`${fundraiserInfoHeight}px`} border={DEBUG_BORDERS ? 'thin' : 'none'}>
+            <hstack alignment='middle' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'} padding="xsmall">
               <spacer size='xsmall' />
               {logoImageUrl && (
                 <>
@@ -366,9 +370,9 @@ export function FundraiserView(
               </text>
               <spacer size='medium' />
             </hstack>
-            <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+            <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
               <spacer size='xsmall' />
-              <hstack width={100} maxWidth={`${MOBILE_WIDTH}px`} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <hstack width={100} maxWidth={`${MOBILE_WIDTH}px`} maxHeight={`${titleHeight}px`} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                 <spacer size='small' />
                 <text maxWidth={`${MOBILE_WIDTH-8}px`} size="large" weight='bold' color='neutral-content-strong' overflow='ellipsis'>
                   {fundraiserInfo ? fundraiserInfo.title : 'A fundraiser!'}
@@ -378,13 +382,13 @@ export function FundraiserView(
               {renderDescription()}
             </vstack>
           </vstack>
-          <vstack width={100} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width={100} grow borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
             <spacer size='xsmall' />
             {renderProgress()}
-            <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+            <vstack width={100} borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
               <spacer grow />
-              <hstack width='100%' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                <hstack width='33%' alignment='start top' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <hstack width='100%' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
+                <hstack width='33%' alignment='start top' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                   <spacer size='small' />
                   <vstack alignment='start top'>
                     <text size='small' wrap={true} weight='bold' color='neutral-content-strong'>
@@ -392,7 +396,7 @@ export function FundraiserView(
                     </text>
                   </vstack>
                 </hstack>
-                <hstack width='34%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width='34%' alignment='center middle' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                   <FancyButton
                     backgroundColor={everyGreen}
                     textColor="white"
@@ -410,10 +414,10 @@ export function FundraiserView(
                     Donate
                   </FancyButton>
                 </hstack>
-                <hstack width='33%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width='33%' alignment='end middle' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                   <spacer grow />
                 </hstack>
-                <hstack width='33%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width='33%' alignment='end middle' borderColor={DEBUG_BORDERS ? 'red' : 'neutral-border-weak'} border={DEBUG_BORDERS ? 'thin' : 'none'}>
                 </hstack>
               </hstack>
             </vstack>

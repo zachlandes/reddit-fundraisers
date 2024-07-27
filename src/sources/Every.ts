@@ -5,6 +5,7 @@ import { convertToDate } from '../utils/dateUtils.js';
 import { removePostAndFormFromRedis } from '../utils/Redis.js';
 
 const USE_MOCK = false; // Toggle this to false to use real API calls
+const DEBUG_IMAGE = true; 
 
 export enum APIService {
     EVERY = `partners.every.org`
@@ -270,6 +271,9 @@ export async function fetchExistingFundraiserDetails(
         const data = await response.json();
         const fundraiser = data.data.fundraiser;
         const nonprofit = data.data.nonprofits[0]; // Assuming the first nonprofit is the one we want //FIXME: Look into whether this is a good assumption
+
+        if (DEBUG_IMAGE) console.log(`[Every] Fetched fundraiser details:`, fundraiser);
+        if (DEBUG_IMAGE) console.log(`[Every] Cover image Cloudinary ID:`, fundraiser.coverImageCloudinaryId);
 
         return {
             fundraiserInfo: {

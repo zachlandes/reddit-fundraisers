@@ -2,6 +2,9 @@ import { Context, RedisClient } from '@devvit/public-api';
 import { CachedForm } from './CachedForm.js';
 import { EveryFundraiserRaisedDetails } from '../types/index.js';
 import { RedisKey } from '../types/enums.js'; // Import the enum
+import { debugLog, DEBUG_AREAS } from './debug.js';
+
+const DEBUG_IMAGE = true;
 
 /**
  * Creates a unique Redis key for a user based on their current subreddit.
@@ -45,6 +48,7 @@ export async function setCachedForm(
         form.setLastUpdated(new Date().toISOString());
     }
     const serializedForm = JSON.stringify(form.serializeForRedis());
+    await debugLog(DEBUG_AREAS.REDIS, context, `Caching form for key ${key}:`, serializedForm);
     await redis.set(key, serializedForm);
 }
 
@@ -84,6 +88,7 @@ export async function getCachedForm(
     if (!serializedForm) {
         return null;
     }
+    await debugLog(DEBUG_AREAS.REDIS, context, `Retrieved cached form for key ${key}:`, serializedForm);
     const formData = JSON.parse(serializedForm);
     const cachedForm = new CachedForm();
     cachedForm.deserializeFromRedis(formData);
@@ -104,7 +109,7 @@ export async function addOrUpdatePostInRedis(redis: RedisClient, postId: string,
     console.log("endDate: ", endDate);
     const score = endDate ? endDate.getTime() : new Date('2054-12-31').getTime();
     await redis.zAdd(RedisKey.AllSubscriptions, { score, member: postId });
-    console.log(`Post ${postId} added or updated with end date score ${score}`);
+    await debugLog(DEBUG_AREAS.REDIS, { redis }, `Post ${postId} added or updated with end date score ${score}`);
 }
 
 /**
@@ -121,7 +126,7 @@ export async function removePostAndFormFromRedis(redis: RedisClient, postId: str
     await redis.del(postId);
     // Remove the fundraiser-raised-amount key
     await redis.del(`fundraiser-raised-amount-${postId}`);
-    console.log(`Post, associated form, and fundraiser-raised-amount with ID ${postId} removed from Redis`);
+    await debugLog(DEBUG_AREAS.REDIS, { redis }, `Post, associated form, and fundraiser-raised-amount with ID ${postId} removed from Redis`);
 }
 
 /**
@@ -133,7 +138,7 @@ export async function removePostAndFormFromRedis(redis: RedisClient, postId: str
  */
 export async function removePostSubscriptionFromRedis(redis: RedisClient, postId: string): Promise<void> {
     await redis.zRem(RedisKey.AllSubscriptions, [postId]);
-    console.log(`Post ${postId} removed from Redis`);
+    await debugLog(DEBUG_AREAS.REDIS, { redis }, `Post ${postId} removed from Redis`);
 }
 
 /**
@@ -146,7 +151,7 @@ export async function removeExpiredPosts(redis: RedisClient): Promise<void> {
     const currentTime = Date.now();
     const removedCount = await redis.zRemRangeByScore(RedisKey.AllSubscriptions, Number.NEGATIVE_INFINITY, currentTime);
     if (removedCount > 0) {
-        console.log(`Removed ${removedCount} expired posts from Redis`);
+        await debugLog(DEBUG_AREAS.REDIS, { redis }, `Removed ${removedCount} expired posts from Redis`);
     }
 }
 
@@ -167,4 +172,3 @@ export async function fetchPostsToUpdate(redis: RedisClient): Promise<string[]> 
     //console.log(`Fetched ${postsToUpdate.length} posts to update`);
     return postsToUpdate;
 }
-

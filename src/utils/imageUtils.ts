@@ -1,5 +1,6 @@
 import { Context, MediaAsset } from '@devvit/public-api';
 import { StringUtil } from '@devvit/shared-types/StringUtil.js';
+import { debugLog, DEBUG_AREAS } from './debug.js';
 
 /* Approved Domains */
 export const REDD_IT: string = 'redd.it';
@@ -72,6 +73,7 @@ export class ImageManager {
 
     // Method for fixed-size images like logos
     async getLogoUrl(cloudinaryId: string): Promise<string | null> {
+        await debugLog(DEBUG_AREAS.IMAGE, this.ctx, `Attempting to get logo URL for: ${cloudinaryId}`);
         const cacheKey = `logo:${cloudinaryId}`;
         let cachedUrl = await this.ctx.redis.get(cacheKey);
         if (!cachedUrl) {
@@ -84,6 +86,7 @@ export class ImageManager {
                 cachedUrl = result.mediaUrl;
             }
         }
+        await debugLog(DEBUG_AREAS.IMAGE, this.ctx, `Converted logo URL: ${cachedUrl}`);
         return cachedUrl ? cachedUrl : null;
     }
 

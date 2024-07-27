@@ -8,6 +8,8 @@ import { EveryFundraiserRaisedDetails } from '../types/index.js'; // Added impor
 import { ImageManager } from "../utils/imageUtils.js";
 
 // Create a custom post from an existing fundraiser on every.org
+const DEBUG_IMAGE = true;
+
 export const existingFundraiserForm = Devvit.createForm(
     () => {
         return {
@@ -61,6 +63,15 @@ export const existingFundraiserForm = Devvit.createForm(
                 return;
             }
 
+            if (DEBUG_IMAGE) {
+                const coverImageId = existingFundraiserDetails.fundraiserInfo.coverImageCloudinaryId;
+                if (typeof coverImageId === 'string') {
+                    console.log(`[ExistingFundraiserForm] Cover image cloudinary ID:`, coverImageId);
+                } else {
+                    console.log(`[ExistingFundraiserForm] Cover image cloudinary ID is null`);
+                }
+            }
+
             const fundraiserRaisedDetails = await fetchFundraiserRaisedDetails(nonprofitIdentifier, fundraiserIdentifier, everyPublicKey, ctx);
             if (!fundraiserRaisedDetails) {
                 ctx.ui.showToast('Failed to fetch fundraiser raised details. Please check the URL and try again.');
@@ -109,16 +120,22 @@ export const existingFundraiserForm = Devvit.createForm(
 
             if (coverImagePath !== null) {
                 try {
+                    if (DEBUG_IMAGE) console.log(`[ExistingFundraiserForm] Attempting to get cover image URL for: ${coverImagePath}`);
                     coverImageUrl = await imageManager.getImageUrl(coverImagePath, coverImageWidth);
+                    if (DEBUG_IMAGE) console.log(`[ExistingFundraiserForm] Retrieved cover image URL: ${coverImageUrl}`);
                     cachedForm.setProp('everyExistingFundraiserInfo', 'coverImageCloudinaryId', coverImageUrl);
                 } catch (error) {
                     console.error(`Failed to retrieve cover image for postId: ${postId}`, error);
                 }
+            } else {
+                if (DEBUG_IMAGE) console.log(`[ExistingFundraiserForm] No cover image path found for postId: ${postId}`);
             }
 
             if (logoImagePath !== null) {
                 try {
+                    if (DEBUG_IMAGE) console.log(`[ExistingFundraiserForm] Attempting to get logo URL for: ${logoImagePath}`);
                     logoImageUrl = await imageManager.getLogoUrl(logoImagePath);
+                    if (DEBUG_IMAGE) console.log(`[ExistingFundraiserForm] Retrieved logo URL: ${logoImageUrl}`);
                     cachedForm.setProp('everyNonprofitInfo', 'logoCloudinaryId', logoImageUrl);
                 } catch (error) {
                     console.error(`Failed to retrieve logo image for postId: ${postId}`, error);
@@ -156,4 +173,3 @@ export const existingFundraiserForm = Devvit.createForm(
         }
       }
 )
-

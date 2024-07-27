@@ -1,5 +1,6 @@
 import { PropertyManager } from '../managers/PropertyManager.js';
 import type { GeneralNonprofitInfo, BaseFormFields, TypeMapping } from '../types/index.js';
+import { debugLog, DEBUG_AREAS } from './debug.js';
 
 export class CachedForm {
     private aggregates: Map<keyof TypeMapping, PropertyManager<any>> = new Map();
@@ -8,20 +9,20 @@ export class CachedForm {
     constructor() {}
 
     private initializeProperties<K extends keyof TypeMapping>(key: K, info: TypeMapping[K]): void {
-        console.debug(`Initializing ${key} with:`, info);
+        debugLog(DEBUG_AREAS.FORM, {}, `Initializing ${key} with:`, info);
         this.aggregates.set(key, new PropertyManager<TypeMapping[K]>(info));
-        this.setLastUpdated(new Date().toISOString()); // Update lastUpdated when initializing properties
+        this.setLastUpdated(new Date().toISOString());
     }
 
     private setProperty<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K], value: V): void {
-        console.debug(`Setting ${key} ${String(propKey)} to`, value);
+        debugLog(DEBUG_AREAS.FORM, {}, `Setting ${key} ${String(propKey)} to`, value);
         let manager = this.aggregates.get(key);
         if (!manager) {
             manager = new PropertyManager<TypeMapping[K]>();
             this.aggregates.set(key, manager);
         }
         manager.setProperty(propKey, value);
-        this.setLastUpdated(new Date().toISOString()); // Update lastUpdated whenever a property is set
+        this.setLastUpdated(new Date().toISOString());
     }
 
     private getProperty<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K]): V | null {
@@ -45,11 +46,14 @@ export class CachedForm {
     }
 
     setProp<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K], value: V): void {
+        debugLog(DEBUG_AREAS.FORM, {}, `[CachedForm] Setting property: ${String(key)}.${String(propKey)} = ${value}`);
         this.setProperty(key, propKey, value);
     }
 
     getProp<K extends keyof TypeMapping, V>(key: K, propKey: keyof TypeMapping[K]): V | null {
-        return this.getProperty(key, propKey);
+        const value = this.getProperty(key, propKey) as V | null;
+        debugLog(DEBUG_AREAS.FORM, {}, `[CachedForm] Getting property: ${String(key)}.${String(propKey)} = ${value}`);
+        return value;
     }
 
     getAllProps<K extends keyof TypeMapping>(key: K): TypeMapping[K] {
