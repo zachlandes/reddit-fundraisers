@@ -358,7 +358,6 @@ Devvit.addSchedulerJob({
         console.error(`Error fetching fundraiser raised details for postId: ${postId}`, error);
         continue;
       }
-
       if (updatedDetails === 'NOT_FOUND' || isFundraiserExpired(fundraiserInfo)) {
         console.log(`Fundraiser completed or expired for postId: ${postId}. Marking as completed.`);
         try {
