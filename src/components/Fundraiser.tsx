@@ -49,8 +49,8 @@ function generateDonateFundraiserURL(
     if (!baseUrl) return ''; // TODO: better default?
     const utm_content = fundraiserInfo?.id ? `&utm_content=${fundraiserInfo.id}` : '';
     const utm_campaign = subreddit ? `&utm_campaign=${subreddit}`: '';
-    const utm = `?utm_source=reddit&utm_medium=fundraisers${utm_content}${utm_campaign}`;
-    return `${baseUrl}#/donate${utm}`;
+    const utm = `?utm_source=reddit&utm_medium=fundraisers${utm_content}${utm_campaign}#/donate`;
+    return `${baseUrl}${utm}`;
 }
 
 
