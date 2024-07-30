@@ -1,5 +1,5 @@
 import { Context, CustomPostType, Devvit, JSONValue, JSONObject } from '@devvit/public-api';
-import { EveryFundraiserRaisedDetails, EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
+import { EveryFundraiserRaisedDetails, EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo, FundraiserStatus } from '../types/index.js';
 import { getCachedForm, removePostAndFormFromRedis } from '../utils/Redis.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
 import { getEveryPublicKey } from '../utils/keyManagement.js';
@@ -29,6 +29,7 @@ interface FundraiserState extends JSONObject {
   goal: number | null;
   nonprofitInfo: EveryNonprofitInfo | null;
   supporters: number;
+  status: FundraiserStatus | 'unknown';
 }
 
 function generateFundraiserURL(
@@ -61,7 +62,8 @@ export function FundraiserView(
   paginatedDescription: string[],
   showExpandButton: boolean,
   displayDescription: string,
-  config: typeof VIEWPORT_CONFIGS[ViewportType]
+  config: typeof VIEWPORT_CONFIGS[ViewportType],
+  status: FundraiserStatus | 'unknown'
 ): JSX.Element {
     const { ui, useState, dimensions } = context;
 
@@ -392,28 +394,32 @@ export function FundraiserView(
                     </text>
                   </vstack>
                 </hstack>
-                <hstack width='34%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  <FancyButton
-                    backgroundColor={everyGreen}
-                    textColor="white"
-                    height={40}
-                    icon="external"
-                    iconPosition="right"
-                    isExpanded={isButtonExpanded}
-                    onPress={() => {
-                      if (fundraiserInfo) {
-                        console.log("Navigating to fundraiser URL:", fundraiserURL);
-                        context.ui.navigateTo(fundraiserURL);
-                      }
-                    }}
-                  >
-                    Donate
-                  </FancyButton>
+                <hstack width='33%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                  {status === 'completed' || status === 'expired' ? (
+                    <text size='small' weight='bold' color='neutral-content-strong'>
+                      This fundraiser has ended. Thank you for your support!
+                    </text>
+                  ) : (
+                    <FancyButton
+                      backgroundColor={everyGreen}
+                      textColor="white"
+                      height={40}
+                      icon="external"
+                      iconPosition="right"
+                      isExpanded={isButtonExpanded}
+                      onPress={() => {
+                        if (fundraiserInfo) {
+                          console.log("Navigating to fundraiser URL:", fundraiserURL);
+                          context.ui.navigateTo(fundraiserURL);
+                        }
+                      }}
+                    >
+                      Donate
+                    </FancyButton>
+                  )}
                 </hstack>
                 <hstack width='33%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer grow />
-                </hstack>
-                <hstack width='33%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 </hstack>
               </hstack>
             </vstack>
@@ -487,6 +493,7 @@ export const FundraiserPost: CustomPostType = {
       logoImageUrl: string | null;
       subreddit: string | null;
       goalType: string | null;
+      status: FundraiserStatus | 'unknown';
     }>(async () => {
       const initialData = {
         fundraiserInfo: null,
@@ -494,7 +501,8 @@ export const FundraiserPost: CustomPostType = {
         coverImageUrl: null,
         logoImageUrl: null,
         subreddit: null,
-        goalType: null
+        goalType: null,
+        status: 'unknown' as FundraiserStatus | 'unknown'
       };
 
       try {
@@ -503,14 +511,16 @@ export const FundraiserPost: CustomPostType = {
           const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
           const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
-
+          const status = cachedForm.getStatus() || 'unknown';
+          
           const updatedData = {
             fundraiserInfo: fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null,
             nonprofitInfo: nonprofitInfo,
             coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null,
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
             subreddit: subreddit,
-            goalType: fundraiserDetails?.goalType || null
+            goalType: fundraiserDetails?.goalType || null,
+            status: status
           };
 
           return updatedData;
@@ -542,7 +552,7 @@ export const FundraiserPost: CustomPostType = {
         description: '',
         paginatedDescription: [],
         showExpandButton: false,
-        displayDescription: ''
+        displayDescription: '',
       };
 
       try {
@@ -555,7 +565,7 @@ export const FundraiserPost: CustomPostType = {
             raised: fundraiserDetails?.raised || 0,
             goal: fundraiserDetails?.goalAmount || null,
             supporters: fundraiserDetails?.supporters || 0,
-            ...updatePaginatedDescription(fundraiserInfo?.description || '')
+            ...updatePaginatedDescription(fundraiserInfo?.description || ''),
           };
 
           return updatedData;
@@ -575,6 +585,11 @@ export const FundraiserPost: CustomPostType = {
       onMessage: (data: JSONValue) => {
         console.log("Received message on fundraiser_updates channel:", data);
         if (typeof data === 'object' && data !== null && 'postId' in data && data.postId === postId) {
+          if (staticData.status === FundraiserStatus.Completed || staticData.status === FundraiserStatus.Expired) {
+            console.log(`Skipping update for completed/expired fundraiser: ${postId}`);
+            return;
+          }
+          
           if ('updatedDetails' in data) {
             const updatedDetails = data.updatedDetails as Partial<EveryFundraiserRaisedDetails>;
             setDynamicData(prevState => ({
@@ -649,7 +664,8 @@ export const FundraiserPost: CustomPostType = {
           dynamicData.paginatedDescription,
           dynamicData.showExpandButton,
           dynamicData.displayDescription,
-          viewportConfig
+          viewportConfig,
+          staticData.status
         )}
       </blocks>
     );

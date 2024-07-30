@@ -1,9 +1,12 @@
 import { PropertyManager } from '../managers/PropertyManager.js';
-import type { GeneralNonprofitInfo, BaseFormFields, TypeMapping } from '../types/index.js';
+import type { TypeMapping } from '../types/index.js';
+import { FundraiserStatus } from '../types/index.js';
+import { TypeKeys } from './typeHelpers.js';
 
 export class CachedForm {
     private aggregates: Map<keyof TypeMapping, PropertyManager<any>> = new Map();
     private lastUpdated?: string;
+    private status: FundraiserStatus | undefined = undefined;
 
     constructor() {}
 
@@ -64,6 +67,19 @@ export class CachedForm {
         return this.lastUpdated;
     }
 
+    setStatus(status: FundraiserStatus | undefined): void {
+        this.status = status;
+        this.setLastUpdated(new Date().toISOString());
+    }
+
+    getStatus(): FundraiserStatus {
+        const active = this.getProp(TypeKeys.everyExistingFundraiserInfo, 'active');
+        if (active !== null) {
+            return active ? FundraiserStatus.Active : FundraiserStatus.Completed;
+        }
+        return FundraiserStatus.Active; // Default to Active if status is not set
+    }
+
     serializeForRedis(): Record<string, any> {
         const result: Record<string, any> = {};
         this.aggregates.forEach((manager, key) => {
@@ -73,17 +89,19 @@ export class CachedForm {
             result[key] = manager.serialize();
         });
         result.lastUpdated = this.lastUpdated;
+        result.status = this.status;
         return result;
     }
 
     deserializeFromRedis(data: Record<string, any>): void {
         Object.entries(data).forEach(([key, value]) => {
-            if (key !== 'lastUpdated') {
+            if (key !== 'lastUpdated' && key !== 'status') {
                 const manager = new PropertyManager<any>();
                 manager.deserialize(value);
                 this.aggregates.set(key as keyof TypeMapping, manager);
             }
         });
         this.lastUpdated = data.lastUpdated;
+        this.status = data.status;
     }
 }

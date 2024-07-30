@@ -9,6 +9,13 @@ export interface TypeMapping {
     fundraiserDetails: EveryFundraiserRaisedDetails;
     fundraiserCreationResponse: FundraiserCreationResponse;
     everyExistingFundraiserInfo: EveryExistingFundraiserInfo;
+    fundraiserStatus: FundraiserStatus;
+}
+
+export enum FundraiserStatus {
+  Active = 'active',
+  Completed = 'completed',
+  Expired = 'expired'
 }
 
 export type BaseFormFields = {

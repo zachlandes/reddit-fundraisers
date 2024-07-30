@@ -126,6 +126,12 @@ export async function updateCachedFundraiserDetails(context: Pick<Context, "redi
         return null;
     }
 
+    const currentStatus = cachedForm.getStatus();
+    if (currentStatus === 'expired') {
+        // If the fundraiser is already expired, don't update its details
+        return null;
+    }
+
     let hasChanges = false;
 
     if (updatedDetails.raised !== fundraiserRaisedDetails.raised) {

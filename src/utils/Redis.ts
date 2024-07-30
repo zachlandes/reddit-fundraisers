@@ -1,6 +1,6 @@
 import { Context, RedisClient } from '@devvit/public-api';
 import { CachedForm } from './CachedForm.js';
-import { EveryFundraiserRaisedDetails } from '../types/index.js';
+import { EveryFundraiserRaisedDetails, FundraiserStatus } from '../types/index.js';
 import { RedisKey } from '../types/enums.js'; // Import the enum
 
 /**
@@ -168,3 +168,22 @@ export async function fetchPostsToUpdate(redis: RedisClient): Promise<string[]> 
     return postsToUpdate;
 }
 
+/**
+ * Marks a post as completed in Redis.
+ * 
+ * @param {RedisClient} redis - The Redis client.
+ * @param {string} postId - The ID of the post to mark as completed.
+ * @returns {Promise<void>}
+ */
+export async function markPostAsCompleted(redis: RedisClient, postId: string): Promise<void> {
+    const cachedForm = await getCachedForm({ redis }, postId);
+    if (cachedForm) {
+        cachedForm.setStatus(FundraiserStatus.Completed);
+        await setCachedForm({ redis }, postId, cachedForm);
+    }
+    
+    // Remove from active subscriptions
+    await redis.zRem(RedisKey.AllSubscriptions, [postId]);
+    
+    console.log(`Post ${postId} marked as completed in Redis`);
+}

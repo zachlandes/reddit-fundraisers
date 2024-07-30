@@ -1,14 +1,14 @@
 // Learn more at developers.reddit.com/docs
 import { Devvit } from '@devvit/public-api';
 import type { Post } from '@devvit/public-api';
-import { Currency, FundraiserCreationResponse, type EveryNonprofitInfo } from './types/index.js';
+import { Currency, FundraiserCreationResponse, FundraiserStatus, type EveryNonprofitInfo } from './types/index.js';
 import { createFundraiser, fetchNonprofits, populateNonprofitSelect, fetchFundraiserRaisedDetails, fetchExistingFundraiserDetails } from './sources/Every.js';
 import { CachedForm } from './utils/CachedForm.js';
 import { TypeKeys } from './utils/typeHelpers.js';
-import { fetchPostsToUpdate, setCachedForm, getCachedForm, addOrUpdatePostInRedis, removePostAndFormFromRedis, removePostSubscriptionFromRedis } from './utils/Redis.js';
+import { fetchPostsToUpdate, setCachedForm, getCachedForm, addOrUpdatePostInRedis, removePostAndFormFromRedis, removePostSubscriptionFromRedis, markPostAsCompleted } from './utils/Redis.js';
 import { FundraiserPost } from './components/Fundraiser.js';
 import { getEveryPublicKey, getEveryPrivateKey } from './utils/keyManagement.js';
-import { generateDateOptions } from './utils/dateUtils.js';
+import { generateDateOptions, isFundraiserExpired } from './utils/dateUtils.js';
 import { convertToFormData } from './utils/formUtils.js';
 import { existingFundraiserForm } from './forms/ExistingFundraiserForm.js';
 import { updateCachedFundraiserDetails, sendFundraiserUpdates } from './utils/renderUtils.js';
@@ -325,20 +325,6 @@ Devvit.addSchedulerJob({
     }
 
     for (const postId of postsToUpdate) {
-      let postExists;
-      try {
-        postExists = await context.reddit.getPostById(postId);
-      } catch (error) {
-        console.error(`Error retrieving post by ID ${postId}:`, error);
-        continue;
-      }
-
-      if (!postExists) {
-        console.log(`Post with ID ${postId} not found, removing from Redis.`);
-        await removePostAndFormFromRedis(redis, postId);
-        continue;
-      }
-
       let cachedForm;
       try {
         cachedForm = await getCachedForm(context, postId);
@@ -349,7 +335,12 @@ Devvit.addSchedulerJob({
 
       if (!cachedForm) {
         console.error(`No cached form found for postId: ${postId}`);
-        await removePostAndFormFromRedis(redis, postId);
+        continue;
+      }
+
+      const status = cachedForm.getStatus();
+      if (status === FundraiserStatus.Completed || status === FundraiserStatus.Expired) {
+        console.log(`Skipping completed/expired fundraiser: ${postId}`);
         continue;
       }
 
@@ -368,13 +359,12 @@ Devvit.addSchedulerJob({
         continue;
       }
 
-      if (updatedDetails === 'NOT_FOUND') {
-        console.log(`Fundraiser not found for postId: ${postId}. Removing from update subscriptions.`);
+      if (updatedDetails === 'NOT_FOUND' || isFundraiserExpired(fundraiserInfo)) {
+        console.log(`Fundraiser completed or expired for postId: ${postId}. Marking as completed.`);
         try {
-          await removePostSubscriptionFromRedis(context.redis, postId);
-          console.log(`Successfully removed postId ${postId} from Redis`);
+          await markPostAsCompleted(context.redis, postId);
         } catch (error) {
-          console.error(`Failed to remove postId ${postId} from Redis:`, error);
+          console.error(`Failed to mark postId ${postId} as completed:`, error);
         }
         continue;
       }
@@ -506,7 +496,7 @@ Devvit.addTrigger({
     // Remove the post and associated data from Redis
     await removePostAndFormFromRedis(redis, postId);
 
-    console.log(`Removed Redis data for postId: ${postId}`);
+    console.log(`Removed Redis data for deleted postId: ${postId}`);
   },
 });
 
