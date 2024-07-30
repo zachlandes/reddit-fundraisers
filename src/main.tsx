@@ -13,6 +13,7 @@ import { convertToFormData } from './utils/formUtils.js';
 import { existingFundraiserForm } from './forms/ExistingFundraiserForm.js';
 import { updateCachedFundraiserDetails, sendFundraiserUpdates } from './utils/renderUtils.js';
 import { getFundraiserSummary, validateAndCreateJob } from './utils/jobUtils.js';
+import { DEBUG_AREAS } from './utils/debug.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -247,6 +248,20 @@ Devvit.addSettings([
     isSecret: true,
     scope: 'app',
   },
+  {
+    name: 'DEBUG_ENABLED',
+    label: 'Enable debugging',
+    type: 'boolean',
+    defaultValue: false,
+    scope: 'installation',
+  },
+  ...Object.values(DEBUG_AREAS).map(area => ({
+    name: `DEBUG_${area.toUpperCase()}`,
+    label: `Enable ${area} debugging`,
+    type: 'boolean' as const,
+    defaultValue: false,
+    scope: 'installation' as const,
+  })),
 ]);
 
 Devvit.addSchedulerJob({
