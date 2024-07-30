@@ -404,17 +404,17 @@ export function FundraiserView(
                     </text>
                   </vstack>
                 </hstack>
-                <hstack width='33%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width='34%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   {status === 'completed' || status === 'expired' ? (
                     <text 
                       size='small' 
                       weight='bold' 
-                      color='neutral-content-strong'
+                      color={everyGreen}
                       onPress={() => {
                         context.ui.navigateTo(baseFundraiserUrl);
                       }}
                     >
-                      This fundraiser has ended. Click here to view the results.
+                      Fundraiser ended!
                     </text>
                   ) : (
                     <FancyButton
@@ -435,7 +435,7 @@ export function FundraiserView(
                     </FancyButton>
                   )}
                 </hstack>
-                <hstack width='33%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width='32%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer grow />
                 </hstack>
               </hstack>

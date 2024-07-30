@@ -420,13 +420,54 @@ Devvit.addSchedulerJob({
   },
 });
 
+Devvit.addSchedulerJob({
+  name: 'check_fundraiser_status',
+  onRun: async (_, context) => {
+    const postsToUpdate = await fetchPostsToUpdate(context.redis);
+
+    for (const postId of postsToUpdate) {
+      let cachedForm;
+      try {
+        cachedForm = await getCachedForm(context, postId);
+        if (!cachedForm) {
+          console.error(`No cached form found for postId: ${postId}`);
+          continue;
+        }
+
+        const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
+        
+        const updatedDetails = await fetchExistingFundraiserDetails(
+          fundraiserInfo.nonprofitId,
+          fundraiserInfo.id,
+          await getEveryPublicKey(context)
+        );
+
+        if (updatedDetails && updatedDetails.fundraiserInfo.active !== fundraiserInfo.active) {
+          if (!updatedDetails.fundraiserInfo.active) {
+            cachedForm.setStatus(FundraiserStatus.Completed);
+            await removePostSubscriptionFromRedis(context.redis, postId);
+            console.log(`Fundraiser ended for postId: ${postId}. Removed from subscriptions.`);
+            
+            cachedForm.setProp(TypeKeys.everyExistingFundraiserInfo, 'active', false);
+            await setCachedForm(context, postId, cachedForm);
+          }
+          // We no longer need the 'else' clause as we don't want to reactivate a completed fundraiser
+        }
+      } catch (error) {
+        console.error(`Error checking fundraiser status for postId: ${postId}`, error);
+      }
+    }
+  },
+});
+
 Devvit.addTrigger({
   event: 'AppInstall',
   onEvent: async (_, context) => {
     const jobsToSchedule = [
       { cron: '*/10 * * * * *', name: 'update_fundraiser_posts' },
       { cron: '* * * * *', name: 'update_fundraiser_descriptions' },
-      { cron: '0 0 * * *', name: 'send_daily_fundraiser_summary' }
+      { cron: '0 0 * * *', name: 'send_daily_fundraiser_summary' },
+      { cron: '* * * * *', name: 'check_fundraiser_status' }
     ];
 
     for (const job of jobsToSchedule) {
@@ -463,7 +504,8 @@ Devvit.addTrigger({
       const jobsToSchedule = [
         { cron: '*/10 * * * * *', name: 'update_fundraiser_posts' },
         { cron: '* * * * *', name: 'update_fundraiser_descriptions' },
-        { cron: '0 0 * * *', name: 'send_daily_fundraiser_summary' }
+        { cron: '0 0 * * *', name: 'send_daily_fundraiser_summary' },
+        { cron: '* * * * *', name: 'check_fundraiser_status' }
       ];
 
       for (const job of jobsToSchedule) {
