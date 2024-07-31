@@ -13,6 +13,7 @@ import { convertToFormData } from './utils/formUtils.js';
 import { existingFundraiserForm } from './forms/ExistingFundraiserForm.js';
 import { updateCachedFundraiserDetails, sendFundraiserUpdates } from './utils/renderUtils.js';
 import { getFundraiserSummary, validateAndCreateJob } from './utils/jobUtils.js';
+import { isFundraiserFinished } from './utils/formUtils.js';
 
 Devvit.configure({
   redditAPI: true,
@@ -339,7 +340,7 @@ Devvit.addSchedulerJob({
       }
 
       const status = cachedForm.getStatus();
-      if (status === FundraiserStatus.Completed || status === FundraiserStatus.Expired) {
+      if (isFundraiserFinished(status)) {
         console.log(`Skipping completed/expired fundraiser: ${postId}`);
         continue;
       }

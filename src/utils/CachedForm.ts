@@ -77,7 +77,7 @@ export class CachedForm {
         if (active !== null) {
             return active ? FundraiserStatus.Active : FundraiserStatus.Completed;
         }
-        return FundraiserStatus.Active; // Default to Active if status is not set
+        return FundraiserStatus.Unknown; // Default to Unknown if status is not set
     }
 
     serializeForRedis(): Record<string, any> {

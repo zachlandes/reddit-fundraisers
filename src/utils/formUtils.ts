@@ -1,4 +1,4 @@
-import { EveryNonprofitInfo } from "../types/index.js";
+import { EveryNonprofitInfo, FundraiserStatus } from "../types/index.js";
 
 /**
  * Converts an array of EveryNonprofitInfo objects into a format suitable for forms in the Devvit API.
@@ -42,4 +42,8 @@ export function fundraiserUrlHelper(url: string): { nonprofitIdentifier: string;
       }
       throw error;
   }
+}
+
+export function isFundraiserFinished(status: FundraiserStatus): boolean {
+  return status === FundraiserStatus.Completed || status === FundraiserStatus.Expired;
 }

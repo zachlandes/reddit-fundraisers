@@ -14,6 +14,7 @@ import { CircularLogo } from './CircularLogo.js';
 import { Watermark } from './Watermark.js';
 import { FullScreenOverlay } from './FullScreenOverlay.js';
 import { calculateLayout, ViewportType, VIEWPORT_CONFIGS } from '../utils/constants.js';
+import { isFundraiserFinished } from '../utils/formUtils.js';
 
 const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
 
@@ -29,7 +30,7 @@ interface FundraiserState extends JSONObject {
   goal: number | null;
   nonprofitInfo: EveryNonprofitInfo | null;
   supporters: number;
-  status: FundraiserStatus | 'unknown';
+  status: FundraiserStatus;
 }
 
 function generateBaseFundraiserURL(
@@ -65,7 +66,7 @@ export function FundraiserView(
   nonprofitInfo: EveryNonprofitInfo | null,
   coverImageUrl: string | null,
   logoImageUrl: string | null,
-  status: FundraiserStatus | 'unknown',
+  status: FundraiserStatus,
   supporters: number,
   isButtonExpanded: boolean,
   paginatedDescription: string[],
@@ -405,7 +406,7 @@ export function FundraiserView(
                   </vstack>
                 </hstack>
                 <hstack width='34%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  {status === 'completed' || status === 'expired' ? (
+                  {isFundraiserFinished(status) ? (
                     <text 
                       size='small' 
                       weight='bold' 
@@ -510,7 +511,7 @@ export const FundraiserPost: CustomPostType = {
       logoImageUrl: string | null;
       subreddit: string | null;
       goalType: string | null;
-      status: FundraiserStatus | 'unknown';
+      status: FundraiserStatus;
       baseFundraiserUrl: string;
       fundraiserUrl: string;
     }>(async () => {
@@ -521,7 +522,7 @@ export const FundraiserPost: CustomPostType = {
         logoImageUrl: null,
         subreddit: null,
         goalType: null,
-        status: 'unknown' as FundraiserStatus | 'unknown',
+        status: FundraiserStatus.Unknown,
         baseFundraiserUrl: '',
         fundraiserUrl: ''
       };
@@ -532,7 +533,7 @@ export const FundraiserPost: CustomPostType = {
           const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
           const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
-          const status = cachedForm.getStatus() || 'unknown';
+          const status = cachedForm.getStatus() || FundraiserStatus.Unknown;
           const serializedFundraiserInfo = fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null;
           
           const updatedData = {
@@ -609,7 +610,7 @@ export const FundraiserPost: CustomPostType = {
       onMessage: (data: JSONValue) => {
         console.log("Received message on fundraiser_updates channel:", data);
         if (typeof data === 'object' && data !== null && 'postId' in data && data.postId === postId) {
-          if (staticData.status === FundraiserStatus.Completed || staticData.status === FundraiserStatus.Expired) {
+          if (isFundraiserFinished(staticData.status)) {
             console.log(`Skipping update for completed/expired fundraiser: ${postId}`);
             return;
           }
