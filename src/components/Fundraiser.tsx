@@ -427,7 +427,7 @@ export function FundraiserView(
                       isExpanded={isButtonExpanded}
                       onPress={() => {
                         if (fundraiserInfo) {
-                          console.log("Navigating to fundraiser URL:", fundraiserUrl);
+                          //console.log("Navigating to fundraiser URL:", fundraiserUrl);
                           context.ui.navigateTo(fundraiserUrl);
                         }
                       }}
