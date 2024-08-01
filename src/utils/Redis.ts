@@ -1,6 +1,6 @@
 import { Context, RedisClient } from '@devvit/public-api';
 import { CachedForm } from './CachedForm.js';
-import { EveryFundraiserRaisedDetails } from '../types/index.js';
+import { EveryFundraiserRaisedDetails, FundraiserStatus } from '../types/index.js';
 import { RedisKey } from '../types/enums.js'; // Import the enum
 
 /**
@@ -101,7 +101,6 @@ export async function getCachedForm(
  */
 export async function addOrUpdatePostInRedis(redis: RedisClient, postId: string, endDate: Date | null): Promise<void> {
     // Use a very distant future date if endDate is null
-    console.log("endDate: ", endDate);
     const score = endDate ? endDate.getTime() : new Date('2054-12-31').getTime();
     await redis.zAdd(RedisKey.AllSubscriptions, { score, member: postId });
     console.log(`Post ${postId} added or updated with end date score ${score}`);
@@ -168,3 +167,22 @@ export async function fetchPostsToUpdate(redis: RedisClient): Promise<string[]> 
     return postsToUpdate;
 }
 
+/**
+ * Marks a post as completed in Redis.
+ * 
+ * @param {RedisClient} redis - The Redis client.
+ * @param {string} postId - The ID of the post to mark as completed.
+ * @returns {Promise<void>}
+ */
+export async function markPostAsCompleted(redis: RedisClient, postId: string): Promise<void> {
+    const cachedForm = await getCachedForm({ redis }, postId);
+    if (cachedForm) {
+        cachedForm.setStatus(FundraiserStatus.Completed);
+        await setCachedForm({ redis }, postId, cachedForm);
+    }
+    
+    // Remove from active subscriptions
+    await redis.zRem(RedisKey.AllSubscriptions, [postId]);
+    
+    console.log(`Post ${postId} marked as completed in Redis`);
+}
