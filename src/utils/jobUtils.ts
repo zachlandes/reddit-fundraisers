@@ -4,7 +4,7 @@ import { fetchPostsToUpdate, getCachedForm } from './Redis.js';
 
 export async function getFundraiserSummary(context: Pick<Devvit.Context, 'redis' | 'reddit'>): Promise<string> {
   const { redis, reddit } = context;
-  const postsToUpdate = await fetchPostsToUpdate(redis);
+  const postsToUpdate = await fetchPostsToUpdate(redis); //FIXME: if a post is deleted or expired before the summary job runs, no summary for the last day will be sent
   let summary = '';
 
   // Get the subreddit name

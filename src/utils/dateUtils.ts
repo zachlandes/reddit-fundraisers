@@ -51,3 +51,14 @@ export const getTomorrowDate = (): Date => {
     const today = new Date();
     return new Date(today.setDate(today.getDate() + 1));
 };
+
+export function isFundraiserExpired(fundraiserInfo: EveryExistingFundraiserInfo | SerializedEveryExistingFundraiserInfo): boolean {
+  if (!fundraiserInfo.endDate) {
+    return false; // If there's no end date, the fundraiser doesn't expire
+  }
+
+  const endDate = fundraiserInfo.endDate instanceof Date ? fundraiserInfo.endDate : new Date(fundraiserInfo.endDate);
+  const currentDate = new Date();
+
+  return currentDate > endDate;
+}

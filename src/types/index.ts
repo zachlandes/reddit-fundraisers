@@ -9,6 +9,14 @@ export interface TypeMapping {
     fundraiserDetails: EveryFundraiserRaisedDetails;
     fundraiserCreationResponse: FundraiserCreationResponse;
     everyExistingFundraiserInfo: EveryExistingFundraiserInfo;
+    fundraiserStatus: FundraiserStatus;
+}
+
+export enum FundraiserStatus {
+  Active = 'active',
+  Completed = 'completed', // completed comes from every.org via the existing fundraiser info active boolean
+  Expired = 'expired', // expired is determined from every.org via comparison with the end date field 
+  Unknown = 'unknown' // unknown is used as a fallback when the status is not yet known
 }
 
 export type BaseFormFields = {

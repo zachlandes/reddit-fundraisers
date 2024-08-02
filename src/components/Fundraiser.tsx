@@ -1,5 +1,5 @@
 import { Context, CustomPostType, Devvit, JSONValue, JSONObject } from '@devvit/public-api';
-import { EveryFundraiserRaisedDetails, EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo } from '../types/index.js';
+import { EveryFundraiserRaisedDetails, EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo, FundraiserStatus } from '../types/index.js';
 import { getCachedForm, removePostAndFormFromRedis } from '../utils/Redis.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
 import { serializeExistingFundraiserResponse } from '../utils/dateUtils.js';
@@ -12,6 +12,7 @@ import { CircularLogo } from './CircularLogo.js';
 import { Watermark } from './Watermark.js';
 import { FullScreenOverlay } from './FullScreenOverlay.js';
 import { calculateLayout, ViewportType, VIEWPORT_CONFIGS } from '../utils/constants.js';
+import { isFundraiserFinished } from '../utils/formUtils.js';
 
 const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
 
@@ -27,18 +28,28 @@ interface FundraiserState extends JSONObject {
   goal: number | null;
   nonprofitInfo: EveryNonprofitInfo | null;
   supporters: number;
+  status: FundraiserStatus;
 }
 
-function generateFundraiserURL(
+function generateBaseFundraiserURL(
+    fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
+    nonprofitInfo: EveryNonprofitInfo | null
+): string {
+    if (!fundraiserInfo || !nonprofitInfo) return '';
+    return `https://every.org/${nonprofitInfo.primarySlug}/f/${fundraiserInfo.slug}`;
+}
+
+function generateDonateFundraiserURL(
     fundraiserInfo: SerializedEveryExistingFundraiserInfo | null,
     nonprofitInfo: EveryNonprofitInfo | null,
     subreddit: string | undefined
 ): string {
-  if (!fundraiserInfo) return ''; // TODO: better default?
-  const utm_content = fundraiserInfo.id ? `&utm_content=${fundraiserInfo.id}` : '';
-  const utm_campaign = subreddit ? `&utm_campaign=${subreddit}`: '';
-  const utm = `?utm_source=reddit&utm_medium=fundraisers${utm_content}${utm_campaign}`;
-  return `https://every.org/${nonprofitInfo?.primarySlug}/f/${fundraiserInfo.slug}#/donate${utm}`;
+    const baseUrl = generateBaseFundraiserURL(fundraiserInfo, nonprofitInfo);
+    if (!baseUrl) return ''; // TODO: better default?
+    const utm_content = fundraiserInfo?.id ? `&utm_content=${fundraiserInfo.id}` : '';
+    const utm_campaign = subreddit ? `&utm_campaign=${subreddit}`: '';
+    const utm = `?utm_source=reddit&utm_medium=fundraisers${utm_content}${utm_campaign}#/donate`;
+    return `${baseUrl}${utm}`;
 }
 
 
@@ -53,13 +64,15 @@ export function FundraiserView(
   nonprofitInfo: EveryNonprofitInfo | null,
   coverImageUrl: string | null,
   logoImageUrl: string | null,
-  fundraiserURL: string,
+  status: FundraiserStatus,
   supporters: number,
   isButtonExpanded: boolean,
   paginatedDescription: string[],
   showExpandButton: boolean,
   displayDescription: string,
-  config: typeof VIEWPORT_CONFIGS[ViewportType]
+  config: typeof VIEWPORT_CONFIGS[ViewportType],
+  baseFundraiserUrl: string,
+  fundraiserUrl: string
 ): JSX.Element {
     const { ui, useState, dimensions } = context;
 
@@ -391,27 +404,38 @@ export function FundraiserView(
                   </vstack>
                 </hstack>
                 <hstack width='34%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  <FancyButton
-                    backgroundColor={everyGreen}
-                    textColor="white"
-                    height={40}
-                    icon="external"
-                    iconPosition="right"
-                    isExpanded={isButtonExpanded}
-                    onPress={() => {
-                      if (fundraiserInfo) {
-                        console.log("Navigating to fundraiser URL:", fundraiserURL);
-                        context.ui.navigateTo(fundraiserURL);
-                      }
-                    }}
-                  >
-                    Donate
-                  </FancyButton>
+                  {isFundraiserFinished(status) ? (
+                    <text 
+                      size='small' 
+                      weight='bold' 
+                      color={everyGreen}
+                      onPress={() => {
+                        context.ui.navigateTo(baseFundraiserUrl);
+                      }}
+                    >
+                      Fundraiser ended!
+                    </text>
+                  ) : (
+                    <FancyButton
+                      backgroundColor={everyGreen}
+                      textColor="white"
+                      height={40}
+                      icon="external"
+                      iconPosition="right"
+                      isExpanded={isButtonExpanded}
+                      onPress={() => {
+                        if (fundraiserInfo) {
+                          //console.log("Navigating to fundraiser URL:", fundraiserUrl);
+                          context.ui.navigateTo(fundraiserUrl);
+                        }
+                      }}
+                    >
+                      Donate
+                    </FancyButton>
+                  )}
                 </hstack>
-                <hstack width='33%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width='32%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer grow />
-                </hstack>
-                <hstack width='33%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 </hstack>
               </hstack>
             </vstack>
@@ -485,6 +509,9 @@ export const FundraiserPost: CustomPostType = {
       logoImageUrl: string | null;
       subreddit: string | null;
       goalType: string | null;
+      status: FundraiserStatus;
+      baseFundraiserUrl: string;
+      fundraiserUrl: string;
     }>(async () => {
       const initialData = {
         fundraiserInfo: null,
@@ -492,7 +519,10 @@ export const FundraiserPost: CustomPostType = {
         coverImageUrl: null,
         logoImageUrl: null,
         subreddit: null,
-        goalType: null
+        goalType: null,
+        status: FundraiserStatus.Unknown,
+        baseFundraiserUrl: '',
+        fundraiserUrl: ''
       };
 
       try {
@@ -502,15 +532,19 @@ export const FundraiserPost: CustomPostType = {
           const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
           const coverImageUrl = evaluateValidCoverImageOr404(staticData.coverImageUrl);
-
-
+          const status = cachedForm.getStatus() || FundraiserStatus.Unknown;
+          const serializedFundraiserInfo = fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null;
+          
           const updatedData = {
-            fundraiserInfo: fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null,
+            fundraiserInfo: serializedFundraiserInfo,
             nonprofitInfo: nonprofitInfo,
             coverImageUrl: coverImageUrl,
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
             subreddit: subreddit,
-            goalType: fundraiserDetails?.goalType || null
+            goalType: fundraiserDetails?.goalType || null,
+            status: status,
+            baseFundraiserUrl: generateBaseFundraiserURL(serializedFundraiserInfo, nonprofitInfo),
+            fundraiserUrl: generateDonateFundraiserURL(serializedFundraiserInfo, nonprofitInfo, subreddit ?? undefined)
           };
 
           return updatedData;
@@ -542,7 +576,7 @@ export const FundraiserPost: CustomPostType = {
         description: '',
         paginatedDescription: [],
         showExpandButton: false,
-        displayDescription: ''
+        displayDescription: '',
       };
 
       try {
@@ -555,7 +589,7 @@ export const FundraiserPost: CustomPostType = {
             raised: fundraiserDetails?.raised || 0,
             goal: fundraiserDetails?.goalAmount || null,
             supporters: fundraiserDetails?.supporters || 0,
-            ...updatePaginatedDescription(fundraiserInfo?.description || '')
+            ...updatePaginatedDescription(fundraiserInfo?.description || ''),
           };
 
           return updatedData;
@@ -575,6 +609,11 @@ export const FundraiserPost: CustomPostType = {
       onMessage: (data: JSONValue) => {
         console.log("Received message on fundraiser_updates channel:", data);
         if (typeof data === 'object' && data !== null && 'postId' in data && data.postId === postId) {
+          if (isFundraiserFinished(staticData.status)) {
+            console.log(`Skipping update for completed/expired fundraiser: ${postId}`);
+            return;
+          }
+          
           if ('updatedDetails' in data) {
             const updatedDetails = data.updatedDetails as Partial<EveryFundraiserRaisedDetails>;
             setDynamicData(prevState => ({
@@ -609,14 +648,8 @@ export const FundraiserPost: CustomPostType = {
 
     const [isButtonExpanded, setIsButtonExpanded] = useState(false);
 
-    const fundraiserUrl = generateFundraiserURL(
-      staticData.fundraiserInfo,
-      staticData.nonprofitInfo,
-      staticData.subreddit || undefined
-    );
-
-    // Check if image data is from reddit or missing
-    // console.log("Cover Image URL:", staticData.coverImageUrl);
+    // Log cover image URL for debugging
+    //console.log("Cover Image URL:", staticData.coverImageUrl);
 
     // Render loading state if data is still being fetched
     if (isLoading) {
@@ -643,13 +676,15 @@ export const FundraiserPost: CustomPostType = {
           staticData.nonprofitInfo,
           staticData.coverImageUrl,
           staticData.logoImageUrl,
-          fundraiserUrl,
+          staticData.status,
           dynamicData.supporters,
           isButtonExpanded,
           dynamicData.paginatedDescription,
           dynamicData.showExpandButton,
           dynamicData.displayDescription,
-          viewportConfig
+          viewportConfig,
+          staticData.baseFundraiserUrl,
+          staticData.fundraiserUrl
         )}
       </blocks>
     );
