@@ -501,11 +501,13 @@ export const FundraiserPost: CustomPostType = {
           const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
           const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
+          const coverImageUrl = evaluateValidCoverImageOr404(staticData.coverImageUrl);
+
 
           const updatedData = {
             fundraiserInfo: fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null,
             nonprofitInfo: nonprofitInfo,
-            coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null,
+            coverImageUrl: coverImageUrl,
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
             subreddit: subreddit,
             goalType: fundraiserDetails?.goalType || null
@@ -614,8 +616,7 @@ export const FundraiserPost: CustomPostType = {
     );
 
     // Check if image data is from reddit or missing
-    console.log("Cover Image URL:", staticData.coverImageUrl);
-    const coverImageUrl = evaluateValidCoverImageOr404(staticData.coverImageUrl);
+    // console.log("Cover Image URL:", staticData.coverImageUrl);
 
     // Render loading state if data is still being fetched
     if (isLoading) {
@@ -640,7 +641,7 @@ export const FundraiserPost: CustomPostType = {
           width,
           height,
           staticData.nonprofitInfo,
-          coverImageUrl,
+          staticData.coverImageUrl,
           staticData.logoImageUrl,
           fundraiserUrl,
           dynamicData.supporters,
