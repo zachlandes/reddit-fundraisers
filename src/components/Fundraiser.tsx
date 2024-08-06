@@ -90,7 +90,7 @@ export function FundraiserView(
       NonprofitInfo,
       FundraisersApp
     }
-    
+
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
     const mobileConfig = config as MobileConfig;
     const MOBILE_WIDTH = Math.max(width, mobileConfig.MOBILE_WIDTH ?? 320);
@@ -221,8 +221,8 @@ export function FundraiserView(
         switch (currentOverlay) {
             case OverlayType.Description:
                 return (
-                    <FullScreenOverlay 
-                      onClose={handleCloseOverlay} 
+                    <FullScreenOverlay
+                      onClose={handleCloseOverlay}
                       minWidth={mobileConfig.MOBILE_WIDTH}
                       maxWidth={MAX_COLUMN_WIDTH}
                       maxHeight={MAX_HEIGHT}
@@ -241,8 +241,8 @@ export function FundraiserView(
                 );
               case OverlayType.NonprofitInfo:
                 return (
-                    <FullScreenOverlay 
-                      onClose={handleCloseOverlay} 
+                    <FullScreenOverlay
+                      onClose={handleCloseOverlay}
                       minWidth={mobileConfig.MOBILE_WIDTH}
                       maxWidth={MAX_COLUMN_WIDTH}
                       maxHeight={MAX_HEIGHT}
@@ -285,8 +285,8 @@ export function FundraiserView(
                 );
             case OverlayType.FundraisersApp:
                 return (
-                    <FullScreenOverlay 
-                      onClose={handleCloseOverlay} 
+                    <FullScreenOverlay
+                      onClose={handleCloseOverlay}
                       minWidth={mobileConfig.MOBILE_WIDTH}
                       maxWidth={MAX_COLUMN_WIDTH}
                       maxHeight={MAX_HEIGHT}
@@ -375,13 +375,13 @@ export function FundraiserView(
     return (
       // APP OUTER
       <zstack width={100} height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
-        <vstack 
+        <vstack
           minWidth={`${mobileConfig.MOBILE_WIDTH}px`}
           width={100}
           maxWidth={`${MAX_COLUMN_WIDTH}px`}
           height={100}
           maxHeight={`${MAX_HEIGHT}px`}
-          borderColor={borderGray} 
+          borderColor={borderGray}
           border='thin'
         >
           <vstack width={100} maxHeight={`${coverImageHeight}px`} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
@@ -441,9 +441,9 @@ export function FundraiserView(
                 </hstack>
                 <hstack width={34} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   {isFundraiserFinished(status) ? (
-                    <text 
-                      size='small' 
-                      weight='bold' 
+                    <text
+                      size='small'
+                      weight='bold'
                       color={everyGreen}
                       onPress={() => {
                         context.ui.navigateTo(baseFundraiserUrl);
@@ -594,14 +594,13 @@ export const FundraiserPost: CustomPostType = {
           const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
           const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
-          const coverImageUrl = evaluateValidCoverImageOr404(staticData.coverImageUrl);
           const status = cachedForm.getStatus() || FundraiserStatus.Unknown;
           const serializedFundraiserInfo = fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null;
-          
+
           const updatedData = {
             fundraiserInfo: serializedFundraiserInfo,
             nonprofitInfo: nonprofitInfo,
-            coverImageUrl: coverImageUrl,
+            coverImageUrl: evaluateValidCoverImageOr404(fundraiserInfo?.coverImageCloudinaryId || null),
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
             subreddit: subreddit,
             goalType: fundraiserDetails?.goalType || null,
@@ -681,7 +680,7 @@ export const FundraiserPost: CustomPostType = {
             console.log(`Skipping update for completed/expired fundraiser: ${postId}`);
             return;
           }
-          
+
           setDynamicData(prevState => {
             let newState = { ...prevState };
 
