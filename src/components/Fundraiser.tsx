@@ -346,7 +346,7 @@ export function FundraiserView(
       );
 
       return (
-        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={true ? 'blue' : 'neutral-border-weak'} border={true ? 'thin' : 'none'}>
+        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
           {isSmallViewport && showExpandButton ? (
             <vstack onPress={handleExpandDescription}>
               {descriptionContent}
