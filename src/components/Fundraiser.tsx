@@ -2,13 +2,11 @@ import { Context, CustomPostType, Devvit, JSONValue, JSONObject } from '@devvit/
 import { EveryFundraiserRaisedDetails, EveryNonprofitInfo, SerializedEveryExistingFundraiserInfo, FundraiserStatus } from '../types/index.js';
 import { getCachedForm, removePostAndFormFromRedis } from '../utils/Redis.js';
 import { TypeKeys } from '../utils/typeHelpers.js';
-import { getEveryPublicKey } from '../utils/keyManagement.js';
 import { serializeExistingFundraiserResponse } from '../utils/dateUtils.js';
 import { usePagination } from '@devvit/kit';
 import { paginateText } from '../utils/renderUtils.js';
 import pixelWidth from 'string-pixel-width';
-import { fetchExistingFundraiserDetails } from '../sources/Every.js';
-import { ImageManager } from '../utils/imageUtils.js';
+import { evaluateValidCoverImageOr404 } from '../utils/imageUtils.js';
 import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
 import { Watermark } from './Watermark.js';
@@ -319,7 +317,7 @@ export function FundraiserView(
           {displayDescription}
         </text>
       );
-    
+
       return (
         <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
           {isSmallViewport && showExpandButton ? (
@@ -533,13 +531,14 @@ export const FundraiserPost: CustomPostType = {
           const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
           const nonprofitInfo = cachedForm.getAllProps(TypeKeys.everyNonprofitInfo);
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
+          const coverImageUrl = evaluateValidCoverImageOr404(staticData.coverImageUrl);
           const status = cachedForm.getStatus() || FundraiserStatus.Unknown;
           const serializedFundraiserInfo = fundraiserInfo ? serializeExistingFundraiserResponse(fundraiserInfo) : null;
           
           const updatedData = {
             fundraiserInfo: serializedFundraiserInfo,
             nonprofitInfo: nonprofitInfo,
-            coverImageUrl: fundraiserInfo?.coverImageCloudinaryId || null,
+            coverImageUrl: coverImageUrl,
             logoImageUrl: nonprofitInfo?.logoCloudinaryId || null,
             subreddit: subreddit,
             goalType: fundraiserDetails?.goalType || null,
@@ -585,7 +584,7 @@ export const FundraiserPost: CustomPostType = {
         if (cachedForm) {
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
           const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
-          
+
           const updatedData = {
             raised: fundraiserDetails?.raised || 0,
             goal: fundraiserDetails?.goalAmount || null,

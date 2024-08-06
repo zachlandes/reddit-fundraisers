@@ -45,6 +45,18 @@ export function sleep(ms: number) : Promise<void>{
     })
 }
 
+export function evaluateValidCoverImageOr404(url: string | null): string{
+    const img404url = 'image-404.png';
+    if (!url) {
+        return img404url;
+    }
+    if (!url.startsWith("https://i.redd.it/")) {
+        return img404url;
+    }
+
+    return url
+}
+
 interface ImageResolution {
     width: number;
     generateUrl(cloudinaryId: string): string;
@@ -94,7 +106,7 @@ export class ImageManager {
             const cacheKey = `${cloudinaryId}:${resolution.width}`;
             const cachedUrl = await this.ctx.redis.get(cacheKey);
             if (!cachedUrl) {
-                // If not cached, generate URL and upload
+                // If not cached, generate URL and upload to Reddit via MediaAsset
                 const imageUrl = resolution.generateUrl(cloudinaryId);
                 const result = await uploadNonprofitImage(this.ctx, imageUrl);
                 if (result && result.mediaUrl) {
