@@ -10,7 +10,7 @@ export type MobileConfig = BaseConfig & {
   MOBILE_WIDTH: number;
   TITLE_HEIGHT: number;
   LINE_HEIGHT: number;
-  PADDING_HEIGHT: number;
+  MEDIUM_PADDING_HEIGHT: number;
   XSMALL_SPACER_HEIGHT: number;
   FONT_SIZE: number;
   FONT_FAMILY: string;
@@ -27,7 +27,7 @@ export const VIEWPORT_CONFIGS = {
     MOBILE_WIDTH: 320,
     TITLE_HEIGHT: 26,
     LINE_HEIGHT: 16,
-    PADDING_HEIGHT: 16,
+    MEDIUM_PADDING_HEIGHT: 16,
     XSMALL_SPACER_HEIGHT: 4,
     FONT_SIZE: 12,
     FONT_FAMILY: "helvetica",
@@ -48,35 +48,61 @@ export function getViewportType(width: number): ViewportType {
 export function calculateLayout(height: number, width: number): {
   viewportType: ViewportType;
   config: BaseConfig | MobileConfig;
-  availableDescriptionHeight: number;
   fundraiserInfoHeight: number;
   lineWidth: number;
   descriptionMaxHeight: number;
+  titleHeight: number;
+  lineHeight: number;
+  mediumPaddingHeight: number;
+  xsmallSpacerHeight: number;
+  coverImageHeight: number;
+  bottomSectionHeight: number;
+  overlayDescriptionMaxHeight: number;
 } {
+  
+  if (isNaN(height) || isNaN(width)) {
+    console.error(`calculateLayout received NaN input - height: ${height}, width: ${width}`);
+    // Set default values for height and width
+    height = VIEWPORT_CONFIGS.shared.MAX_HEIGHT;
+    width = VIEWPORT_CONFIGS.mobile.MOBILE_WIDTH;
+  }
+
   const viewportType = getViewportType(width);
   const config = VIEWPORT_CONFIGS[viewportType];
   
   if (viewportType === 'mobile') {
-    const mobileConfig = config as MobileConfig;  // This cast is safe because we know it's mobile
+    const mobileConfig = config as MobileConfig;
     
     const boundedWidth = Math.min(Math.max(width, mobileConfig.MOBILE_WIDTH), VIEWPORT_CONFIGS.shared.MAX_COLUMN_WIDTH);
+    
     const lineWidth = boundedWidth - 80;
     
-    const fundraiserInfoHeight = Math.floor(Math.min(height, VIEWPORT_CONFIGS.shared.MAX_HEIGHT) * mobileConfig.FUNDRAISER_INFO_HEIGHT_RATIO);
-    const descriptionMaxHeight = fundraiserInfoHeight - mobileConfig.TITLE_HEIGHT;
-    const availableDescriptionHeight = descriptionMaxHeight - mobileConfig.PADDING_HEIGHT - 2 * mobileConfig.XSMALL_SPACER_HEIGHT;
+    const totalHeight = Math.min(height, VIEWPORT_CONFIGS.shared.MAX_HEIGHT);
+    const fundraiserInfoHeight = Math.floor(totalHeight * mobileConfig.FUNDRAISER_INFO_HEIGHT_RATIO);
+    const titleHeight = mobileConfig.TITLE_HEIGHT;
+    const lineHeight = mobileConfig.LINE_HEIGHT;
+    const mediumPaddingHeight = mobileConfig.MEDIUM_PADDING_HEIGHT;
+    const xsmallSpacerHeight = mobileConfig.XSMALL_SPACER_HEIGHT;
+    const coverImageHeight = Math.floor(totalHeight * 0.30);
+    const bottomSectionHeight = totalHeight - fundraiserInfoHeight - coverImageHeight;
+    const overlayDescriptionMaxHeight = totalHeight - VIEWPORT_CONFIGS.shared.OVERLAY_CONTROLS_HEIGHT;
+    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 2 * lineHeight;
 
     return {
       viewportType,
       config: mobileConfig,
-      availableDescriptionHeight,
       fundraiserInfoHeight,
-      lineWidth,
+      lineWidth: lineWidth || mobileConfig.MOBILE_WIDTH - 80, // Add fallback
       descriptionMaxHeight,
+      titleHeight,
+      lineHeight,
+      mediumPaddingHeight: mediumPaddingHeight,
+      xsmallSpacerHeight,
+      coverImageHeight,
+      bottomSectionHeight,
+      overlayDescriptionMaxHeight,
     };
   } else {
-    // Handle other viewport types if needed
-    // For now, we'll throw an error since we're only supporting mobile
     throw new Error('Unsupported viewport type');
   }
 }
