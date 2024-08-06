@@ -11,7 +11,7 @@ import { FancyButton } from './FancyButton.js';
 import { CircularLogo } from './CircularLogo.js';
 import { Watermark } from './Watermark.js';
 import { FullScreenOverlay } from './FullScreenOverlay.js';
-import { calculateLayout, ViewportType, VIEWPORT_CONFIGS } from '../utils/constants.js';
+import { calculateLayout, ViewportType, VIEWPORT_CONFIGS, BaseConfig, MobileConfig } from '../utils/constants.js';
 import { isFundraiserFinished } from '../utils/formUtils.js';
 
 const DEBUG_MODE = false; // Toggle this value manually and re-upload to see changes
@@ -70,11 +70,19 @@ export function FundraiserView(
   paginatedDescription: string[],
   showExpandButton: boolean,
   displayDescription: string,
-  config: typeof VIEWPORT_CONFIGS[ViewportType],
+  config: BaseConfig | MobileConfig,
   baseFundraiserUrl: string,
-  fundraiserUrl: string
+  fundraiserUrl: string,
+  setDynamicWidth: (width: number) => void
 ): JSX.Element {
     const { ui, useState, dimensions } = context;
+
+    // Update width when dimensions change
+    const newWidth = dimensions?.width;
+    if (newWidth !== undefined && !isNaN(newWidth) && newWidth !== width) {
+      setDynamicWidth(newWidth);
+      width = newWidth; // Update the local width variable
+    }
 
     enum OverlayType {
       None,
@@ -82,33 +90,37 @@ export function FundraiserView(
       NonprofitInfo,
       FundraisersApp
     }
-
+    
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
-    const fundraiserInfoHeight = Math.floor(totalHeight * config.FUNDRAISER_INFO_HEIGHT_RATIO);
-    const MOBILE_WIDTH = config.MOBILE_WIDTH;
-    const titleHeight = config.TITLE_HEIGHT;
-    const lineHeight = config.LINE_HEIGHT;
-    const lineWidth = MOBILE_WIDTH - 80;
+    const mobileConfig = config as MobileConfig;
+    const MOBILE_WIDTH = Math.max(width, mobileConfig.MOBILE_WIDTH ?? 320);
+    const MAX_COLUMN_WIDTH = VIEWPORT_CONFIGS.shared.MAX_COLUMN_WIDTH;
+    const MAX_HEIGHT = VIEWPORT_CONFIGS.shared.MAX_HEIGHT;
+    const layoutResult = calculateLayout(totalHeight, width);
+    const {
+      fundraiserInfoHeight,
+      lineWidth,
+      descriptionMaxHeight,
+      titleHeight,
+      lineHeight,
+      mediumPaddingHeight: paddingHeight, //TODO: move this and xsmallSpacerHeight out of calculateLayout as we just get it directly from the configs
+      xsmallSpacerHeight,
+      coverImageHeight,
+      bottomSectionHeight,
+      overlayDescriptionMaxHeight,
+    } = layoutResult;
+    const unexpandedDescriptionMaxHeight = descriptionMaxHeight - xsmallSpacerHeight;
     const imageHeight = 150;
-    const overlayControlsHeight = 50;
-    const paddingHeight = config.PADDING_HEIGHT;
-    const xsmallSpacerHeight = config.XSMALL_SPACER_HEIGHT;
-    const coverImageHeight = Math.floor(totalHeight * 0.30);
-    const bottomSectionHeight = totalHeight - fundraiserInfoHeight - coverImageHeight;
-    const overlayDescriptionMaxHeight = totalHeight - overlayControlsHeight;
 
-    const descriptionMaxHeight = fundraiserInfoHeight - titleHeight - 3*lineHeight;
-    const availableDescriptionHeight = descriptionMaxHeight - paddingHeight - 2*xsmallSpacerHeight;
     const everyGreen = '#018669';
-    const borderGray = '#C0C0C0'; //'#A0A0A0';
+    const borderGray = '#C0C0C0';
 
-    const fontSize = config.FONT_SIZE;
-    const fontFamily = config.FONT_FAMILY;
+    const { FONT_FAMILY, FONT_SIZE } = mobileConfig;
     const sampleText = fundraiserInfo?.description.slice(0, 100) || 'Sample Text';
-    const charWidth = pixelWidth(sampleText, { font: fontFamily, size: fontSize } ) / sampleText.length;
+    const charWidth = pixelWidth(sampleText, { font: FONT_FAMILY, size: FONT_SIZE }) / sampleText.length;
 
     const descriptionPages = fundraiserInfo
-        ? paginateText(fundraiserInfo.description, overlayDescriptionMaxHeight, lineHeight, lineWidth, charWidth)
+        ? paginateText(fundraiserInfo.description, overlayDescriptionMaxHeight, lineHeight, lineWidth, charWidth, paddingHeight, xsmallSpacerHeight) // pagination of description for the overlay
         : ['Loading description...'];
 
     const { currentPage, currentItems, toNextPage, toPrevPage, pagesCount } = usePagination(context, descriptionPages, 1);
@@ -209,7 +221,12 @@ export function FundraiserView(
         switch (currentOverlay) {
             case OverlayType.Description:
                 return (
-                    <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
+                    <FullScreenOverlay 
+                      onClose={handleCloseOverlay} 
+                      minWidth={mobileConfig.MOBILE_WIDTH}
+                      maxWidth={MAX_COLUMN_WIDTH}
+                      maxHeight={MAX_HEIGHT}
+                    >
                         <vstack grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                             <text size='small' wrap={true} color='neutral-content-strong'>
                                 {currentItems[0]}
@@ -224,7 +241,12 @@ export function FundraiserView(
                 );
               case OverlayType.NonprofitInfo:
                 return (
-                    <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
+                    <FullScreenOverlay 
+                      onClose={handleCloseOverlay} 
+                      minWidth={mobileConfig.MOBILE_WIDTH}
+                      maxWidth={MAX_COLUMN_WIDTH}
+                      maxHeight={MAX_HEIGHT}
+                    >
                         <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                           <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
                             <spacer size='xsmall' />
@@ -263,7 +285,12 @@ export function FundraiserView(
                 );
             case OverlayType.FundraisersApp:
                 return (
-                    <FullScreenOverlay onClose={handleCloseOverlay} maxWidth={MOBILE_WIDTH}>
+                    <FullScreenOverlay 
+                      onClose={handleCloseOverlay} 
+                      minWidth={mobileConfig.MOBILE_WIDTH}
+                      maxWidth={MAX_COLUMN_WIDTH}
+                      maxHeight={MAX_HEIGHT}
+                    >
                         <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                           <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                             <text size="large" weight="bold" wrap={true} color='neutral-content-strong'>Fundraisers: Easy Donations on Reddit</text>
@@ -311,7 +338,7 @@ export function FundraiserView(
         <text
           size='small'
           wrap={true}
-          maxHeight={`${availableDescriptionHeight}px`}
+          maxHeight={`${unexpandedDescriptionMaxHeight}px`}
           color='neutral-content-strong'
         >
           {displayDescription}
@@ -319,7 +346,7 @@ export function FundraiserView(
       );
 
       return (
-        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+        <vstack width={100} maxHeight={`${descriptionMaxHeight}px`} grow padding="small" borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
           {isSmallViewport && showExpandButton ? (
             <vstack onPress={handleExpandDescription}>
               {descriptionContent}
@@ -346,19 +373,28 @@ export function FundraiserView(
     }
 
     return (
-      <zstack width="100%" height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
-        <vstack maxWidth={`${MOBILE_WIDTH}px`} height={100} width={100} borderColor={borderGray} border='thin'>
-          <vstack width="100%" maxHeight={`${coverImageHeight}px`} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+      // APP OUTER
+      <zstack width={100} height={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} alignment='center' grow>
+        <vstack 
+          minWidth={`${mobileConfig.MOBILE_WIDTH}px`}
+          width={100}
+          maxWidth={`${MAX_COLUMN_WIDTH}px`}
+          height={100}
+          maxHeight={`${MAX_HEIGHT}px`}
+          borderColor={borderGray} 
+          border='thin'
+        >
+          <vstack width={100} maxHeight={`${coverImageHeight}px`} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
             <image
                 url={coverImageUrl ? coverImageUrl : 'placeholder-image-url'}
-                width="100%"
+                width={100}
                 imageWidth={`${width}px`}
                 imageHeight={`${imageHeight}px`}
                 resizeMode="cover"
                 description="Fundraiser Image"
             />
           </vstack>
-          <vstack width="100%" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={`${fundraiserInfoHeight}px`} border={DEBUG_MODE ? 'thin' : 'none'}>
+          <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} height={`${fundraiserInfoHeight}px`} border={DEBUG_MODE ? 'thin' : 'none'}>
             <hstack alignment='middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'} padding="xsmall">
               <spacer size='xsmall' />
               {logoImageUrl && (
@@ -377,7 +413,7 @@ export function FundraiserView(
               </text>
               <spacer size='medium' />
             </hstack>
-            <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+            <vstack width={100} maxHeight={`${fundraiserInfoHeight}px`} grow borderColor={DEBUG_MODE ? 'green' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <spacer size='xsmall' />
               <hstack width={100} maxWidth={`${MOBILE_WIDTH}px`} maxHeight={`${titleHeight}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                 <spacer size='small' />
@@ -394,8 +430,8 @@ export function FundraiserView(
             {renderProgress()}
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <spacer grow />
-              <hstack width='100%' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                <hstack width='33%' alignment='start top' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+              <hstack width={100} minHeight={`${43}px`} maxHeight={`${44}px`} borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width={33} alignment='start top' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer size='small' />
                   <vstack alignment='start top'>
                     <text size='small' wrap={true} weight='bold' color='neutral-content-strong'>
@@ -403,7 +439,7 @@ export function FundraiserView(
                     </text>
                   </vstack>
                 </hstack>
-                <hstack width='34%' alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width={34} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   {isFundraiserFinished(status) ? (
                     <text 
                       size='small' 
@@ -434,11 +470,12 @@ export function FundraiserView(
                     </FancyButton>
                   )}
                 </hstack>
-                <hstack width='32%' alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width={32} alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer grow />
                 </hstack>
               </hstack>
             </vstack>
+            <spacer grow />
             <Watermark onInfoClick={() => handleExpandOverlay(OverlayType.FundraisersApp)} />
           </vstack>
         </vstack>
@@ -460,7 +497,6 @@ export const FundraiserPost: CustomPostType = {
       fundraiserInfoHeight,
       lineWidth,
       descriptionMaxHeight,
-      availableDescriptionHeight,
     } = calculateLayout(height, width);
 
     const { postId, useState } = context;
@@ -484,11 +520,38 @@ export const FundraiserPost: CustomPostType = {
 
     // Function to update paginated description
     const updatePaginatedDescription = (description: string) => {
+      const { FONT_FAMILY, FONT_SIZE, LINE_HEIGHT, MEDIUM_PADDING_HEIGHT: MEDIUM_PADDING_HEIGHT, XSMALL_SPACER_HEIGHT } = viewportConfig as MobileConfig;
       const sampleText = description.slice(0, 100) || 'Sample Text';
-      const charWidth = pixelWidth(sampleText, { font: viewportConfig.FONT_FAMILY, size: viewportConfig.FONT_SIZE }) / sampleText.length;
+      const charWidth = pixelWidth(sampleText, { font: FONT_FAMILY, size: FONT_SIZE }) / sampleText.length;
+      const availableDescriptionHeight = descriptionMaxHeight - XSMALL_SPACER_HEIGHT;
+      let smallPaginatedDescription = paginateText(
+        description,
+        availableDescriptionHeight,
+        LINE_HEIGHT,
+        lineWidth,
+        charWidth,
+        0,
+        XSMALL_SPACER_HEIGHT
+      );
+      //console.log(`availableDescriptionHeight: ${availableDescriptionHeight}, LINE_HEIGHT: ${LINE_HEIGHT}, lineWidth: ${lineWidth}, charWidth: ${charWidth}, PADDING_HEIGHT: ${MEDIUM_PADDING_HEIGHT}, XSMALL_SPACER_HEIGHT: ${XSMALL_SPACER_HEIGHT}`);
 
-      const smallPaginatedDescription = paginateText(description, availableDescriptionHeight, viewportConfig.LINE_HEIGHT, lineWidth, charWidth);
-      const showExpandButton = smallPaginatedDescription.length > 1;
+      let showExpandButton = smallPaginatedDescription.length > 1;
+      //console.log(`showExpandButton: ${showExpandButton}`);
+
+      // If showExpandButton is true, recalculate with reduced height to make room for "Read more" button
+      if (showExpandButton) {
+        const reducedHeight = availableDescriptionHeight - LINE_HEIGHT;
+        smallPaginatedDescription = paginateText(
+          description,
+          reducedHeight,
+          LINE_HEIGHT,
+          lineWidth,
+          charWidth,
+          0,
+          XSMALL_SPACER_HEIGHT
+        );
+      }
+
       const displayDescription = showExpandButton
         ? smallPaginatedDescription[0].replace(/\s+$/, '') + '...'
         : smallPaginatedDescription[0];
@@ -585,14 +648,13 @@ export const FundraiserPost: CustomPostType = {
           const fundraiserDetails = cachedForm.getAllProps(TypeKeys.fundraiserDetails);
           const fundraiserInfo = cachedForm.getAllProps(TypeKeys.everyExistingFundraiserInfo);
 
-          const updatedData = {
+          return {
+            ...initialData,
             raised: fundraiserDetails?.raised || 0,
             goal: fundraiserDetails?.goalAmount || null,
             supporters: fundraiserDetails?.supporters || 0,
             ...updatePaginatedDescription(fundraiserInfo?.description || ''),
           };
-
-          return updatedData;
         }
       } catch (error) {
         console.error(`Failed to retrieve dynamic data from Redis for postId: ${postId}`, error);
@@ -601,6 +663,12 @@ export const FundraiserPost: CustomPostType = {
       }
 
       return initialData;
+    });
+
+    const [dynamicWidth, setDynamicWidth] = useState(() => {
+      return context.dimensions?.width && !isNaN(context.dimensions.width)
+        ? context.dimensions.width
+        : VIEWPORT_CONFIGS.mobile.MOBILE_WIDTH;
     });
 
     // Create the channel
@@ -614,22 +682,28 @@ export const FundraiserPost: CustomPostType = {
             return;
           }
           
-          if ('updatedDetails' in data) {
-            const updatedDetails = data.updatedDetails as Partial<EveryFundraiserRaisedDetails>;
-            setDynamicData(prevState => ({
-              ...prevState,
-              raised: typeof updatedDetails.raised === 'number' ? updatedDetails.raised : prevState.raised,
-              goal: typeof updatedDetails.goalAmount === 'number' ? updatedDetails.goalAmount : prevState.goal,
-              supporters: typeof updatedDetails.supporters === 'number' ? updatedDetails.supporters : prevState.supporters
-            }));
-          }
-          if ('updatedDescription' in data) {
-            const updatedDescription = data.updatedDescription as { description: string };
-            setDynamicData(prevState => ({
-              ...prevState,
-              ...updatePaginatedDescription(updatedDescription.description)
-            }));
-          }
+          setDynamicData(prevState => {
+            let newState = { ...prevState };
+
+            if ('updatedDetails' in data) {
+              const updatedDetails = data.updatedDetails as Partial<EveryFundraiserRaisedDetails>;
+              newState = {
+                ...newState,
+                raised: typeof updatedDetails.raised === 'number' ? updatedDetails.raised : prevState.raised,
+                goal: typeof updatedDetails.goalAmount === 'number' ? updatedDetails.goalAmount : prevState.goal,
+                supporters: typeof updatedDetails.supporters === 'number' ? updatedDetails.supporters : prevState.supporters
+              };
+            }
+            if ('updatedDescription' in data) {
+              const updatedDescription = data.updatedDescription as { description: string };
+              newState = {
+                ...newState,
+                ...updatePaginatedDescription(updatedDescription.description)
+              };
+            }
+
+            return newState;
+          });
         }
       },
     });
@@ -671,7 +745,7 @@ export const FundraiserPost: CustomPostType = {
           dynamicData.goal,
           staticData.goalType,
           context,
-          width,
+          dynamicWidth,
           height,
           staticData.nonprofitInfo,
           staticData.coverImageUrl,
@@ -684,7 +758,8 @@ export const FundraiserPost: CustomPostType = {
           dynamicData.displayDescription,
           viewportConfig,
           staticData.baseFundraiserUrl,
-          staticData.fundraiserUrl
+          staticData.fundraiserUrl,
+          setDynamicWidth
         )}
       </blocks>
     );

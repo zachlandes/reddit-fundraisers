@@ -6,15 +6,33 @@ import { CachedForm } from "./CachedForm.js";
 
 /**
  * Splits a long text into pages based on the given dimensions and formatting constraints.
- * @param description The text to paginate.
+ * @param text The text to paginate.
  * @param totalHeight Total available height for the text.
  * @param lineHeight Height of each line of text.
  * @param lineWidth Width available for text on each line.
  * @param charWidth Average character width.
+ * @param padding The padding of the element containing the description.
+ * @param verticalSpacer The total height of any vertical spacers in the description-containing stack.
  * @returns An array of arrays of strings, where each inner array represents a page of text.
  */
-export function paginateText(description: string, totalHeight: number, lineHeight: number, lineWidth: number, charWidth: number): string[] {
-    const maxLinesPerPage = Math.floor((totalHeight) / lineHeight);
+export function paginateText(
+  text: string,
+  totalHeight: number,
+  lineHeight: number,
+  lineWidth: number,
+  charWidth: number,
+  padding: number,
+  verticalSpacer: number
+): string[] {
+    // console.log("Paginating text with parameters:", {
+    //     descriptionLength: description.length,
+    //     totalHeight,
+    //     lineHeight,
+    //     lineWidth,
+    //     charWidth
+    // });
+    const availableHeight = totalHeight - padding - verticalSpacer;
+    const maxLinesPerPage = Math.floor((availableHeight) / lineHeight);
     //console.log("maxLinesPerPage:", maxLinesPerPage);
     const approxCharsPerPage = maxLinesPerPage * Math.floor(lineWidth / charWidth);
     //console.log("approxCharsPerPage:", approxCharsPerPage);
@@ -74,7 +92,7 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
         charCount = 0;
     }
 
-    description.split('\n').forEach((paragraph, index) => {
+    text.split('\n').forEach((paragraph, index) => {
         const isEmptyParagraph = paragraph.trim().length === 0;
         
         // Skip empty paragraphs at the start of a page
@@ -91,7 +109,7 @@ export function paginateText(description: string, totalHeight: number, lineHeigh
                 addContentToPage(currentParagraphWords.shift()!);
             }
             // Only add a newline if it's not the last paragraph
-            if (index < description.split('\n').length - 1) {
+            if (index < text.split('\n').length - 1) {
                 addContentToPage('', true);
             }
         }
