@@ -36,10 +36,11 @@ export const Watermark: Devvit.BlockComponent<WatermarkProps> = ({ onInfoClick }
             </vstack>
           </hstack>
         </hstack>
-        <hstack>
-          <vstack onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/fundraisers-app')}>
+        <hstack alignment="middle" onPress={() => context.ui.navigateTo('https://developers.reddit.com/apps/fundraisers-app')}>
+          <text darkColor={'#cfa013'} lightColor={'#cfa01398'} selectable={false}>➕</text>
+          <vstack>
             <text size="small" darkColor="#B8C5C9" lightColor="#000" selectable={false}>
-              Details
+            Fundraise on Your Sub
             </text>
             <hstack height={'1px'} backgroundColor="#B8C5C9"></hstack>
           </vstack>

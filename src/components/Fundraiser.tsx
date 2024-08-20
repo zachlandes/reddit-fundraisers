@@ -677,7 +677,7 @@ export const FundraiserPost: CustomPostType = {
         console.log("Received message on fundraiser_updates channel:", data);
         if (typeof data === 'object' && data !== null && 'postId' in data && data.postId === postId) {
           if (isFundraiserFinished(staticData.status)) {
-            console.log(`Skipping update for completed/expired fundraiser: ${postId}`);
+            //console.log(`Skipping update for completed/expired fundraiser: ${postId}`);
             return;
           }
 
