@@ -6,7 +6,7 @@
   "type": "module",
   "dependencies": {
     "@devvit/kit": "^1.1.1",
-    "@devvit/public-api": "^0.10.18",
+    "@devvit/public-api": "0.11.0-next-2024-09-11-5db08c75b.0",
     "protobufjs": "^7.2.5",
     "string-pixel-width": "^1.11.0",
     "tldts": "^6.1.25"
