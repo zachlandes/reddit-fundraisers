@@ -30,6 +30,7 @@ interface FancyButtonProps extends Omit<Devvit.Blocks.StackProps, "onPress"> {
   icon?: Devvit.Blocks.IconProps["name"]
   iconPosition?: 'left' | 'right'
   isExpanded?: boolean
+  optionalText?: string
 }
 
 const sharedProps: Partial<FancyButtonProps> = {
@@ -50,6 +51,7 @@ export const FancyButton: Devvit.BlockComponent<FancyButtonProps> = ({
   icon,
   iconPosition = 'left',
   isExpanded = false, //animate by alternating to true
+  optionalText, 
   ...elemProps
 }) => {
   function handlePress(e: Devvit.Blocks.OnPressEvent) {
@@ -70,9 +72,18 @@ export const FancyButton: Devvit.BlockComponent<FancyButtonProps> = ({
           <vstack {...sharedProps} height={`${buttonHeight - 5}px`} backgroundColor={buttonBackgroundColor}>
             <hstack height="100%" alignment='middle center' gap="small">
               {(icon && iconPosition === 'left') ? <icon name={icon} color={textColor} /> : null}
-              <text color={textColor} size="large">
-                {children}
-              </text>
+              <vstack alignment='middle center'>
+                <text color={textColor} size="large" alignment='bottom center'>
+                  {children}
+                </text>
+                {optionalText ? (
+                  <>
+                    <text color={textColor} size="xsmall" alignment='top center'>
+                      {optionalText}
+                    </text>
+                  </>
+                ) : null}
+              </vstack>
               {(icon && iconPosition === 'right') ? <icon name={icon} color={textColor} /> : null}
             </hstack>
           </vstack>

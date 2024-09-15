@@ -456,9 +456,8 @@ export function FundraiserView(
                       backgroundColor={everyGreen}
                       textColor="white"
                       height={40}
-                      icon="external"
-                      iconPosition="right"
                       isExpanded={isButtonExpanded}
+                      optionalText="via every.org"
                       onPress={() => {
                         if (fundraiserInfo) {
                           //console.log("Navigating to fundraiser URL:", fundraiserUrl);
