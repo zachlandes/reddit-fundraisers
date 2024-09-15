@@ -88,7 +88,8 @@ export function FundraiserView(
       None,
       Description,
       NonprofitInfo,
-      FundraisersApp
+      FundraisersApp,
+      Help
     }
 
     const [currentOverlay, setCurrentOverlay] = useState<OverlayType>(OverlayType.None);
@@ -296,12 +297,6 @@ export function FundraiserView(
                             <text size="large" weight="bold" wrap={true} color='neutral-content-strong'>Fundraisers: Easy Donations on Reddit</text>
                             <text size="medium" weight="bold" color='neutral-content-strong'>What is it?</text>
                             <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit lets you donate to nonprofits directly through Reddit posts. A quick and secure way to support causes you care about.</text>
-                            <text size="medium" weight="bold" color='neutral-content-strong'>How to Donate:</text>
-                            <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                                <text wrap={true} size="small" color='neutral-content-strong'>1. Click Donate: Hit the "Donate" button in this post.</text>
-                                <text wrap={true} size="small" color='neutral-content-strong'>2. Choose Payment Method: Select from popular payment processors like PayPal, Apple Pay, or Venmo.</text>
-                                <text wrap={true} size="small" color='neutral-content-strong'>3. Complete Donation: Your donation is disbursed via Every.org, minus any processing fees. You'll get an email receipt for tax purposes.</text>
-                            </vstack>
                             <hstack alignment="start middle" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                                 <text size="small" color='neutral-content-strong'>
                                     For more information, visit the
@@ -324,6 +319,35 @@ export function FundraiserView(
                             <text wrap={true} size="small" weight="bold" color='neutral-content-strong'>Support your community's charitable goals easily and securely with Fundraisers on Reddit!</text>
                             <spacer size="xsmall" />
                             <text size="xsmall" color='neutral-content-strong' wrap={true}>Every.org is not sponsored by, endorsed by, or associated with Reddit or the Fundraisers App.</text>
+                        </vstack>
+                    </FullScreenOverlay>
+                );
+            case OverlayType.Help:
+                return (
+                    <FullScreenOverlay
+                      onClose={handleCloseOverlay}
+                      minWidth={mobileConfig.MOBILE_WIDTH}
+                      maxWidth={MAX_COLUMN_WIDTH}
+                      maxHeight={MAX_HEIGHT}
+                    >
+                        <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                          <text size="large" weight="bold" wrap={true} color='neutral-content-strong'>How to Donate</text>
+                          <spacer size="small" />
+                          <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                              <text wrap={true} size="small" color='neutral-content-strong'>1. Click the "Donate" button in this post.</text>
+                              <text wrap={true} size="small" color='neutral-content-strong'>2. Choose your preferred payment method (e.g., PayPal, credit card).</text>
+                              <text wrap={true} size="small" color='neutral-content-strong'>3. Enter your donation amount and complete the transaction.</text>
+                          </vstack>
+                          <spacer size="small" />
+                          <text size="medium" weight="bold" color='neutral-content-strong'>FAQ:</text>
+                          <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                              <text wrap={true} size="small" color='neutral-content-strong'>Q: Is my donation tax-deductible?</text>
+                              <text wrap={true} size="small" color='neutral-content-strong'>A: Yes, donations are typically tax-deductible. You'll receive a receipt for tax purposes.</text>
+                              <text wrap={true} size="small" color='neutral-content-strong'>Q: How secure is the donation process?</text>
+                              <text wrap={true} size="small" color='neutral-content-strong'>A: We use industry-standard encryption and secure payment processors to protect your information.</text>
+                          </vstack>
+                          <spacer size="small" />
+                          <text wrap={true} size="small" color='neutral-content-strong'>For more information or assistance, please contact support@every.org</text>
                         </vstack>
                     </FullScreenOverlay>
                 );
@@ -473,14 +497,14 @@ export function FundraiserView(
                 <hstack maxWidth = {`${dimensions?.width ? (dimensions.width - 110)/2 : 100}px`} width={`${dimensions?.width ? (dimensions.width - 110)/2 : 100}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   {isFundraiserFinished(status) ? (
                     <spacer grow />
-                ): (
-                  <>
-                    <vstack>
-                      <spacer size = 'medium' />
-                      <text size='xsmall' weight='bold' color='neutral-content-strong' alignment='start middle' onPress={() => handleExpandOverlay(OverlayType.FundraisersApp)}>How to donate</text>
-                    </vstack>
-                  </>
-                )}
+                  ): (
+                    <>
+                      <vstack>
+                        <spacer size = 'medium' />
+                        <text size='xsmall' weight='bold' color='neutral-content-strong' alignment='start middle' onPress={() => handleExpandOverlay(OverlayType.Help)}>How to donate</text>
+                      </vstack>
+                    </>
+                  )}
                 </hstack>
               </hstack>
             </vstack>
