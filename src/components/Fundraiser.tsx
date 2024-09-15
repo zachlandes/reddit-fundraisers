@@ -331,10 +331,12 @@ export function FundraiserView(
                       maxHeight={MAX_HEIGHT}
                     >
                         <vstack borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                          <text wrap={true} size="small" color='neutral-content-strong'>Fundraisers on Reddit lets you donate to nonprofits directly through Reddit posts, powered by the nonprofit platform every.org. It's a quick and secure way to support causes you care about.</text>
+                          <spacer size="small" />
                           <text size="large" weight="bold" wrap={true} color='neutral-content-strong'>How to Donate</text>
                           <spacer size="small" />
                           <vstack gap="small" borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                              <text wrap={true} size="small" color='neutral-content-strong'>1. Click the "Donate" button in this post.</text>
+                              <text wrap={true} size="small" color='neutral-content-strong'>1. Click the "Donate" button in this post. A new window will open with the every.org donation form.</text>
                               <text wrap={true} size="small" color='neutral-content-strong'>2. Choose your preferred payment method (e.g., PayPal, credit card).</text>
                               <text wrap={true} size="small" color='neutral-content-strong'>3. Enter your donation amount and complete the transaction.</text>
                           </vstack>
@@ -499,9 +501,12 @@ export function FundraiserView(
                     <spacer grow />
                   ): (
                     <>
-                      <vstack>
+                      <vstack onPress={() => handleExpandOverlay(OverlayType.Help)}>
                         <spacer size = 'medium' />
-                        <text size='xsmall' weight='bold' color='neutral-content-strong' alignment='start middle' onPress={() => handleExpandOverlay(OverlayType.Help)}>How to donate</text>
+                        <text size='xsmall' darkColor="#B8C5C9" lightColor="#000" selectable={false}>
+                          How to donate
+                        </text>
+                        <hstack height={'1px'} backgroundColor="#B8C5C9"></hstack>
                       </vstack>
                     </>
                   )}
