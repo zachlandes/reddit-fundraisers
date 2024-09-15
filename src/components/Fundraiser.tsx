@@ -431,15 +431,16 @@ export function FundraiserView(
             <vstack width={100} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
               <spacer grow />
               <hstack width={100} minHeight={`${43}px`} maxHeight={`${44}px`} borderColor={DEBUG_MODE ? 'blue' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                <hstack width={33} alignment='start top' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack width={`${dimensions?.width ? (dimensions.width - 110)/2 : 100}px`} grow alignment='start top' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   <spacer size='small' />
                   <vstack alignment='start top'>
                     <text size='small' wrap={true} weight='bold' color='neutral-content-strong'>
                       {supporters === 0 ? "" : `${new Intl.NumberFormat('en-US').format(supporters)} Supporters`}
                     </text>
                   </vstack>
+                  <spacer grow />
                 </hstack>
-                <hstack width={34} alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                <hstack maxWidth="110px" width="110px" alignment='center middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
                   {isFundraiserFinished(status) ? (
                     <text
                       size='small'
@@ -469,8 +470,17 @@ export function FundraiserView(
                     </FancyButton>
                   )}
                 </hstack>
-                <hstack width={32} alignment='end middle' borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
-                  <spacer grow />
+                <hstack maxWidth = {`${dimensions?.width ? (dimensions.width - 110)/2 : 100}px`} width={`${dimensions?.width ? (dimensions.width - 110)/2 : 100}px`} borderColor={DEBUG_MODE ? 'red' : 'neutral-border-weak'} border={DEBUG_MODE ? 'thin' : 'none'}>
+                  {isFundraiserFinished(status) ? (
+                    <spacer grow />
+                ): (
+                  <>
+                    <vstack>
+                      <spacer size = 'medium' />
+                      <text size='xsmall' weight='bold' color='neutral-content-strong' alignment='start middle' onPress={() => handleExpandOverlay(OverlayType.FundraisersApp)}>How to donate</text>
+                    </vstack>
+                  </>
+                )}
                 </hstack>
               </hstack>
             </vstack>
